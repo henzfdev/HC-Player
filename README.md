@@ -16,7 +16,7 @@ Instead of simply wrapping mpv in another generic frontend, HC Player integrates
 
 ### Native Windows experience
 
-HC Player is built with **Win32 and WinUI 3**, with native light/dark themes, Windows media controls, taskbar integration, file associations and a Fluent-style interface designed specifically for modern Windows.
+HC Player is built with **Win32 and WinUI**, with native light/dark themes, Windows media controls, taskbar integration, file associations and a Fluent-style interface designed specifically for modern Windows.
 
 ### High-quality mpv playback
 
