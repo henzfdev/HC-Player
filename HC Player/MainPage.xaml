@@ -1,0 +1,1015 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="HCPlayer.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:HCPlayer"
+    xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="Transparent"
+    Loaded="MainPageLoaded"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <AcrylicBrush x:Key="PlayerAcrylicBrush" TintColor="#242424"
+                                  TintOpacity="0.78" FallbackColor="#F0242424" />
+                    <SolidColorBrush x:Key="TransportButtonBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="TransportButtonBackgroundBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="TimeDisplayBackgroundBrush" Color="#12FFFFFF" />
+                    <SolidColorBrush x:Key="TimeDisplayBorderBrush" Color="#14FFFFFF" />
+                    <!-- Empty slider/progress track: lighter neutral gray in dark mode. -->
+                    <SolidColorBrush x:Key="SliderTrackFill" Color="#FF5A5D63" />
+
+                    <!-- In dark mode WinUI normally uses lighter accent variants for
+                         Slider value/Thumb resources. Keep every playback accent on the
+                         user's exact SystemAccentColor instead, matching the timeline. -->
+                    <SolidColorBrush x:Key="SliderTrackValueFill"
+                                     Color="{ThemeResource SystemAccentColor}" />
+                    <SolidColorBrush x:Key="SliderTrackValueFillPointerOver"
+                                     Color="{ThemeResource SystemAccentColor}" />
+                    <SolidColorBrush x:Key="SliderTrackValueFillPressed"
+                                     Color="{ThemeResource SystemAccentColor}" />
+                    <SolidColorBrush x:Key="SliderThumbBackground"
+                                     Color="{ThemeResource SystemAccentColor}" />
+                    <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver"
+                                     Color="{ThemeResource SystemAccentColor}" />
+                    <SolidColorBrush x:Key="SliderThumbBackgroundPressed"
+                                     Color="{ThemeResource SystemAccentColor}" />
+
+                    <SolidColorBrush x:Key="TimelineTrackBrush" Color="#28FFFFFF" />
+                    <SolidColorBrush x:Key="TimelineCacheBrush"
+                                     Color="{ThemeResource SystemAccentColorLight2}"
+                                     Opacity="0.48" />
+                    <SolidColorBrush x:Key="TimelineProgressBrush"
+                                     Color="{ThemeResource SystemAccentColor}" />
+                    <SolidColorBrush x:Key="LoopActiveBrush" Color="#79B8D7" />
+                    <SolidColorBrush x:Key="LoopInactiveBrush" Color="#F2FFFFFF" />
+                    <!-- Fluent hover card: a single opaque tonal surface avoids the
+                         1-DIP outlined rounded edge that looked aliased over video. -->
+                    <SolidColorBrush x:Key="ChapterHoverCardBrush" Color="#FF2D2F33" />
+                    <SolidColorBrush x:Key="ChapterHoverCardBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="ChapterHoverCardForegroundBrush" Color="#F2FFFFFF" />
+                    <CornerRadius x:Key="ChapterHoverCardCornerRadius">8</CornerRadius>
+                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#22FFFFFF" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#2EFFFFFF" />
+                    <SolidColorBrush x:Key="TransportTopEdgeBrush" Color="#24FFFFFF" />
+                    <SolidColorBrush x:Key="TransportMicaToneBrush" Color="#16FFFFFF" />
+                    <SolidColorBrush x:Key="MinimalTransportBackgroundBrush" Color="#802A2A2A" />
+                    <SolidColorBrush x:Key="MinimalTransportBorderBrush" Color="#00FFFFFF" />
+                    <Thickness x:Key="PlayerButtonBorderThickness">0</Thickness>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <AcrylicBrush x:Key="PlayerAcrylicBrush" TintColor="#FFFDF9"
+                  TintOpacity="0.82" FallbackColor="#F4F7F7F7" />
+
+                    <SolidColorBrush x:Key="TransportButtonBorderBrush" Color="#24000000" />
+                    <SolidColorBrush x:Key="TransportButtonBackgroundBrush" Color="Transparent" />
+
+                    <SolidColorBrush x:Key="TimeDisplayBackgroundBrush" Color="#0A000000" />
+                    <SolidColorBrush x:Key="TimeDisplayBorderBrush" Color="#12000000" />
+
+                    <SolidColorBrush x:Key="TimelineTrackBrush" Color="#64000000" />
+                    <SolidColorBrush x:Key="TimelineCacheBrush"
+                                     Color="{ThemeResource SystemAccentColorLight1}"
+                                     Opacity="0.40" />
+                    <SolidColorBrush x:Key="TimelineProgressBrush"
+                                     Color="{ThemeResource SystemAccentColor}" />
+                    <SolidColorBrush x:Key="LoopActiveBrush" Color="#3B6C9C" />
+                    <SolidColorBrush x:Key="LoopInactiveBrush" Color="#E4000000" />
+                    <SolidColorBrush x:Key="ChapterHoverCardBrush" Color="#FFDEDEDE" />
+                    <SolidColorBrush x:Key="ChapterHoverCardBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="ChapterHoverCardForegroundBrush" Color="#F0000000" />
+                    <!-- Light-only: a slightly tighter curve reduces the visible
+                         raster stair-step on this small high-contrast hover card.
+                         Dark keeps the approved radius 8 unchanged. -->
+                    <CornerRadius x:Key="ChapterHoverCardCornerRadius">6</CornerRadius>
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#0F000000" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#18000000" />
+                    <SolidColorBrush x:Key="TransportTopEdgeBrush" Color="#0A000000" />
+                    <SolidColorBrush x:Key="TransportMicaToneBrush" Color="#00FFFFFF" />
+                    <SolidColorBrush x:Key="MinimalTransportBackgroundBrush" Color="#88F5F5F5" />
+                    <SolidColorBrush x:Key="MinimalTransportBorderBrush" Color="#00000000" />
+                    <Thickness x:Key="PlayerButtonBorderThickness">1</Thickness>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <!-- Dark controls use a quiet tonal surface instead of a 1px
+                 translucent outline. This keeps their silhouette visible on
+                 acrylic without exposing edge rasterization on rounded corners. -->
+            <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="BorderBrush" Value="{ThemeResource TransportButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="{ThemeResource PlayerButtonBorderThickness}" />
+                <Setter Property="Background" Value="{ThemeResource TransportButtonBackgroundBrush}" />
+                <Setter Property="CornerRadius" Value="8" />
+            </Style>
+            <Style x:Key="TransportIconButton" TargetType="Button">
+                <Setter Property="Width" Value="36" />
+                <Setter Property="Height" Value="34" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="BorderBrush"
+            Value="{ThemeResource TransportButtonBorderBrush}" />
+                <Setter Property="BorderThickness"
+            Value="{ThemeResource PlayerButtonBorderThickness}" />
+                <Setter Property="Background"
+            Value="{ThemeResource TransportButtonBackgroundBrush}" />
+            </Style>
+            <Style x:Key="TransportBottomIconButton" TargetType="Button"
+                   BasedOn="{StaticResource TransportIconButton}">
+                <Setter Property="Width" Value="40" />
+                <Setter Property="Height" Value="38" />
+            </Style>
+            <Style x:Key="MinimalTransportButton" TargetType="Button"
+                   BasedOn="{StaticResource TransportIconButton}">
+                <Setter Property="Width" Value="34" />
+                <Setter Property="Height" Value="34" />
+                <Setter Property="CornerRadius" Value="7" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+            </Style>
+            <!-- Same compact presenter padding already proven by the HC Player
+                 context menu. With real icons present, this removes the extra
+                 empty lane at the left edge of the Minimal ... flyout. -->
+            <Style x:Key="MinimalCompactMenuPresenterStyle"
+                   TargetType="MenuFlyoutPresenter"
+                   BasedOn="{StaticResource DefaultMenuFlyoutPresenterStyle}">
+                <Setter Property="Padding" Value="1,3" />
+            </Style>
+        </ResourceDictionary>
+    </Page.Resources>
+
+    <Grid x:Name="TransportHitArea"
+          Background="Transparent"
+          PointerEntered="TransportPointerEntered"
+          PointerExited="TransportPointerExited">
+        <Grid x:Name="TransportRoot"
+              SizeChanged="TransportRootSizeChanged"
+              Background="{ThemeResource TransportMicaToneBrush}"
+              BorderBrush="{ThemeResource TransportTopEdgeBrush}"
+              BorderThickness="0,0.5,0,0"
+              Padding="10,8,10,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid x:Name="InformationRow" ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button x:Uid="MainPageOpenButton" x:Name="OpenButton"
+                        Click="OpenClicked"
+                        CornerRadius="8"
+                        Padding="12,5"
+                        ToolTipService.ToolTip="Abrir arquivos">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8E5;" />
+                        <TextBlock x:Uid="MainPageOpenText" Text="Abrir" />
+                    </StackPanel>
+                    <Button.ContextFlyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft"
+                                    Opened="TransportFlyoutOpened"
+                                    Closed="TransportFlyoutClosed">
+                            <MenuFlyoutItem x:Uid="MainPageOpenFolderItem" Text="Abrir pasta"
+                                            Click="OpenFolderClicked">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8B7;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.ContextFlyout>
+                </Button>
+
+                <Grid x:Name="InformationCenterGrid" Grid.Column="1"
+      ColumnSpacing="12"
+      VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Uid="MainPageNowPlayingText" x:Name="NowPlayingText"
+                   Text="Nenhuma m&#xED;dia aberta"
+                   FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="EngineStatusText"
+                   FontSize="12"
+                   Opacity="0.65"
+                   Visibility="Collapsed" />
+                    </StackPanel>
+                    <StackPanel x:Name="MediaBadgesHost"
+            Grid.Column="1"
+            Orientation="Horizontal"
+            Spacing="10"
+            Margin="0,0,18,0"
+            VerticalAlignment="Center"
+            Visibility="Collapsed"
+            IsHitTestVisible="False">
+
+                        <Border x:Name="HlsSourceBadge"
+                                Height="24"
+                                Padding="7,2"
+                                CornerRadius="6"
+                                Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed"
+                                AutomationProperties.Name="HLS">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="5"
+                                        VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE704;"
+                                          FontSize="12"
+                                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                <TextBlock Text="HLS"
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Uid="MainPageLiveSourceBadge"
+                                x:Name="LiveSourceBadge"
+                                Height="24"
+                                Padding="7,2"
+                                CornerRadius="6"
+                                Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed"
+                                AutomationProperties.Name="Ao vivo">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="5"
+                                        VerticalAlignment="Center">
+                                <Ellipse Width="6"
+                                         Height="6"
+                                         Fill="#E81123"
+                                         VerticalAlignment="Center" />
+                                <TextBlock x:Uid="MainPageLiveSourceBadgeText"
+                                           Text="AO VIVO"
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <Image x:Name="SourceBadgeImage"
+           Height="22"
+           MaxWidth="132"
+           Stretch="Uniform"
+           VerticalAlignment="Center" />
+
+                        <Border x:Name="SourceBadgeDivider"
+            Width="1"
+            Height="14"
+            VerticalAlignment="Center"
+            Background="{ThemeResource TextFillColorSecondaryBrush}"
+            Opacity="0.22"
+            Visibility="Collapsed" />
+
+                        <Image x:Name="VideoBadgeImage"
+           Height="22"
+           MaxWidth="132"
+           Stretch="Uniform"
+           VerticalAlignment="Center" />
+
+                        <Border x:Name="MediaBadgeDivider"
+            Width="1"
+            Height="14"
+            VerticalAlignment="Center"
+            Background="{ThemeResource TextFillColorSecondaryBrush}"
+            Opacity="0.22"
+            Visibility="Collapsed" />
+
+                        <Image x:Name="AudioBadgeImage"
+           Height="22"
+           MaxWidth="132"
+           Stretch="Uniform"
+           VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel x:Name="InformationActions" Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                    <Button x:Uid="MainPageCaptureButton" x:Name="CaptureButton"
+                            Style="{StaticResource TransportIconButton}"
+                            Visibility="Collapsed"
+                            Click="CaptureClicked"
+                            AutomationProperties.Name="Capturar tela"
+                            ToolTipService.ToolTip="Capturar tela (clique direito para mais op&#xE7;&#xF5;es)">
+                        <Grid Width="18" Height="18">
+                            <!-- Visual-only capture feedback. The pulse follows the
+                                 Windows accent already used by the player timeline. -->
+                            <Border x:Name="CapturePulse"
+                                    Width="16" Height="16"
+                                    CornerRadius="8"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    BorderBrush="{ThemeResource TimelineProgressBrush}"
+                                    BorderThickness="1"
+                                    Opacity="0"
+                                    IsHitTestVisible="False" />
+                            <FontIcon x:Name="CaptureIcon"
+                                      Glyph="&#xE722;"
+                                      FontSize="14"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                        </Grid>
+                        <Button.ContextFlyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight"
+                                        Opened="TransportFlyoutOpened"
+                                        Closed="TransportFlyoutClosed">
+                                <MenuFlyoutItem x:Uid="MainPageCaptureWithSubtitlesItem" Text="Capturar tela" Click="CaptureWithSubtitlesClicked">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE722;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem x:Uid="MainPageCaptureVideoOnlyItem" Text="Capturar sem legendas" Click="CaptureVideoOnlyClicked" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem x:Uid="MainPageOpenCaptureFolderItem" Text="Abrir pasta de capturas" Click="OpenCaptureFolderClicked">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE8B7;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Button.ContextFlyout>
+                    </Button>
+                    <Button x:Uid="MainPageSettingsButton" x:Name="SettingsButton"
+                            Style="{StaticResource TransportIconButton}"
+                            Click="SettingsClicked"
+                            PointerEntered="SettingsPointerEntered"
+                            PointerExited="SettingsPointerExited"
+                            AnimatedIcon.State="Normal"
+                            ToolTipService.ToolTip="Configura&#xE7;&#xF5;es">
+                        <AnimatedIcon Width="16" Height="16">
+                            <AnimatedIcon.Source>
+                                <animatedvisuals:AnimatedSettingsVisualSource />
+                            </AnimatedIcon.Source>
+                            <AnimatedIcon.FallbackIconSource>
+                                <FontIconSource Glyph="&#xE713;" FontSize="14" />
+                            </AnimatedIcon.FallbackIconSource>
+                        </AnimatedIcon>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Time is grouped with volume below, so the seek surface can
+                 occupy the complete width of this row. -->
+            <Grid x:Name="TimelineRow" Grid.Row="1" Margin="0,4,0,0"
+                  Visibility="Collapsed"
+                  SizeChanged="TimelineSizeChanged">
+                <Grid>
+                    <!-- Each chapter is rendered as an independent rounded
+                         segment. Visual geometry is intentionally kept identical
+                         to the approved backup. Mouse seeking is owned by the
+                         zero-measure TimelineInputSurface below. -->
+                    <Canvas x:Name="ChapterMarkers"
+                            Height="8" Margin="9,0"
+                            IsHitTestVisible="False"
+                            VerticalAlignment="Center" />
+                    <!-- The optional filled style uses a Windows 10-like
+                         vertical thumb positioned from the playback clock. -->
+                    <Canvas x:Name="FilledTimelineOverlay"
+                            Height="24" Margin="10,0"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed"
+                            VerticalAlignment="Center">
+                        <Border x:Name="FilledTimelinePositionMarker"
+                                Width="12" Height="24"
+                                CornerRadius="6"
+                                BorderThickness="1"
+                                BorderBrush="{ThemeResource SliderThumbBorderBrush}"
+                                Background="{ThemeResource SliderOuterThumbBackground}"
+                                Visibility="Collapsed">
+                            <Border Width="4" Height="16"
+                                    CornerRadius="2"
+                                    Background="{ThemeResource TimelineProgressBrush}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                        </Border>
+                    </Canvas>
+                    <Slider x:Name="PositionSlider"
+                            Minimum="0" Maximum="100"
+                            Background="Transparent"
+                            Foreground="Transparent"
+                            IsThumbToolTipEnabled="False"
+                            ValueChanged="PositionChanged"
+                            VerticalAlignment="Center">
+                        <Slider.Resources>
+                            <SolidColorBrush x:Key="SliderTrackFill" Color="Transparent" />
+                            <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="Transparent" />
+                            <SolidColorBrush x:Key="SliderTrackFillPressed" Color="Transparent" />
+                            <SolidColorBrush x:Key="SliderTrackValueFill" Color="Transparent" />
+                            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="Transparent" />
+                            <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="Transparent" />
+                        </Slider.Resources>
+                    </Slider>
+                    <!-- This transparent Border has no Height/Width/Margin/MinHeight,
+                         so it contributes zero desired size and cannot change the
+                         approved timeline/transport geometry. It only receives mouse input. -->
+                    <Border x:Name="TimelineInputSurface"
+                            Background="Transparent"
+                            Height="18"
+                            VerticalAlignment="Center"
+                            PointerPressed="TimelinePointerPressed"
+                            PointerMoved="TimelinePointerMoved"
+                            PointerReleased="TimelinePointerReleased"
+                            PointerExited="TimelinePointerExited"
+                            PointerCaptureLost="TimelinePointerCaptureLost" />
+
+                    <Canvas x:Name="TimelineHoverOverlay"
+                            IsHitTestVisible="False">
+                        <!-- The chapter/time tooltip is a Popup rather than a
+                             negative-Y Canvas child. This lets Bar Compact keep
+                             its approved 94-DIP height without clipping the
+                             tooltip above the transport. -->
+                        <Popup x:Name="ChapterHoverPopup"
+                               IsLightDismissEnabled="False"
+                               ShouldConstrainToRootBounds="False">
+                            <Border x:Name="ChapterHoverCard"
+                                    Visibility="Collapsed"
+                                    MaxWidth="330"
+                                    Padding="11,6"
+                                    CornerRadius="{ThemeResource ChapterHoverCardCornerRadius}"
+                                    Background="{ThemeResource ChapterHoverCardBrush}"
+                                    BorderBrush="{ThemeResource ChapterHoverCardBorderBrush}"
+                                    BorderThickness="0"
+                                    UseLayoutRounding="True">
+                                <!-- One text run guarantees a shared baseline for
+                                     chapter title, separator and hovered time. -->
+                                <TextBlock x:Name="ChapterHoverText"
+                                           MaxWidth="310"
+                                           FontSize="12"
+                                           FontFamily="Segoe UI Variable Text"
+                                           FontWeight="Normal"
+                                           Foreground="{ThemeResource ChapterHoverCardForegroundBrush}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           TextWrapping="NoWrap" />
+                            </Border>
+                        </Popup>
+
+                        <Popup x:Name="ThumbnailPreviewPopup"
+                               IsLightDismissEnabled="False"
+                               ShouldConstrainToRootBounds="False">
+                            <Border x:Name="ThumbnailPreviewCard"
+                                    IsHitTestVisible="False"
+                                    Width="300"
+                                    MaxWidth="300"
+                                    CornerRadius="8"
+                                    Background="#FF080808"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    UseLayoutRounding="True">
+                                <Image x:Name="ThumbnailPreviewImage"
+                                       Width="300"
+                                       Height="169"
+                                       Stretch="Uniform"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       UseLayoutRounding="True" />
+                            </Border>
+                        </Popup>
+                    </Canvas>
+                </Grid>
+
+            </Grid>
+
+            <Grid x:Name="PlaybackControlsRow" Grid.Row="2"
+                  Margin="0,8,0,0" ColumnSpacing="10"
+                  Translation="0,0,0"
+                  SizeChanged="PlaybackControlsSizeChanged"
+                  Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel x:Name="PlaybackButtons"
+                            Orientation="Horizontal" Spacing="5">
+                    <Button x:Uid="MainPagePreviousChapterButton" x:Name="PreviousChapterButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="PreviousChapterClicked"
+                            ToolTipService.ToolTip="Cap&#xED;tulo anterior">
+                        <FontIcon Glyph="&#xE892;" FontSize="15" />
+                    </Button>
+                    <Button x:Uid="MainPageSeekBackwardButton" x:Name="SeekBackwardButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="SeekBackwardClicked"
+                            ToolTipService.ToolTip="Voltar 10 segundos">
+                        <TextBlock Text="&#x2212;10" FontSize="13" FontWeight="SemiBold" />
+                    </Button>
+                    <Button x:Uid="MainPagePlayButton" x:Name="PlayButton" Click="PlayClicked"
+                            Width="40" Height="40" Padding="0" CornerRadius="20"
+                            ToolTipService.ToolTip="Reproduzir/Pausar">
+                        <FontIcon x:Name="PlayIcon" Glyph="&#xE768;" FontSize="16" />
+                    </Button>
+                    <Button x:Uid="MainPageSeekForwardButton" x:Name="SeekForwardButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="SeekForwardClicked"
+                            ToolTipService.ToolTip="Avan&#xE7;ar 10 segundos">
+                        <TextBlock Text="+10" FontSize="13" FontWeight="SemiBold" />
+                    </Button>
+                    <Button x:Uid="MainPageNextChapterButton" x:Name="NextChapterButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="NextChapterClicked"
+                            ToolTipService.ToolTip="Pr&#xF3;ximo cap&#xED;tulo">
+                        <FontIcon Glyph="&#xE893;" FontSize="15" />
+                    </Button>
+                    <Button x:Uid="MainPageShuffleButton" x:Name="ShuffleButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="ShuffleClicked"
+                            AutomationProperties.Name="Reprodu&#xE7;&#xE3;o aleat&#xF3;ria"
+                            ToolTipService.ToolTip="Ativar reprodu&#xE7;&#xE3;o aleat&#xF3;ria">
+                        <FontIcon x:Name="ShuffleIcon"
+                                  Glyph="&#xE8B1;"
+                                  FontSize="15" />
+                    </Button>
+                    <Button x:Uid="MainPageMediaInfoButton" x:Name="MediaInfoButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="MediaInfoClicked"
+                            AutomationProperties.Name="Informações de mídia"
+                            ToolTipService.ToolTip="Informações de mídia">
+                        <FontIcon x:Name="MediaInfoIcon"
+                                  Glyph="&#xE8A5;"
+                                  FontSize="15" />
+                    </Button>
+                    <Button x:Uid="MainPageLoopButton" x:Name="LoopButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="LoopClicked"
+                            AutomationProperties.Name="Repetir v&#xED;deo"
+                            ToolTipService.ToolTip="Ativar repeti&#xE7;&#xE3;o">
+                        <Viewbox Width="14" Height="14">
+                            <SymbolIcon x:Name="LoopIcon" Symbol="Sync" />
+                        </Viewbox>
+                    </Button>
+                </StackPanel>
+
+                <Grid x:Uid="MainPageTimeDisplayHost" x:Name="TimeDisplayHost"
+      Grid.Column="1"
+      MinWidth="102"
+      Margin="84,0,0,0"
+      Translation="0,1.5,0"
+      HorizontalAlignment="Left"
+      VerticalAlignment="Center"
+      ToolTipService.ToolTip="Opções de exibição do tempo">
+
+                    <Grid.ContextFlyout>
+                        <MenuFlyout x:Name="TimeDisplayFlyout"
+                    Opening="TimeDisplayFlyoutOpening">
+
+                            <ToggleMenuFlyoutItem x:Uid="MainPageRemainingTimeItem" x:Name="RemainingTimeItem"
+                                  Text="Tempo restante"
+                                  Click="RemainingTimeClicked" />
+
+                            <ToggleMenuFlyoutItem x:Uid="MainPageHighPrecisionTimeItem" x:Name="HighPrecisionTimeItem"
+                                  Text="Alta precisão"
+                                  Click="HighPrecisionTimeClicked" />
+
+                            <ToggleMenuFlyoutItem x:Uid="MainPageShowPercentageItem" x:Name="ShowPercentageItem"
+                                  Text="Mostrar porcentagem"
+                                  Click="ShowPercentageClicked" />
+
+                        </MenuFlyout>
+                    </Grid.ContextFlyout>
+
+                    <Border Padding="10,5,10,4"
+                            CornerRadius="8"
+                            BorderThickness="0"
+                            Background="{ThemeResource TimeDisplayBackgroundBrush}">
+                        <TextBlock x:Name="ElapsedTimeText"
+                                   Text="00:00 / 00:00"
+                                   FontFamily="Segoe UI Variable Text"
+                                   FontSize="14"
+                                   FontWeight="Normal"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Typography.NumeralAlignment="Tabular"
+                                   TextAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+
+                </Grid>
+
+                <!-- Compact Bar reuses the exact same badge host. The existing
+                     Capture button is reparented directly into RightControls
+                     between Tracks and Stats, so neither control logic nor state
+                     is duplicated. -->
+                <StackPanel x:Name="CompactBarExtras"
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="6"
+                            Margin="0,0,28,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed">
+                    <StackPanel x:Name="CompactBadgeSlot"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel x:Name="RightControls" Grid.Column="2"
+                            Orientation="Horizontal" Spacing="6">
+                    <FontIcon x:Name="VolumeIcon" Glyph="&#xE995;"
+                              FontSize="19" VerticalAlignment="Center"
+                              Tapped="VolumeIconTapped" />
+                    <Grid x:Name="VolumeSliderHost"
+                          Width="92" Margin="0,0,10,0"
+                          SizeChanged="VolumeSliderSizeChanged">
+                        <!-- The native Slider track spans the whole control,
+                             although its thumb centres stop 9 px inside it.
+                             Draw the standard track on those same endpoints so
+                             neither 0% nor 100% leaves a loose tail. -->
+                        <Grid x:Name="StandardVolumeTrackHost"
+                              Height="4" Margin="9,0"
+                              IsHitTestVisible="False"
+                              VerticalAlignment="Center">
+                            <Border CornerRadius="2"
+                                    Background="{ThemeResource SliderTrackFill}" />
+                            <Border x:Name="StandardVolumeValueTrack"
+                                    Width="0" CornerRadius="2"
+                                    HorizontalAlignment="Left"
+                                    Background="{ThemeResource SliderTrackValueFill}" />
+                        </Grid>
+                        <Slider x:Name="StandardVolumeSlider" Width="92"
+                                Minimum="0" Maximum="100" Value="100"
+                                Background="Transparent"
+                                Foreground="Transparent"
+                                ValueChanged="VolumeChanged"
+                                VerticalAlignment="Center">
+                            <Slider.Resources>
+                                <!-- Keep the standard WinUI thumb and input
+                                     behaviour; only its overlong native track
+                                     is replaced by the aligned track above. -->
+                                <SolidColorBrush x:Key="SliderTrackFill" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackFillPressed" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackValueFill" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="Transparent" />
+                            </Slider.Resources>
+                        </Slider>
+                        <!-- The filled style uses the same endpoint rule as
+                             its 12 px capsule: the track runs from centre to
+                             centre, never underneath an exposed tail. -->
+                        <Grid x:Name="FilledVolumeTrackHost"
+                              Height="4" Margin="6,0"
+                              IsHitTestVisible="False"
+                              Visibility="Collapsed"
+                              VerticalAlignment="Center">
+                            <Border CornerRadius="2"
+                                    Background="{ThemeResource SliderTrackFill}" />
+                            <Border x:Name="FilledVolumeValueTrack"
+                                    Width="0" CornerRadius="2"
+                                    HorizontalAlignment="Left"
+                                    Background="{ThemeResource SliderTrackValueFill}" />
+                        </Grid>
+                        <Slider x:Name="VolumeSlider" Width="92"
+                                Minimum="0" Maximum="100" Value="100"
+                                Background="Transparent"
+                                Foreground="Transparent"
+                                Opacity="0"
+                                ValueChanged="VolumeChanged"
+                                PointerEntered="VolumeSliderPointerEntered"
+                                PointerExited="VolumeSliderPointerExited"
+                                Visibility="Collapsed"
+                                VerticalAlignment="Center">
+                            <Slider.Resources>
+                                <!-- Keep the native track and input behavior,
+                                     but draw the same clock-synchronised thumb
+                                     used by the filled timeline above it. -->
+                                <x:Double x:Key="SliderHorizontalThumbWidth">8</x:Double>
+                                <x:Double x:Key="SliderHorizontalThumbHeight">20</x:Double>
+                                <SolidColorBrush x:Key="SliderOuterThumbBackground" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderThumbBorderBrush" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderThumbBackground" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderThumbBackgroundDisabled" Color="Transparent" />
+                            </Slider.Resources>
+                        </Slider>
+                        <Canvas x:Name="VolumeSliderOverlay"
+                                Height="24"
+                                IsHitTestVisible="False"
+                                Visibility="Collapsed"
+                                VerticalAlignment="Center">
+                            <Border x:Name="VolumeSliderPositionMarker"
+                                    Width="12" Height="24"
+                                    CornerRadius="6"
+                                    BorderThickness="1"
+                                    BorderBrush="{ThemeResource SliderThumbBorderBrush}"
+                                    Background="{ThemeResource SliderOuterThumbBackground}">
+                                <Border Width="4" Height="16"
+                                        CornerRadius="2"
+                                        Background="{ThemeResource TimelineProgressBrush}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                            </Border>
+                        </Canvas>
+                    </Grid>
+                    <Button x:Uid="MainPageSpeedButton" x:Name="SpeedButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Width="46" MinWidth="46" MaxWidth="46"
+                            ToolTipService.ToolTip="Velocidade de reprodu&#xE7;&#xE3;o">
+                        <TextBlock x:Name="SpeedText" Text="1&#xD7;"
+                                   FontSize="13" FontWeight="SemiBold" />
+                        <Button.Flyout>
+                            <MenuFlyout x:Name="SpeedFlyout" Placement="Top"
+                                        Opening="SpeedFlyoutOpening"
+                                        Opened="TransportFlyoutOpened"
+                                        Closed="TransportFlyoutClosed" />
+                        </Button.Flyout>
+                    </Button>
+
+                    <Button x:Uid="MainPageProfilesButton" x:Name="ProfilesButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Visibility="Collapsed"
+                            AutomationProperties.Name="Perfis de reprodução"
+                            ToolTipService.ToolTip="Perfis de reprodução">
+                        <FontIcon Glyph="&#xE9E9;" FontSize="16" />
+                        <Button.Flyout>
+                            <MenuFlyout x:Name="ProfilesFlyout" Placement="Top"
+                                        Opening="ProfilesFlyoutOpening"
+                                        Opened="TransportFlyoutOpened"
+                                        Closed="TransportFlyoutClosed" />
+                        </Button.Flyout>
+                    </Button>
+
+                    <Button x:Uid="MainPageTracksButton" x:Name="TracksButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            AutomationProperties.Name="&#xC1;udio e legendas"
+                            ToolTipService.ToolTip="&#xC1;udio e legendas">
+                        <Viewbox Width="15" Height="15">
+                            <SymbolIcon Symbol="ClosedCaption" />
+                        </Viewbox>
+                        <Button.Flyout>
+                            <MenuFlyout x:Name="TracksFlyout" Placement="Top"
+                                        Opening="TracksFlyoutOpening"
+                                        Opened="TransportFlyoutOpened"
+                                        Closed="TransportFlyoutClosed" />
+                        </Button.Flyout>
+                    </Button>
+                    <Button x:Uid="MainPageStatsButton" x:Name="StatsButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="StatsClicked"
+                            AutomationProperties.Name="Estat&#xED;sticas de reprodu&#xE7;&#xE3;o"
+                            ToolTipService.ToolTip="Estat&#xED;sticas de reprodu&#xE7;&#xE3;o">
+                        <FontIcon Glyph="&#xE9D9;" FontSize="16" />
+                    </Button>
+                    <Button x:Uid="MainPagePipButton" x:Name="PipButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Click="PipClicked"
+                            ToolTipService.ToolTip="Picture-in-Picture">
+                        <FontIcon x:Name="PipIcon" Glyph="&#xE8A7;" FontSize="16" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Optional minimal transport: a single compact Fluent pill over the
+                 video. It reuses the same playback handlers/bridge as the normal
+                 transport and is shown only while media is open. -->
+            <Border x:Name="MinimalTransportBar"
+                    Grid.RowSpan="3"
+                    Height="50"
+                    MaxWidth="860"
+                    Margin="18,0"
+                    Padding="8,5"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    CornerRadius="8"
+                    Background="{ThemeResource MinimalTransportBackgroundBrush}"
+                    BorderBrush="{ThemeResource MinimalTransportBorderBrush}"
+                    BorderThickness="1"
+                    Visibility="Collapsed"
+                    SizeChanged="MinimalTransportBarSizeChanged">
+                <Grid ColumnSpacing="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Uid="MainPageMinimalPlayButton"
+                            x:Name="MinimalPlayButton"
+                            Grid.Column="0"
+                            Width="36" Height="36" Padding="0" CornerRadius="18"
+                            Click="PlayClicked"
+                            ToolTipService.ToolTip="Reproduzir/Pausar">
+                        <FontIcon x:Name="MinimalPlayIcon" Glyph="&#xE768;" FontSize="15" />
+                    </Button>
+
+                    <Button x:Uid="MainPageMinimalSeekBackwardButton"
+                            x:Name="MinimalSeekBackwardButton"
+                            Grid.Column="1"
+                            Style="{StaticResource MinimalTransportButton}"
+                            Click="SeekBackwardClicked"
+                            ToolTipService.ToolTip="Voltar 10 segundos">
+                        <TextBlock Text="&#x2212;10" FontSize="12" FontWeight="SemiBold" />
+                    </Button>
+
+                    <Button x:Uid="MainPageMinimalSeekForwardButton"
+                            x:Name="MinimalSeekForwardButton"
+                            Grid.Column="2"
+                            Style="{StaticResource MinimalTransportButton}"
+                            Click="SeekForwardClicked"
+                            ToolTipService.ToolTip="Avan&#xE7;ar 10 segundos">
+                        <TextBlock Text="+10" FontSize="12" FontWeight="SemiBold" />
+                    </Button>
+
+                    <Button x:Uid="MainPageMinimalLoopButton"
+                            x:Name="MinimalLoopButton"
+                            Grid.Column="3"
+                            Style="{StaticResource MinimalTransportButton}"
+                            Click="LoopClicked"
+                            AutomationProperties.Name="Repetir vídeo"
+                            ToolTipService.ToolTip="Ativar repetição">
+                        <Viewbox Width="14" Height="14">
+                            <SymbolIcon x:Name="MinimalLoopIcon" Symbol="Sync" />
+                        </Viewbox>
+                    </Button>
+
+                    <TextBlock x:Name="MinimalCurrentTimeText"
+                               Grid.Column="4"
+                               MinWidth="42"
+                               Text="0:00"
+                               FontFamily="Segoe UI Variable Text"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Typography.NumeralAlignment="Tabular"
+                               VerticalAlignment="Center"
+                               TextAlignment="Right" />
+
+                    <Grid x:Name="MinimalTimelineHost"
+                          Grid.Column="5"
+                          MinWidth="100"
+                          Margin="2,0"
+                          SizeChanged="MinimalTimelineSizeChanged">
+                        <!-- Same chapter-segment timeline language as the normal
+                             transport. The segment gap/height/radius follow the
+                             user's HC Player vs Windows 11 progress-bar style. -->
+                        <Canvas x:Name="MinimalChapterMarkers"
+                                Height="8" Margin="14,0"
+                                IsHitTestVisible="False"
+                                VerticalAlignment="Center" />
+                        <Canvas x:Name="MinimalFilledTimelineOverlay"
+                                Height="24" Margin="14,0"
+                                IsHitTestVisible="False"
+                                Visibility="Collapsed"
+                                VerticalAlignment="Center">
+                            <Border x:Name="MinimalFilledTimelinePositionMarker"
+                                    Width="12" Height="24"
+                                    CornerRadius="6"
+                                    BorderThickness="1"
+                                    BorderBrush="{ThemeResource SliderThumbBorderBrush}"
+                                    Background="{ThemeResource SliderOuterThumbBackground}"
+                                    Visibility="Collapsed">
+                                <Border Width="4" Height="16"
+                                        CornerRadius="2"
+                                        Background="{ThemeResource TimelineProgressBrush}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                            </Border>
+                        </Canvas>
+                        <Slider x:Name="MinimalPositionSlider"
+                                Minimum="0" Maximum="100" Value="0"
+                                IsThumbToolTipEnabled="False"
+                                ValueChanged="PositionChanged"
+                                PointerEntered="MinimalTimelinePointerEntered"
+                                PointerPressed="MinimalTimelinePointerPressed"
+                                PointerMoved="MinimalTimelinePointerMoved"
+                                PointerExited="MinimalTimelinePointerExited"
+                                VerticalAlignment="Center">
+                            <!-- The track itself is rendered by MinimalChapterMarkers,
+                                 exactly like PositionSlider in the normal bar. In
+                                 Windows 11 mode the native circular thumb remains. -->
+                            <Slider.Resources>
+                                <SolidColorBrush x:Key="SliderTrackFill" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackFillPressed" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackValueFill" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="Transparent" />
+                            </Slider.Resources>
+                        </Slider>
+
+                        <!-- Same lightweight time/chapter card used by the normal
+                             transport. Popup keeps it outside the 50-DIP native
+                             Minimal host, so it can float cleanly above the pill. -->
+                        <Canvas x:Name="MinimalTimelineHoverOverlay"
+                                IsHitTestVisible="False">
+                            <Popup x:Name="MinimalTimelineHoverPopup"
+                                   IsLightDismissEnabled="False"
+                                   ShouldConstrainToRootBounds="False">
+                                <Border x:Name="MinimalTimelineHoverCard"
+                                        IsHitTestVisible="False"
+                                        MaxWidth="330"
+                                        Padding="11,6"
+                                        CornerRadius="{ThemeResource ChapterHoverCardCornerRadius}"
+                                        Background="{ThemeResource ChapterHoverCardBrush}"
+                                        BorderBrush="{ThemeResource ChapterHoverCardBorderBrush}"
+                                        BorderThickness="0"
+                                        UseLayoutRounding="True">
+                                    <TextBlock x:Name="MinimalTimelineHoverText"
+                                               MaxWidth="310"
+                                               FontSize="12"
+                                               FontFamily="Segoe UI Variable Text"
+                                               FontWeight="Normal"
+                                               Foreground="{ThemeResource ChapterHoverCardForegroundBrush}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               TextWrapping="NoWrap" />
+                                </Border>
+                            </Popup>
+                        </Canvas>
+                    </Grid>
+
+                    <TextBlock x:Name="MinimalDurationTimeText"
+                               Grid.Column="6"
+                               MinWidth="42"
+                               Text="--:--"
+                               FontFamily="Segoe UI Variable Text"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Typography.NumeralAlignment="Tabular"
+                               VerticalAlignment="Center" />
+
+                    <Button x:Uid="MainPageMinimalTracksButton"
+                            x:Name="MinimalTracksButton"
+                            Grid.Column="7"
+                            Style="{StaticResource MinimalTransportButton}"
+                            AutomationProperties.Name="&#xC1;udio e legendas"
+                            ToolTipService.ToolTip="&#xC1;udio e legendas">
+                        <Viewbox Width="15" Height="15">
+                            <SymbolIcon Symbol="ClosedCaption" />
+                        </Viewbox>
+                        <Button.Flyout>
+                            <MenuFlyout x:Name="MinimalTracksFlyout"
+                                        Placement="Top"
+                                        Opening="TracksFlyoutOpening"
+                                        Opened="TransportFlyoutOpened"
+                                        Closed="TransportFlyoutClosed" />
+                        </Button.Flyout>
+                    </Button>
+
+                    <Button x:Uid="MainPageMinimalSpeedButton"
+                            x:Name="MinimalSpeedButton"
+                            Grid.Column="8"
+                            Style="{StaticResource MinimalTransportButton}"
+                            Width="42" MinWidth="42" MaxWidth="42"
+                            AutomationProperties.Name="Velocidade"
+                            ToolTipService.ToolTip="Velocidade de reprodução">
+                        <TextBlock x:Name="MinimalSpeedText" Text="1&#xD7;"
+                                   FontSize="12" FontWeight="SemiBold" />
+                        <Button.Flyout>
+                            <MenuFlyout x:Name="MinimalSpeedFlyout"
+                                        Placement="Top"
+                                        Opening="SpeedFlyoutOpening"
+                                        Opened="TransportFlyoutOpened"
+                                        Closed="TransportFlyoutClosed" />
+                        </Button.Flyout>
+                    </Button>
+
+                    <Button x:Uid="MainPageMinimalMoreButton"
+                            x:Name="MinimalMoreButton"
+                            Grid.Column="9"
+                            Style="{StaticResource MinimalTransportButton}"
+                            ToolTipService.ToolTip="Mais controles">
+                        <FontIcon Glyph="&#xE712;" FontSize="17" />
+                        <Button.Flyout>
+                            <MenuFlyout x:Name="MinimalMoreFlyout"
+                                        Placement="TopEdgeAlignedRight"
+                                        MenuFlyoutPresenterStyle="{StaticResource MinimalCompactMenuPresenterStyle}"
+                                        Opening="MinimalMoreFlyoutOpening"
+                                        Opened="TransportFlyoutOpened"
+                                        Closed="TransportFlyoutClosed" />
+                        </Button.Flyout>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
+
+
+
+

@@ -1,0 +1,36 @@
+HC Player multimedia stack — release notice
+
+The HC Player 1.0 release candidate uses the following audited multimedia
+binary:
+
+  libmpv-2.dll SHA-256
+  38acd030006062830d792a958c5f2adc293fa965996797980ec73d9610c309f4
+
+The DLL identifies:
+
+  mpv:    v0.41.0-85-g468d34c9b
+  FFmpeg: N-122476-g685ceebd4
+
+The mpv project is GPL-2.0-or-later by default. This build has the mpv "gpl"
+feature enabled.
+
+The FFmpeg build recipe used for this binary enables both --enable-gpl and
+--enable-version3. The resulting FFmpeg combination is therefore distributed
+under GPL version 3 or later. The build recipe audited for this DLL does not
+use --enable-nonfree.
+
+The combined libmpv binary also incorporates or links a number of third-party
+libraries, including libplacebo, x264, x265, libass, libbluray, DVD libraries,
+Rubber Band, OpenSSL and codec libraries. Their original copyright notices,
+license files, source code, build recipes and patches must be preserved in the
+corresponding-source archive for the exact HC Player release.
+
+Independent JPEG Group attribution required by FFmpeg's licensing notes:
+This software is based in part on the work of the Independent JPEG Group.
+
+Relevant upstream license references:
+https://github.com/mpv-player/mpv/blob/master/Copyright
+https://ffmpeg.org/doxygen/trunk/md_LICENSE.html
+
+The complete GNU GPL v3 text distributed with HC Player is in ../LICENSE.
+GPL-2.0 and LGPL-2.1 reference texts are also included in this Licenses folder.

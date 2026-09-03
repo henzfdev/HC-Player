@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="HCPlayer.MediaInfoPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Loaded="MediaInfoLoaded"
+    Background="Transparent">
+
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="MediaInfoSurface" Color="#FF202328" />
+                    <SolidColorBrush x:Key="MediaInfoCardBrush" Color="#FF272A30" />
+                    <SolidColorBrush x:Key="MediaInfoCardBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="MediaInfoSurfaceWindows11" Color="#FF202020" />
+                    <SolidColorBrush x:Key="MediaInfoCardBrushWindows11" Color="#FF2B2B2B" />
+                    <SolidColorBrush x:Key="MediaInfoCardBorderBrushWindows11" Color="Transparent" />
+                    <SolidColorBrush x:Key="MediaInfoChipBrush" Color="#20FFFFFF" />
+                    <SolidColorBrush x:Key="MediaInfoChipBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="MediaInfoButtonBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="MediaInfoButtonBackgroundBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="MediaInfoButtonPointerOverBrush" Color="#38FFFFFF" />
+                    <SolidColorBrush x:Key="MediaInfoButtonPressedBrush" Color="#4AFFFFFF" />
+                    <Thickness x:Key="MediaInfoButtonBorderThickness">0</Thickness>
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="MediaInfoSurface" Color="#FFF5F5F5" />
+                    <SolidColorBrush x:Key="MediaInfoCardBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="MediaInfoCardBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="MediaInfoSurfaceWindows11" Color="#FFF3F3F3" />
+                    <SolidColorBrush x:Key="MediaInfoCardBrushWindows11" Color="#FFFBFBFB" />
+                    <SolidColorBrush x:Key="MediaInfoCardBorderBrushWindows11" Color="#16000000" />
+                    <SolidColorBrush x:Key="MediaInfoChipBrush" Color="#14000000" />
+                    <SolidColorBrush x:Key="MediaInfoChipBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="MediaInfoButtonBorderBrush" Color="#28000000" />
+                    <SolidColorBrush x:Key="MediaInfoButtonBackgroundBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="MediaInfoButtonPointerOverBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="MediaInfoButtonPressedBrush" Color="#18000000" />
+                    <Thickness x:Key="MediaInfoButtonBorderThickness">1</Thickness>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Text selection follows the Windows user accent color. -->
+            <SolidColorBrush x:Key="MediaInfoSelectionBrush"
+                             Color="{ThemeResource SystemAccentColor}" />
+
+            <Style x:Key="MediaInfoCard" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource MediaInfoCardBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource MediaInfoCardBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="Padding" Value="16,13" />
+            </Style>
+            <Style x:Key="MediaInfoCardWindows11" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource MediaInfoCardBrushWindows11}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource MediaInfoCardBorderBrushWindows11}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Padding" Value="16,13" />
+            </Style>
+
+            <Style x:Key="MediaInfoChip" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource MediaInfoChipBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource MediaInfoChipBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="6,2" />
+            </Style>
+
+            <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="BorderBrush" Value="{ThemeResource MediaInfoButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="{ThemeResource MediaInfoButtonBorderThickness}" />
+                <Setter Property="Background" Value="{ThemeResource MediaInfoButtonBackgroundBrush}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter x:Name="MediaInfoButtonPresenter"
+                                              Background="{TemplateBinding Background}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              BorderBrush="{TemplateBinding BorderBrush}"
+                                              BorderThickness="{TemplateBinding BorderThickness}"
+                                              CornerRadius="{TemplateBinding CornerRadius}"
+                                              Padding="{TemplateBinding Padding}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}">
+                                <ContentPresenter.BackgroundTransition>
+                                    <BrushTransition Duration="0:0:0.083" />
+                                </ContentPresenter.BackgroundTransition>
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="MediaInfoButtonPresenter.Background"
+                                                        Value="{ThemeResource MediaInfoButtonPointerOverBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="MediaInfoButtonPresenter.Background"
+                                                        Value="{ThemeResource MediaInfoButtonPressedBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <VisualState.Setters>
+                                                <Setter Target="MediaInfoButtonPresenter.Opacity"
+                                                        Value="0.42" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </ContentPresenter>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Page.Resources>
+
+    <!-- Stationary surface behind the translated panel. During the
+         entrance/exit animation the moving Border no longer exposes the
+         DesktopWindowXamlSource host (black in dark mode). -->
+    <Grid x:Name="MediaInfoSurfaceHost" Background="{ThemeResource MediaInfoSurface}">
+    <Border x:Name="MediaInfoRoot"
+            Background="{ThemeResource MediaInfoSurface}">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="MediaInfoTranslate" X="0" />
+        </Border.RenderTransform>
+
+        <Grid Padding="22,18,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid x:Name="MediaInfoHeader"
+                  Margin="0,0,22,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock x:Uid="MediaInfoHeaderTitle" Text="Informações de mídia"
+                               FontFamily="Segoe UI Variable Display"
+                               FontSize="26"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+
+                    <TextBlock x:Uid="MediaInfoHeaderSubtitle" Text="Informações técnicas fornecidas pelo MediaInfo"
+                               Margin="0,5,0,0"
+                               FontFamily="Segoe UI Variable Text"
+                               FontSize="12.5"
+                               TextWrapping="Wrap"
+                               Opacity="0.58" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Top">
+                    <Button x:Uid="MediaInfoCopyAllButton" x:Name="CopyAllButton"
+                            Click="CopyAllClicked"
+                            Padding="12,8"
+                            IsEnabled="False"
+                            ToolTipService.ToolTip="Copiar todas as informações">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                            <TextBlock x:Uid="MediaInfoCopyAllText" Text="Copiar tudo"
+                                       FontFamily="Segoe UI Variable Text" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Uid="MediaInfoCloseButton" x:Name="CloseButton"
+                            Click="CloseClicked"
+                            Width="38"
+                            Height="38"
+                            Padding="0"
+                            ToolTipService.ToolTip="Fechar">
+                        <FontIcon Glyph="&#xE8BB;" FontSize="14" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <Grid x:Name="StatusHost"
+                  Grid.Row="1"
+                  Margin="0,0,22,12">
+                <StackPanel x:Name="LoadingPanel"
+                            Orientation="Horizontal"
+                            Spacing="10"
+                            Visibility="Collapsed">
+                    <ProgressRing x:Name="LoadingRing"
+                                  Width="18"
+                                  Height="18"
+                                  IsActive="False" />
+                    <TextBlock x:Uid="MediaInfoLoadingText" Text="Analisando mídia…"
+                               FontFamily="Segoe UI Variable Text"
+                               VerticalAlignment="Center"
+                               Opacity="0.72" />
+                </StackPanel>
+
+                <InfoBar x:Name="MediaInfoStatus"
+                         IsOpen="False"
+                         IsClosable="False"
+                         Severity="Informational"
+                         IsIconVisible="False">
+                    <InfoBar.Content>
+                        <!-- Keep the native InfoBar surface/border, but own the
+                             icon+text row so the icon is centered against the
+                             COMPLETE wrapped message rather than its first line. -->
+                        <Grid ColumnSpacing="12"
+                              Margin="0,14,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Geometric info mark instead of FontIcon:
+                                 Font glyph metrics sit slightly above their
+                                 visual center. This 18x18 container is centered
+                                 against the COMPLETE wrapped message. -->
+                            <Grid Width="18"
+                                  Height="18"
+                                  VerticalAlignment="Center"
+                                  IsHitTestVisible="False">
+                                <Ellipse Fill="{ThemeResource SystemAccentColor}" />
+                                <TextBlock Text="i"
+                                           FontFamily="Segoe UI Variable Text"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Margin="0,-1,0,0" />
+                            </Grid>
+
+                            <TextBlock x:Name="MediaInfoStatusText"
+                                       Grid.Column="1"
+                                       FontFamily="Segoe UI Variable Text"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </InfoBar.Content>
+                </InfoBar>
+            </Grid>
+
+            <ScrollViewer x:Name="MediaInfoScrollViewer"
+                          Grid.Row="2"
+                          Padding="0"
+                          HorizontalScrollMode="Disabled"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollMode="Enabled"
+                          VerticalScrollBarVisibility="Auto"
+                          IsTabStop="True">
+
+                <!--
+                    Sections are generated from MediaInfo_Get / Count_Get.
+                    No raw Complete=1 dump is rendered here.
+                -->
+                <StackPanel x:Name="SectionsHost"
+                            Margin="0,0,22,18"
+                            Spacing="22" />
+            </ScrollViewer>
+        </Grid>
+    </Border>
+    </Grid>
+</Page>

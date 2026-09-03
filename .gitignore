@@ -1,0 +1,74 @@
+# Visual Studio / IDE
+/.vs/
+/.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build output
+/x64/
+/Win32/
+/Debug/
+/Release/
+/Portable/
+/ARM64/
+/build/
+/out/
+/bin/
+/obj/
+
+/HC Player/x64/
+/HC Player/Win32/
+/HC Player/Debug/
+/HC Player/Release/
+/HC Player/Portable/
+/HC Player/ARM64/
+/HC Player/build/
+/HC Player/out/
+/HC Player/bin/
+/HC Player/obj/
+/HC Player/Generated Files/
+
+# NuGet / generated state
+/packages/
+/.nuget/
+*.nupkg
+*.VC.db
+*.VC.VC.opendb
+*.cache
+
+# C/C++ build artifacts
+*.pdb
+*.ipdb
+*.iobj
+*.obj
+*.ilk
+*.exp
+*.pch
+*.tlog
+*.lastbuildstate
+*.log
+
+# Installer working files
+/Installer/
+/HC Player/Installer/
+
+# Portable user data
+/Data/
+/HC Player/Data/
+
+# Temporary/local files
+Thumbs.db
+Desktop.ini
+*.tmp
+*.bak
+*.old
+*.orig
+*~
+
+# Large frozen libmpv binary
+/HC Player/third_party/libmpv/x64/libmpv-2.dll
+
+# Portable mode marker
+/HC Player/portable.flag

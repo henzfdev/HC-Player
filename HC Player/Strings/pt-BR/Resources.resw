@@ -1,0 +1,3505 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="LanguageApplyHint.Text" xml:space="preserve">
+    <value>Aplicação: reinicie o HC Player</value>
+  </data>
+  <data name="LanguageDescription.Text" xml:space="preserve">
+    <value>Usa o idioma do Windows ou uma preferência específica</value>
+  </data>
+  <data name="LanguageEnUS.Content" xml:space="preserve">
+    <value>English (United States)</value>
+  </data>
+  <data name="LanguagePtBR.Content" xml:space="preserve">
+    <value>Português (Brasil)</value>
+  </data>
+  <data name="LanguageSystem.Content" xml:space="preserve">
+    <value>Automático (sistema)</value>
+  </data>
+  <data name="LanguageTitle.Text" xml:space="preserve">
+    <value>Idioma</value>
+  </data>
+  <data name="SettingsB001.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Fechar</value>
+  </data>
+  <data name="SettingsB002.Text" xml:space="preserve">
+    <value>JANELA</value>
+  </data>
+  <data name="SettingsB003.Text" xml:space="preserve">
+    <value>Sempre visível</value>
+  </data>
+  <data name="SettingsB004.Text" xml:space="preserve">
+    <value>Mantém o player acima das outras janelas</value>
+  </data>
+  <data name="SettingsB005.Text" xml:space="preserve">
+    <value>REPRODUÇÃO</value>
+  </data>
+  <data name="SettingsB006.Text" xml:space="preserve">
+    <value>Reprodução contínua</value>
+  </data>
+  <data name="SettingsB007.Text" xml:space="preserve">
+    <value>Reproduz automaticamente o próximo arquivo local ao terminar</value>
+  </data>
+  <data name="SettingsB008.Text" xml:space="preserve">
+    <value>Clique no vídeo para reproduzir/pausar</value>
+  </data>
+  <data name="SettingsB009.Text" xml:space="preserve">
+    <value>Um clique sobre o vídeo alterna entre reproduzir e pausar</value>
+  </data>
+  <data name="SettingsB010.Text" xml:space="preserve">
+    <value>Continuar reprodução</value>
+  </data>
+  <data name="SettingsB011.Text" xml:space="preserve">
+    <value>Retoma até 3 mídias recentes do ponto em que você parou</value>
+  </data>
+  <data name="SettingsB012.Text" xml:space="preserve">
+    <value>Busca precisa</value>
+  </data>
+  <data name="SettingsB013.Text" xml:space="preserve">
+    <value>Melhora a precisão ao avançar pelo vídeo</value>
+  </data>
+  <data name="SettingsB014.Text" xml:space="preserve">
+    <value>Manter o último quadro</value>
+  </data>
+  <data name="SettingsB015.Text" xml:space="preserve">
+    <value>Não fecha o vídeo ao terminar</value>
+  </data>
+  <data name="SettingsB016.Text" xml:space="preserve">
+    <value>Aceleração por hardware</value>
+  </data>
+  <data name="SettingsB017.Text" xml:space="preserve">
+    <value>Usa a GPU para decodificar o vídeo</value>
+  </data>
+  <data name="SettingsB018.Text" xml:space="preserve">
+    <value>ÁUDIO</value>
+  </data>
+  <data name="SettingsB019.Text" xml:space="preserve">
+    <value>Prioridade do áudio</value>
+  </data>
+  <data name="SettingsB020.Text" xml:space="preserve">
+    <value>Idiomas preferidos, em ordem de prioridade</value>
+  </data>
+  <data name="SettingsB021.Text" xml:space="preserve">
+    <value>Aplicação: próximo vídeo</value>
+  </data>
+  <data name="SettingsB022.Text" xml:space="preserve">
+    <value>Volume inicial</value>
+  </data>
+  <data name="SettingsB023.Text" xml:space="preserve">
+    <value>100 preserva o volume original, sem amplificação</value>
+  </data>
+  <data name="SettingsB024.Text" xml:space="preserve">
+    <value>Faixas externas</value>
+  </data>
+  <data name="SettingsB025.Text" xml:space="preserve">
+    <value>Localiza automaticamente áudios com nomes semelhantes</value>
+  </data>
+  <data name="SettingsB026.Text" xml:space="preserve">
+    <value>Aplicação: próximo vídeo</value>
+  </data>
+  <data name="SettingsB027.Text" xml:space="preserve">
+    <value>Limite de volume</value>
+  </data>
+  <data name="SettingsB028.Text" xml:space="preserve">
+    <value>Impede amplificação acima do volume original</value>
+  </data>
+  <data name="SettingsB029.Text" xml:space="preserve">
+    <value>Correção de tom</value>
+  </data>
+  <data name="SettingsB030.Text" xml:space="preserve">
+    <value>Mantém o tom natural quando a velocidade muda</value>
+  </data>
+  <data name="SettingsB031.Text" xml:space="preserve">
+    <value>Dispositivo de saída</value>
+  </data>
+  <data name="SettingsB032.Text" xml:space="preserve">
+    <value>Escolha entre os dispositivos de áudio detectados pelo Windows</value>
+  </data>
+  <data name="SettingsB033.Text" xml:space="preserve">
+    <value>VÍDEO</value>
+  </data>
+  <data name="SettingsB034.Text" xml:space="preserve">
+    <value>Redução de banding</value>
+  </data>
+  <data name="SettingsB035.Text" xml:space="preserve">
+    <value>Suaviza faixas de cor em fontes comprimidas</value>
+  </data>
+  <data name="SettingsB036.Text" xml:space="preserve">
+    <value>ESCALA, COR E HDR</value>
+  </data>
+  <data name="SettingsB037.Text" xml:space="preserve">
+    <value>Redução de escala</value>
+  </data>
+  <data name="SettingsB038.Text" xml:space="preserve">
+    <value>Filtro usado quando o vídeo é reduzido</value>
+  </data>
+  <data name="SettingsB039.Text" xml:space="preserve">
+    <value>Escala de cor</value>
+  </data>
+  <data name="SettingsB040.Text" xml:space="preserve">
+    <value>Filtro usado para ampliar a informação de cor</value>
+  </data>
+  <data name="SettingsB041.Text" xml:space="preserve">
+    <value>Qualidade de escala</value>
+  </data>
+  <data name="SettingsB042.Text" xml:space="preserve">
+    <value>Filtro usado para ampliar o vídeo</value>
+  </data>
+  <data name="SettingsB043.Text" xml:space="preserve">
+    <value>Cor do Windows</value>
+  </data>
+  <data name="SettingsB044.Text" xml:space="preserve">
+    <value>Informa ao Windows e à tela o espaço de cor SDR ou HDR</value>
+  </data>
+  <data name="SettingsB045.Text" xml:space="preserve">
+    <value>Mapeamento de tons HDR</value>
+  </data>
+  <data name="SettingsB046.Text" xml:space="preserve">
+    <value>Converte brilho e alcance dinâmico</value>
+  </data>
+  <data name="SettingsB047.Text" xml:space="preserve">
+    <value>Reduz gradações visíveis de cor</value>
+  </data>
+  <data name="SettingsB048.Text" xml:space="preserve">
+    <value>Shaders personalizados</value>
+  </data>
+  <data name="SettingsB049.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Mais opções de shaders</value>
+  </data>
+  <data name="SettingsB050.Text" xml:space="preserve">
+    <value>Remover todos os shaders</value>
+  </data>
+  <data name="SettingsB051.Text" xml:space="preserve">
+    <value>Importe arquivos GLSL para o pipeline gpu-next/libplacebo</value>
+  </data>
+  <data name="SettingsB052.Text" xml:space="preserve">
+    <value>Importar não altera a imagem: cada shader começa desativado e só é aplicado quando você o ativa.</value>
+  </data>
+  <data name="SettingsB053.Text" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="SettingsB054.Text" xml:space="preserve">
+    <value>Reconhece automaticamente as receitas Fast e HQ a partir dos arquivos Anime4K importados</value>
+  </data>
+  <data name="SettingsB055.Text" xml:space="preserve">
+    <value>Nenhum shader Anime4K detectado</value>
+  </data>
+  <data name="SettingsB056.Text" xml:space="preserve">
+    <value>Perfil</value>
+  </data>
+  <data name="SettingsB057.Text" xml:space="preserve">
+    <value>Modo</value>
+  </data>
+  <data name="SettingsB058.Text" xml:space="preserve">
+    <value>Estado</value>
+  </data>
+  <data name="SettingsB059.Text" xml:space="preserve">
+    <value>Nenhum shader importado</value>
+  </data>
+  <data name="SettingsB060.Text" xml:space="preserve">
+    <value>SINCRONIZAÇÃO OPCIONAL</value>
+  </data>
+  <data name="SettingsB061.Text" xml:space="preserve">
+    <value>Sincronização D3D11</value>
+  </data>
+  <data name="SettingsB062.Text" xml:space="preserve">
+    <value>Sincroniza a apresentação D3D11 ao VBlank</value>
+  </data>
+  <data name="SettingsB063.Text" xml:space="preserve">
+    <value>Sincronização com a tela</value>
+  </data>
+  <data name="SettingsB064.Text" xml:space="preserve">
+    <value>Ajusta o fluxo de áudio à frequência detectada da tela</value>
+  </data>
+  <data name="SettingsB065.Text" xml:space="preserve">
+    <value>Interpolação temporal</value>
+  </data>
+  <data name="SettingsB066.Text" xml:space="preserve">
+    <value>Interpola quadros quando há diferença de frequência</value>
+  </data>
+  <data name="SettingsB067.Text" xml:space="preserve">
+    <value>Filtro temporal</value>
+  </data>
+  <data name="SettingsB068.Text" xml:space="preserve">
+    <value>Define o filtro usado quando a interpolação temporal está ativada</value>
+  </data>
+  <data name="SettingsB069.PlaceholderText" xml:space="preserve">
+    <value>Desativado</value>
+  </data>
+  <data name="SettingsB070.Text" xml:space="preserve">
+    <value>LEGENDAS</value>
+  </data>
+  <data name="SettingsB071.Text" xml:space="preserve">
+    <value>Prioridade das legendas</value>
+  </data>
+  <data name="SettingsB072.Text" xml:space="preserve">
+    <value>Idiomas preferidos, em ordem de prioridade</value>
+  </data>
+  <data name="SettingsB073.Text" xml:space="preserve">
+    <value>Aplicação: próximo vídeo</value>
+  </data>
+  <data name="SettingsB074.Text" xml:space="preserve">
+    <value>Transição das legendas</value>
+  </data>
+  <data name="SettingsB075.Text" xml:space="preserve">
+    <value>Integra as legendas ao processamento dos quadros</value>
+  </data>
+  <data name="SettingsB076.Text" xml:space="preserve">
+    <value>Pré-leitura em MKV</value>
+  </data>
+  <data name="SettingsB077.Text" xml:space="preserve">
+    <value>Ajuda legendas MKV a aparecerem corretamente após uma busca</value>
+  </data>
+  <data name="SettingsB078.Text" xml:space="preserve">
+    <value>Aplicação: próximo vídeo</value>
+  </data>
+  <data name="SettingsB079.Text" xml:space="preserve">
+    <value>Corrigir temporização</value>
+  </data>
+  <data name="SettingsB080.Text" xml:space="preserve">
+    <value>Remove pequenas lacunas ou sobreposições entre falas</value>
+  </data>
+  <data name="SettingsB081.Text" xml:space="preserve">
+    <value>Carregar legendas externas</value>
+  </data>
+  <data name="SettingsB082.Text" xml:space="preserve">
+    <value>Procura arquivos com nomes semelhantes</value>
+  </data>
+  <data name="SettingsB083.Text" xml:space="preserve">
+    <value>Aplicação: próximo vídeo</value>
+  </data>
+  <data name="SettingsB084.Text" xml:space="preserve">
+    <value>Cor do texto</value>
+  </data>
+  <data name="SettingsB085.Text" xml:space="preserve">
+    <value>Cor das legendas de texto sem estilo próprio</value>
+  </data>
+  <data name="SettingsB086.Text" xml:space="preserve">
+    <value>Cor do contorno</value>
+  </data>
+  <data name="SettingsB087.Text" xml:space="preserve">
+    <value>Define a cor da borda ao redor das letras</value>
+  </data>
+  <data name="SettingsB088.Text" xml:space="preserve">
+    <value>Tamanho do contorno</value>
+  </data>
+  <data name="SettingsB089.Text" xml:space="preserve">
+    <value>Espessura da borda; zero desativa o contorno</value>
+  </data>
+  <data name="SettingsB090.Text" xml:space="preserve">
+    <value>Deslocamento da sombra</value>
+  </data>
+  <data name="SettingsB091.Text" xml:space="preserve">
+    <value>Distância da sombra; zero a desativa</value>
+  </data>
+  <data name="SettingsB092.Text" xml:space="preserve">
+    <value>Espaçamento das letras</value>
+  </data>
+  <data name="SettingsB093.Text" xml:space="preserve">
+    <value>Aumenta ou reduz o espaço horizontal entre caracteres</value>
+  </data>
+  <data name="SettingsB094.Text" xml:space="preserve">
+    <value>Suavidade do contorno</value>
+  </data>
+  <data name="SettingsB095.Text" xml:space="preserve">
+    <value>Aplica desfoque gaussiano à borda do texto</value>
+  </data>
+  <data name="SettingsB096.Text" xml:space="preserve">
+    <value>Suavidade de legendas de imagem</value>
+  </data>
+  <data name="SettingsB097.Text" xml:space="preserve">
+    <value>Suaviza DVD/VobSub pixelado; pode consumir mais processamento</value>
+  </data>
+  <data name="SettingsB098.Text" xml:space="preserve">
+    <value>Fontes</value>
+  </data>
+  <data name="SettingsB099.Text" xml:space="preserve">
+    <value>Importe uma pasta com fontes</value>
+  </data>
+  <data name="SettingsB100.Text" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="SettingsB101.Text" xml:space="preserve">
+    <value>Tamanho da legenda</value>
+  </data>
+  <data name="SettingsB102.Text" xml:space="preserve">
+    <value>Ajusta o tamanho usado pelo player</value>
+  </data>
+  <data name="SettingsB103.Text" xml:space="preserve">
+    <value>Botões de salto de 10 segundos</value>
+  </data>
+  <data name="SettingsB104.Text" xml:space="preserve">
+    <value>Mostra os botões −10 e +10 na barra principal</value>
+  </data>
+  <data name="SettingsB105.Text" xml:space="preserve">
+    <value>Botão de estatísticas</value>
+  </data>
+  <data name="SettingsB106.Text" xml:space="preserve">
+    <value>Mostra o acesso às estatísticas de reprodução</value>
+  </data>
+  <data name="SettingsB107.Text" xml:space="preserve">
+    <value>Botão de capturas</value>
+  </data>
+  <data name="SettingsB108.Text" xml:space="preserve">
+    <value>Mostra o atalho de captura ao lado das configurações</value>
+  </data>
+  <data name="SettingsB109.Text" xml:space="preserve">
+    <value>Botão de reprodução aleatória</value>
+  </data>
+  <data name="SettingsB110.Text" xml:space="preserve">
+    <value>Mostra o controle de ordem aleatória na barra principal</value>
+  </data>
+  <data name="SettingsB111.Text" xml:space="preserve">
+    <value>Botão de informações de mídia</value>
+  </data>
+  <data name="SettingsB112.Text" xml:space="preserve">
+    <value>Mostra o acesso às informações técnicas da mídia</value>
+  </data>
+  <data name="SettingsB113.Text" xml:space="preserve">
+    <value>Estilo dos cards</value>
+  </data>
+  <data name="SettingsB114.Text" xml:space="preserve">
+    <value>Define o acabamento visual das Configurações e das Informações de mídia</value>
+  </data>
+  <data name="SettingsB115.Text" xml:space="preserve">
+    <value>Estilo da barra de progresso</value>
+  </data>
+  <data name="SettingsB116.Text" xml:space="preserve">
+    <value>Escolhe entre os estilos HC Player e Windows 11</value>
+  </data>
+  <data name="SettingsB117.Content" xml:space="preserve">
+    <value>HC Player</value>
+  </data>
+  <data name="SettingsB118.Content" xml:space="preserve">
+    <value>Windows 11</value>
+  </data>
+  <data name="SettingsB119.Text" xml:space="preserve">
+    <value>Detalhes dos capítulos</value>
+  </data>
+  <data name="SettingsB120.Text" xml:space="preserve">
+    <value>Mostra o título e o tempo ao apontar para a barra</value>
+  </data>
+  <data name="SettingsB121.Text" xml:space="preserve">
+    <value>Prévia em miniatura do vídeo</value>
+  </data>
+  <data name="SettingsB122.Text" xml:space="preserve">
+    <value>Mostra uma imagem do vídeo ao apontar para a barra de progresso</value>
+  </data>
+  <data name="SettingsB123.Text" xml:space="preserve">
+    <value>CAPTURA DE TELA</value>
+  </data>
+  <data name="SettingsB124.Text" xml:space="preserve">
+    <value>Formato da captura</value>
+  </data>
+  <data name="SettingsB125.Text" xml:space="preserve">
+    <value>PNG usa alta profundidade por padrão</value>
+  </data>
+  <data name="SettingsB126.Text" xml:space="preserve">
+    <value>Alta profundidade de bits</value>
+  </data>
+  <data name="SettingsB127.Text" xml:space="preserve">
+    <value>Preserva, quando possível, a profundidade do vídeo</value>
+  </data>
+  <data name="SettingsB128.Text" xml:space="preserve">
+    <value>Compressão PNG</value>
+  </data>
+  <data name="SettingsB129.Text" xml:space="preserve">
+    <value>Valores maiores reduzem o arquivo, mas usam mais CPU e demoram mais; a qualidade não muda</value>
+  </data>
+  <data name="SettingsB130.Text" xml:space="preserve">
+    <value>Pasta das capturas</value>
+  </data>
+  <data name="SettingsB131.Text" xml:space="preserve">
+    <value>~/Pictures/Capturas do HC Player</value>
+  </data>
+  <data name="SettingsB132.Text" xml:space="preserve">
+    <value>Escolher</value>
+  </data>
+  <data name="SettingsB133.Text" xml:space="preserve">
+    <value>Modelo do nome</value>
+  </data>
+  <data name="SettingsB134.Text" xml:space="preserve">
+    <value>Define o nome gerado para cada captura</value>
+  </data>
+  <data name="SettingsB135.Text" xml:space="preserve">
+    <value>Procurando yt-dlp...</value>
+  </data>
+  <data name="SettingsB136.Text" xml:space="preserve">
+    <value>Verificando o aplicativo e o PATH do Windows</value>
+  </data>
+  <data name="SettingsB137.Text" xml:space="preserve">
+    <value>Remover</value>
+  </data>
+  <data name="SettingsB138.Text" xml:space="preserve">
+    <value>Selecionar executável</value>
+  </data>
+  <data name="SettingsB139.Text" xml:space="preserve">
+    <value>Procurando runtime JavaScript...</value>
+  </data>
+  <data name="SettingsB140.Text" xml:space="preserve">
+    <value>Recomendado para suporte completo ao YouTube</value>
+  </data>
+  <data name="SettingsB141.Text" xml:space="preserve">
+    <value>Remover</value>
+  </data>
+  <data name="SettingsB142.Text" xml:space="preserve">
+    <value>Selecionar Deno</value>
+  </data>
+  <data name="SettingsB143.Text" xml:space="preserve">
+    <value>CONFIGURAÇÃO PESSOAL</value>
+  </data>
+  <data name="SettingsB144.Text" xml:space="preserve">
+    <value>Importar configuração</value>
+  </data>
+  <data name="SettingsB145.Text" xml:space="preserve">
+    <value>Substitui opções existentes e organiza as demais em Outras opções</value>
+  </data>
+  <data name="SettingsB146.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Voltar para a configuração original</value>
+  </data>
+  <data name="SettingsB147.Text" xml:space="preserve">
+    <value>Resetar</value>
+  </data>
+  <data name="SettingsB148.Text" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="SettingsB149.Text" xml:space="preserve">
+    <value>Versão 1.0</value>
+  </data>
+  <data name="SettingsB150.Text" xml:space="preserve">
+    <value>Um player de mídia robusto e moderno para Windows</value>
+  </data>
+  <data name="SettingsB151.Text" xml:space="preserve">
+    <value>Desenvolvido por</value>
+  </data>
+  <data name="SettingsB152.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Enviar e-mail</value>
+  </data>
+  <data name="SettingsB153.Text" xml:space="preserve">
+    <value>Informações técnicas</value>
+  </data>
+  <data name="SettingsB154.Text" xml:space="preserve">
+    <value>Versões reais do motor carregado pelo HC Player</value>
+  </data>
+  <data name="SettingsB155.Text" xml:space="preserve">
+    <value>Indisponível</value>
+  </data>
+  <data name="SettingsB156.Text" xml:space="preserve">
+    <value>Indisponível</value>
+  </data>
+  <data name="SettingsB157.Text" xml:space="preserve">
+    <value>Indisponível</value>
+  </data>
+  <data name="SettingsB158.Text" xml:space="preserve">
+    <value>Renderização</value>
+  </data>
+  <data name="SettingsB159.Text" xml:space="preserve">
+    <value>Saída de áudio</value>
+  </data>
+  <data name="SettingsB160.Text" xml:space="preserve">
+    <value>Arquitetura</value>
+  </data>
+  <data name="SettingsB161.Text" xml:space="preserve">
+    <value>Compilação</value>
+  </data>
+  <data name="SettingsAboutStableBuild" xml:space="preserve">
+    <value>Estável • Agosto de 2026</value>
+  </data>
+  <data name="SettingsB162.Text" xml:space="preserve">
+    <value>Copiar informações</value>
+  </data>
+  <data name="SettingsB163.Text" xml:space="preserve">
+    <value>Código aberto e créditos</value>
+  </data>
+  <data name="SettingsB164.Text" xml:space="preserve">
+    <value>HC Player é software livre e usa tecnologias e bibliotecas de terceiros para interface, reprodução, decodificação, legendas e renderização.</value>
+  </data>
+  <data name="SettingsGitHubButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Abrir repositório do HC Player no GitHub</value>
+  </data>
+  <data name="SettingsB165.Text" xml:space="preserve">
+    <value>Licenças de código aberto</value>
+  </data>
+  <data name="SettingsB166.Text" xml:space="preserve">
+    <value>Licenças de código aberto</value>
+  </data>
+  <data name="SettingsB167.Text" xml:space="preserve">
+    <value>O HC Player é software livre distribuído sob a GNU GPL v3 ou posterior. Componentes de terceiros permanecem sujeitos aos seus próprios termos e avisos de copyright.</value>
+  </data>
+  <data name="SettingsB168.Text" xml:space="preserve">
+    <value>Componentes principais</value>
+  </data>
+  <data name="SettingsB169.Text" xml:space="preserve">
+    <value>• HC Player — GPL-3.0-or-later
+• mpv / FFmpeg / libplacebo — cadeia multimídia GPL/LGPL
+• MediaInfo — BSD-2-Clause
+• Windows App SDK / WinUI — termos Microsoft</value>
+  </data>
+  <data name="SettingsB170.Text" xml:space="preserve">
+    <value>Integrações opcionais</value>
+  </data>
+  <data name="SettingsB171.Text" xml:space="preserve">
+    <value>yt-dlp e Deno podem ser importados pelo usuário para recursos online e não fazem parte do núcleo embutido do HC Player.</value>
+  </data>
+  <data name="SettingsDyn_004B1336" xml:space="preserve">
+    <value>Shaders configurados externamente no mpv.conf não serão alterados.</value>
+  </data>
+  <data name="SettingsDyn_00D045D6" xml:space="preserve">
+    <value> opções</value>
+  </data>
+  <data name="SettingsDyn_01DBCBFE" xml:space="preserve">
+    <value>Importação parcial</value>
+  </data>
+  <data name="SettingsDyn_0264E51D" xml:space="preserve">
+    <value>Desative o preset Anime4K para remover este shader.</value>
+  </data>
+  <data name="SettingsDyn_034E54DC" xml:space="preserve">
+    <value> shader(s) importado(s) serão removidos do HC Player. </value>
+  </data>
+  <data name="SettingsDyn_03A9DB8C" xml:space="preserve">
+    <value>Renderização: gpu-next / D3D11\r\n</value>
+  </data>
+  <data name="SettingsDyn_04A24A58" xml:space="preserve">
+    <value>O Deno foi armazenado pelo player; links do YouTube agora podem ser resolvidos pelo yt-dlp.</value>
+  </data>
+  <data name="SettingsDyn_04C8FFEC" xml:space="preserve">
+    <value>Cor RGB usada no contorno do texto</value>
+  </data>
+  <data name="SettingsDyn_0559E310" xml:space="preserve">
+    <value>Método usado pela GPU para decodificar o vídeo</value>
+  </data>
+  <data name="SettingsDyn_06B0573A" xml:space="preserve">
+    <value>Não foi possível reordenar os shaders</value>
+  </data>
+  <data name="SettingsDyn_07E5EFBA" xml:space="preserve">
+    <value>Importe todos os shaders necessários para pelo menos um modo.</value>
+  </data>
+  <data name="SettingsDyn_0803235C" xml:space="preserve">
+    <value>STREAMING DA WEB</value>
+  </data>
+  <data name="SettingsDyn_0820E293" xml:space="preserve">
+    <value>Remover todos os shaders?</value>
+  </data>
+  <data name="SettingsDyn_08677C49" xml:space="preserve">
+    <value>Fonte das informações</value>
+  </data>
+  <data name="SettingsDyn_09CFE645" xml:space="preserve">
+    <value>Deno inválido ou corrompido</value>
+  </data>
+  <data name="SettingsDyn_09FC7289" xml:space="preserve">
+    <value>${playback-time:--:--}${?duration: / ${duration}}${!duration: / duração desconhecida}</value>
+  </data>
+  <data name="SettingsDyn_0ADC6C0F" xml:space="preserve">
+    <value>Não foi possível desativar o Anime4K</value>
+  </data>
+  <data name="SettingsDyn_0D51ACD0" xml:space="preserve">
+    <value>Ajusta a janela ao abrir uma mídia sem ultrapassar este tamanho</value>
+  </data>
+  <data name="SettingsDyn_0E03EE33" xml:space="preserve">
+    <value>Saída de vídeo</value>
+  </data>
+  <data name="SettingsDyn_0F227921" xml:space="preserve">
+    <value>Abrir mídia em tela cheia</value>
+  </data>
+  <data name="SettingsDyn_0FAADEB9" xml:space="preserve">
+    <value>Compilação: </value>
+  </data>
+  <data name="SettingsDyn_10352734" xml:space="preserve">
+    <value>Importar configuração</value>
+  </data>
+  <data name="SettingsDyn_12B35DDC" xml:space="preserve">
+    <value>Tamanho inicial da janela</value>
+  </data>
+  <data name="SettingsDyn_12D00F41" xml:space="preserve">
+    <value>Fonte selecionada: </value>
+  </data>
+  <data name="SettingsDyn_1301F32C" xml:space="preserve">
+    <value>Runtime JavaScript importado removido</value>
+  </data>
+  <data name="SettingsDyn_13A92A70" xml:space="preserve">
+    <value>Configuração restaurada</value>
+  </data>
+  <data name="SettingsDyn_1472EFE7" xml:space="preserve">
+    <value>Processa a ampliação em luz linear; opção avançada</value>
+  </data>
+  <data name="SettingsDyn_14920CFD" xml:space="preserve">
+    <value>Desfoque gaussiano aplicado ao contorno do texto</value>
+  </data>
+  <data name="SettingsDyn_18A98943" xml:space="preserve">
+    <value>Shader importado</value>
+  </data>
+  <data name="SettingsDyn_19DA4576" xml:space="preserve">
+    <value>Todos os arquivos</value>
+  </data>
+  <data name="SettingsDyn_1AC03C25" xml:space="preserve">
+    <value>Anime4K • GLSL importado</value>
+  </data>
+  <data name="SettingsDyn_1E383C25" xml:space="preserve">
+    <value>Motor gráfico usado para apresentar os quadros</value>
+  </data>
+  <data name="SettingsDyn_253DA643" xml:space="preserve">
+    <value>Configuração importada</value>
+  </data>
+  <data name="SettingsDyn_2597C3D5" xml:space="preserve">
+    <value>Tempo em milissegundos que as mensagens permanecem visíveis</value>
+  </data>
+  <data name="SettingsDyn_25F292DC" xml:space="preserve">
+    <value>Tamanho do contorno</value>
+  </data>
+  <data name="SettingsDyn_27FE6454" xml:space="preserve">
+    <value> • HQ: </value>
+  </data>
+  <data name="SettingsDyn_287C0AA5" xml:space="preserve">
+    <value>A configuração importada foi removida e os padrões do HC Player foram restaurados.</value>
+  </data>
+  <data name="SettingsDyn_293BE8EA" xml:space="preserve">
+    <value>Selecionar o executável do yt-dlp</value>
+  </data>
+  <data name="SettingsDyn_2A44D03D" xml:space="preserve">
+    <value>Importar shaders GLSL</value>
+  </data>
+  <data name="SettingsDyn_2B12E173" xml:space="preserve">
+    <value>Opção atualizada</value>
+  </data>
+  <data name="SettingsDyn_2CA98971" xml:space="preserve">
+    <value>Não foi possível obter o caminho de um dos shaders.</value>
+  </data>
+  <data name="SettingsDyn_2D055088" xml:space="preserve">
+    <value>Seleciona automaticamente ou força faixa limitada/completa</value>
+  </data>
+  <data name="SettingsDyn_2E97D117" xml:space="preserve">
+    <value>yt-dlp importado e pronto</value>
+  </data>
+  <data name="SettingsDyn_2EC8ADAA" xml:space="preserve">
+    <value>Cor do contorno</value>
+  </data>
+  <data name="SettingsDyn_2FCF246E" xml:space="preserve">
+    <value>Não foi possível ler um dos arquivos selecionados.</value>
+  </data>
+  <data name="SettingsDyn_30295346" xml:space="preserve">
+    <value>Faltam </value>
+  </data>
+  <data name="SettingsDyn_30379B4F" xml:space="preserve">
+    <value>Deno importado e pronto</value>
+  </data>
+  <data name="SettingsDyn_30781DEA" xml:space="preserve">
+    <value>Arquitetura: </value>
+  </data>
+  <data name="SettingsDyn_3087B8D6" xml:space="preserve">
+    <value>Shader desativado</value>
+  </data>
+  <data name="SettingsDyn_333A49DC" xml:space="preserve">
+    <value>Shader ativado</value>
+  </data>
+  <data name="SettingsDyn_340ED66C" xml:space="preserve">
+    <value>Anime4K ativado</value>
+  </data>
+  <data name="SettingsDyn_3437F222" xml:space="preserve">
+    <value>Alcance da análise</value>
+  </data>
+  <data name="SettingsDyn_35113055" xml:space="preserve">
+    <value>Shaders removidos</value>
+  </data>
+  <data name="SettingsDyn_362E3D21" xml:space="preserve">
+    <value>Anime4K • usado pelo preset</value>
+  </data>
+  <data name="SettingsDyn_36D3F938" xml:space="preserve">
+    <value>Shader GLSL</value>
+  </data>
+  <data name="SettingsDyn_3719597A" xml:space="preserve">
+    <value>Texto de status</value>
+  </data>
+  <data name="SettingsDyn_39F608A6" xml:space="preserve">
+    <value>Espessura do contorno; zero o desativa</value>
+  </data>
+  <data name="SettingsDyn_3EC12C4C" xml:space="preserve">
+    <value>O player voltará a usar automaticamente o yt-dlp disponível no PATH, se houver.</value>
+  </data>
+  <data name="SettingsDyn_4063F38C" xml:space="preserve">
+    <value>Selecionar pasta para capturas</value>
+  </data>
+  <data name="SettingsDyn_40C67956" xml:space="preserve">
+    <value>yt-dlp pronto para uso</value>
+  </data>
+  <data name="SettingsDyn_418E8801" xml:space="preserve">
+    <value>Perfil </value>
+  </data>
+  <data name="SettingsDyn_41D4A489" xml:space="preserve">
+    <value>Grão adicionado</value>
+  </data>
+  <data name="SettingsDyn_41E50F73" xml:space="preserve">
+    <value>Passagens do filtro</value>
+  </data>
+  <data name="SettingsDyn_423A16C6" xml:space="preserve">
+    <value>Anime4K desativado</value>
+  </data>
+  <data name="SettingsDyn_43B47279" xml:space="preserve">
+    <value>Profundidade do dithering</value>
+  </data>
+  <data name="SettingsDyn_44223715" xml:space="preserve">
+    <value> foi validado e salvo.</value>
+  </data>
+  <data name="SettingsDyn_464CCE66" xml:space="preserve">
+    <value>Desfoque do contorno</value>
+  </data>
+  <data name="SettingsDyn_46B799F5" xml:space="preserve">
+    <value>Ruído fino que ajuda a disfarçar faixas residuais</value>
+  </data>
+  <data name="SettingsDyn_485EC997" xml:space="preserve">
+    <value>Configurações salvas</value>
+  </data>
+  <data name="SettingsDyn_49795CB8" xml:space="preserve">
+    <value>API gráfica usada no Windows</value>
+  </data>
+  <data name="SettingsDyn_4AABAFC7" xml:space="preserve">
+    <value>O shader foi removido da lista e da pasta privada do HC Player.</value>
+  </data>
+  <data name="SettingsDyn_4D116520" xml:space="preserve">
+    <value>Acompanha o tamanho da janela ao dimensionar as legendas</value>
+  </data>
+  <data name="SettingsDyn_4D8915D0" xml:space="preserve">
+    <value>Remover shader</value>
+  </data>
+  <data name="SettingsDyn_4D89F9BB" xml:space="preserve">
+    <value>  • perfil</value>
+  </data>
+  <data name="SettingsDyn_4E799577" xml:space="preserve">
+    <value>Tamanho base do texto mostrado sobre o vídeo</value>
+  </data>
+  <data name="SettingsDyn_4ECC8010" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="SettingsDyn_50FBE1D8" xml:space="preserve">
+    <value>Usar margens para legendas</value>
+  </data>
+  <data name="SettingsDyn_5167F0AB" xml:space="preserve">
+    <value>Upscaling em luz linear</value>
+  </data>
+  <data name="SettingsDyn_51F14B6A" xml:space="preserve">
+    <value>Níveis de saída do vídeo</value>
+  </data>
+  <data name="SettingsDyn_543277EC" xml:space="preserve">
+    <value>Nenhuma fonte .ttf, .otf ou .ttc encontrada</value>
+  </data>
+  <data name="SettingsDyn_54EA126F" xml:space="preserve">
+    <value>Desativado</value>
+  </data>
+  <data name="SettingsDyn_560C3948" xml:space="preserve">
+    <value>yt-dlp detectado no PATH do Windows</value>
+  </data>
+  <data name="SettingsDyn_578AE890" xml:space="preserve">
+    <value>O shader foi adicionado ao pipeline de vídeo.</value>
+  </data>
+  <data name="SettingsDyn_5795F121" xml:space="preserve">
+    <value>Mostra o andamento da mídia no ícone da barra de tarefas</value>
+  </data>
+  <data name="SettingsDyn_5A1CD8E6" xml:space="preserve">
+    <value>Tamanho da fonte</value>
+  </data>
+  <data name="SettingsDyn_5A53318F" xml:space="preserve">
+    <value>Profundidade alvo usada pelo processo de dithering</value>
+  </data>
+  <data name="SettingsDyn_5AF06082" xml:space="preserve">
+    <value>Cookies do navegador</value>
+  </data>
+  <data name="SettingsDyn_5CDD92A7" xml:space="preserve">
+    <value>0 desativa; 1 mostra interações; 2 inclui tempo; 3 inclui status</value>
+  </data>
+  <data name="SettingsDyn_5D1C1939" xml:space="preserve">
+    <value>Modelo exibido pelo comando de progresso do player</value>
+  </data>
+  <data name="SettingsDyn_5FEFD59F" xml:space="preserve">
+    <value>Ocultar cursor só em tela cheia</value>
+  </data>
+  <data name="SettingsDyn_5FF1990A" xml:space="preserve">
+    <value>INFORMAÇÕES NA TELA</value>
+  </data>
+  <data name="SettingsDyn_604A7680" xml:space="preserve">
+    <value> • Ativo: configuração personalizada</value>
+  </data>
+  <data name="SettingsDyn_62C28BE5" xml:space="preserve">
+    <value> fontes instaladas no Windows; também é possível importar uma pasta</value>
+  </data>
+  <data name="SettingsDyn_637058EB" xml:space="preserve">
+    <value>Não foi possível remover todos os shaders</value>
+  </data>
+  <data name="SettingsDyn_6654C031" xml:space="preserve">
+    <value>Distância máxima considerada ao suavizar gradientes</value>
+  </data>
+  <data name="SettingsDyn_66EBB788" xml:space="preserve">
+    <value>GLSL personalizado</value>
+  </data>
+  <data name="SettingsDyn_68971B93" xml:space="preserve">
+    <value>Shaders importados</value>
+  </data>
+  <data name="SettingsDyn_6EFE95BD" xml:space="preserve">
+    <value>Opções do yt-dlp</value>
+  </data>
+  <data name="SettingsDyn_6FA8D820" xml:space="preserve">
+    <value>, modo </value>
+  </data>
+  <data name="SettingsDyn_6FC1E172" xml:space="preserve">
+    <value>Sensibilidade usada para identificar faixas de cor</value>
+  </data>
+  <data name="SettingsDyn_737D829A" xml:space="preserve">
+    <value>Upscaling sigmoidal</value>
+  </data>
+  <data name="SettingsDyn_7479BD4E" xml:space="preserve">
+    <value>Anime4K indisponível</value>
+  </data>
+  <data name="SettingsDyn_75CCF905" xml:space="preserve">
+    <value>Progresso na barra de tarefas</value>
+  </data>
+  <data name="SettingsDyn_75DA8BA1" xml:space="preserve">
+    <value> shader(s). Ex.: </value>
+  </data>
+  <data name="SettingsDyn_76698C34" xml:space="preserve">
+    <value>Não foi possível importar</value>
+  </data>
+  <data name="SettingsDyn_77359CB8" xml:space="preserve">
+    <value>OUTRAS OPÇÕES</value>
+  </data>
+  <data name="SettingsDyn_796ECA0D" xml:space="preserve">
+    <value>Shader removido</value>
+  </data>
+  <data name="SettingsDyn_79DD8CDD" xml:space="preserve">
+    <value> shader(s) copiado(s) para o HC Player. Todos permanecem desativados até você ativá-los.</value>
+  </data>
+  <data name="SettingsDyn_7BFEB10B" xml:space="preserve">
+    <value>Não foi possível importar o Deno</value>
+  </data>
+  <data name="SettingsDyn_7D5430FB" xml:space="preserve">
+    <value>Escalar legenda com a janela</value>
+  </data>
+  <data name="SettingsDyn_7DE26213" xml:space="preserve">
+    <value>Não foi possível importar o yt-dlp</value>
+  </data>
+  <data name="SettingsDyn_80B27B37" xml:space="preserve">
+    <value>Indisponível</value>
+  </data>
+  <data name="SettingsDyn_8183E24A" xml:space="preserve">
+    <value>Não foi possível importar os shaders</value>
+  </data>
+  <data name="SettingsDyn_864562C2" xml:space="preserve">
+    <value>Mover para cima</value>
+  </data>
+  <data name="SettingsDyn_88053BCB" xml:space="preserve">
+    <value>Saída de áudio: WASAPI\r\n</value>
+  </data>
+  <data name="SettingsDyn_882416E9" xml:space="preserve">
+    <value>Não foi possível remover o Deno</value>
+  </data>
+  <data name="SettingsDyn_896CD211" xml:space="preserve">
+    <value>COMPORTAMENTO</value>
+  </data>
+  <data name="SettingsDyn_8D9AF778" xml:space="preserve">
+    <value>Reduz halos de filtros de ampliação; substitui o modo linear</value>
+  </data>
+  <data name="SettingsDyn_8DAC46A8" xml:space="preserve">
+    <value>Todos os shaders gerenciados pelo HC Player foram removidos da lista, do pipeline e da pasta privada.</value>
+  </data>
+  <data name="SettingsDyn_8FB05898" xml:space="preserve">
+    <value>Multiplicador aplicado ao tamanho final das legendas</value>
+  </data>
+  <data name="SettingsDyn_949FF285" xml:space="preserve">
+    <value> • Desativado</value>
+  </data>
+  <data name="SettingsDyn_94AC9615" xml:space="preserve">
+    <value>Valor inválido</value>
+  </data>
+  <data name="SettingsDyn_968C59C9" xml:space="preserve">
+    <value>Selecionar pasta de fontes</value>
+  </data>
+  <data name="SettingsDyn_9AD01E2A" xml:space="preserve">
+    <value>Selecionar o runtime JavaScript Deno</value>
+  </data>
+  <data name="SettingsDyn_9BC7B7C2" xml:space="preserve">
+    <value>Contexto gráfico</value>
+  </data>
+  <data name="SettingsDyn_9BDD2121" xml:space="preserve">
+    <value>Duração das mensagens</value>
+  </data>
+  <data name="SettingsDyn_9EC52880" xml:space="preserve">
+    <value>O mecanismo de reprodução rejeitou o valor informado para </value>
+  </data>
+  <data name="SettingsDyn_A027BAA1" xml:space="preserve">
+    <value>Não foi possível alterar o shader</value>
+  </data>
+  <data name="SettingsDyn_A03BC0BC" xml:space="preserve">
+    <value>Falha ao restaurar</value>
+  </data>
+  <data name="SettingsDyn_A1BF588B" xml:space="preserve">
+    <value>Versão </value>
+  </data>
+  <data name="SettingsDyn_A1FB17C8" xml:space="preserve">
+    <value>Selecione o yt-dlp.exe ou adicione-o ao PATH do Windows</value>
+  </data>
+  <data name="SettingsDyn_A41A1D9A" xml:space="preserve">
+    <value>Runtime JavaScript pronto</value>
+  </data>
+  <data name="SettingsDyn_A758B85B" xml:space="preserve">
+    <value>Limite relativo da janela</value>
+  </data>
+  <data name="SettingsDyn_A76B3870" xml:space="preserve">
+    <value>Deno detectado no PATH do Windows</value>
+  </data>
+  <data name="SettingsDyn_A7B20C04" xml:space="preserve">
+    <value>O player voltará a usar automaticamente o Deno disponível no PATH, se houver.</value>
+  </data>
+  <data name="SettingsDyn_A8C648EE" xml:space="preserve">
+    <value>Não foi possível remover o arquivo de configuração.</value>
+  </data>
+  <data name="SettingsDyn_AB8E716E" xml:space="preserve">
+    <value>Limiar de detecção</value>
+  </data>
+  <data name="SettingsDyn_ABCDD926" xml:space="preserve">
+    <value>Deno recomendado para o YouTube</value>
+  </data>
+  <data name="SettingsDyn_AD2394B0" xml:space="preserve">
+    <value>Decodificação por hardware</value>
+  </data>
+  <data name="SettingsDyn_ADCF6551" xml:space="preserve">
+    <value>Formato de vídeos online</value>
+  </data>
+  <data name="SettingsDyn_AEF4B439" xml:space="preserve">
+    <value>Contexto de apresentação usado pela API gráfica</value>
+  </data>
+  <data name="SettingsDyn_AFF57F7B" xml:space="preserve">
+    <value>Tempo para ocultar o cursor</value>
+  </data>
+  <data name="SettingsDyn_B02EE69A" xml:space="preserve">
+    <value>Os shaders Anime4K foram removidos do pipeline. Outros shaders personalizados permanecem como estavam.</value>
+  </data>
+  <data name="SettingsDyn_B0368FC0" xml:space="preserve">
+    <value> shader(s) Anime4K detectado(s) • Fast: </value>
+  </data>
+  <data name="SettingsDyn_B091A909" xml:space="preserve">
+    <value>incompleto</value>
+  </data>
+  <data name="SettingsDyn_B2625C44" xml:space="preserve">
+    <value>Mantém o cursor visível enquanto o player está em modo janela</value>
+  </data>
+  <data name="SettingsDyn_B3B8067B" xml:space="preserve">
+    <value>Permitir busca sempre</value>
+  </data>
+  <data name="SettingsDyn_B513C728" xml:space="preserve">
+    <value>Nível das informações na tela</value>
+  </data>
+  <data name="SettingsDyn_B8619E60" xml:space="preserve">
+    <value>Não foi possível remover o shader</value>
+  </data>
+  <data name="SettingsDyn_BA3E0D27" xml:space="preserve">
+    <value>O executável foi armazenado e o mecanismo de reprodução foi atualizado.</value>
+  </data>
+  <data name="SettingsDyn_BD698101" xml:space="preserve">
+    <value>Nenhum arquivo selecionado pôde ser importado.</value>
+  </data>
+  <data name="SettingsDyn_BF54C81A" xml:space="preserve">
+    <value>Remover todos</value>
+  </data>
+  <data name="SettingsDyn_BFB841FC" xml:space="preserve">
+    <value>Anime4K • não usado neste preset</value>
+  </data>
+  <data name="SettingsDyn_C20B6406" xml:space="preserve">
+    <value>Correção ao reduzir</value>
+  </data>
+  <data name="SettingsDyn_C363C81B" xml:space="preserve">
+    <value>AJUSTES DE DEBANDING</value>
+  </data>
+  <data name="SettingsDyn_C4C247AA" xml:space="preserve">
+    <value> arquivos de fonte importados</value>
+  </data>
+  <data name="SettingsDyn_C57C9C43" xml:space="preserve">
+    <value>, aplicado na ordem oficial.</value>
+  </data>
+  <data name="SettingsDyn_C5A3F18B" xml:space="preserve">
+    <value>Escala adicional da legenda</value>
+  </data>
+  <data name="SettingsDyn_C5E10831" xml:space="preserve">
+    <value>Não foi possível remover o yt-dlp</value>
+  </data>
+  <data name="SettingsDyn_C622D09C" xml:space="preserve">
+    <value>Cor RGB do texto das informações na tela</value>
+  </data>
+  <data name="SettingsDyn_C7D1E462" xml:space="preserve">
+    <value>Os dados de versão e do motor foram copiados para a área de transferência.</value>
+  </data>
+  <data name="SettingsDyn_CA97FD9B" xml:space="preserve">
+    <value>Nenhum shader Anime4K detectado.</value>
+  </data>
+  <data name="SettingsDyn_CFAE81C4" xml:space="preserve">
+    <value>Interface: WinUI 3 / Windows App SDK 2.4.0\r\n</value>
+  </data>
+  <data name="SettingsDyn_D018B1FC" xml:space="preserve">
+    <value>Usar modo escuro</value>
+  </data>
+  <data name="SettingsDyn_D22266DB" xml:space="preserve">
+    <value>Informações copiadas</value>
+  </data>
+  <data name="SettingsDyn_D4583ACA" xml:space="preserve">
+    <value>Cor do texto</value>
+  </data>
+  <data name="SettingsDyn_D4BDD7A8" xml:space="preserve">
+    <value>Lê a sessão só ao resolver links. Firefox é recomendado no Windows</value>
+  </data>
+  <data name="SettingsDyn_D4F8B90C" xml:space="preserve">
+    <value>Permite posicionar legendas também nas margens do vídeo</value>
+  </data>
+  <data name="SettingsDyn_D51A89BC" xml:space="preserve">
+    <value>API gráfica</value>
+  </data>
+  <data name="SettingsDyn_D59E2499" xml:space="preserve">
+    <value>Os </value>
+  </data>
+  <data name="SettingsDyn_D79258C6" xml:space="preserve">
+    <value>Preferência de formatos usada pelo yt-dlp</value>
+  </data>
+  <data name="SettingsDyn_DA742AD0" xml:space="preserve">
+    <value>Controlado pelo preset Anime4K ativo. Desative o preset para editar manualmente.</value>
+  </data>
+  <data name="SettingsDyn_DAFBC0DC" xml:space="preserve">
+    <value> importado(s), </value>
+  </data>
+  <data name="SettingsDyn_E02AFBE5" xml:space="preserve">
+    <value> — selecione o deno.exe oficial; 'deno --version' precisa funcionar</value>
+  </data>
+  <data name="SettingsDyn_E17493DA" xml:space="preserve">
+    <value>Executável do yt-dlp</value>
+  </data>
+  <data name="SettingsDyn_E186B590" xml:space="preserve">
+    <value>Milissegundos de inatividade; também aceita no ou always</value>
+  </data>
+  <data name="SettingsDyn_E1C5A0C2" xml:space="preserve">
+    <value>Executável do Deno</value>
+  </data>
+  <data name="SettingsDyn_E68DFFBF" xml:space="preserve">
+    <value>Opcional: selecione deno.exe 2.3 ou mais recente para suporte completo</value>
+  </data>
+  <data name="SettingsDyn_E6FE82A7" xml:space="preserve">
+    <value>Use a sintaxe do mpv: chave=valor,flag= (sem --; separe por vírgulas)</value>
+  </data>
+  <data name="SettingsDyn_E96B65DF" xml:space="preserve">
+    <value>Desconhecida</value>
+  </data>
+  <data name="SettingsDyn_E98C5D32" xml:space="preserve">
+    <value>Configuração do player</value>
+  </data>
+  <data name="SettingsDyn_EC81F31D" xml:space="preserve">
+    <value>Limita o ajuste automático à área útil da tela</value>
+  </data>
+  <data name="SettingsDyn_EF09C416" xml:space="preserve">
+    <value>Tenta avançar e retroceder mesmo quando a mídia não anuncia suporte</value>
+  </data>
+  <data name="SettingsDyn_F1078E57" xml:space="preserve">
+    <value>Número de passagens do filtro; valores maiores custam mais GPU</value>
+  </data>
+  <data name="SettingsDyn_F1E03BEC" xml:space="preserve">
+    <value>As opções foram validadas e aplicadas ao player.</value>
+  </data>
+  <data name="SettingsDyn_F26D7D00" xml:space="preserve">
+    <value>Fonte instalada no Windows usada nas mensagens de reprodução</value>
+  </data>
+  <data name="SettingsDyn_F279018A" xml:space="preserve">
+    <value>Entra automaticamente em tela cheia ao iniciar uma nova mídia</value>
+  </data>
+  <data name="SettingsDyn_F2EC1E10" xml:space="preserve">
+    <value>disponível</value>
+  </data>
+  <data name="SettingsDyn_F34E8EB2" xml:space="preserve">
+    <value>yt-dlp não encontrado</value>
+  </data>
+  <data name="SettingsDyn_F462B590" xml:space="preserve">
+    <value> • Ativo: </value>
+  </data>
+  <data name="SettingsDyn_F5E6E20A" xml:space="preserve">
+    <value>Usar modo claro</value>
+  </data>
+  <data name="SettingsDyn_F741CC24" xml:space="preserve">
+    <value> não importado(s).</value>
+  </data>
+  <data name="SettingsDyn_F8A65276" xml:space="preserve">
+    <value>Ajusta filtros convolucionais para preservar detalhes na redução</value>
+  </data>
+  <data name="SettingsDyn_F8C43569" xml:space="preserve">
+    <value>Mover para baixo</value>
+  </data>
+  <data name="SettingsDyn_FBCEAE49" xml:space="preserve">
+    <value>Padrão do sistema</value>
+  </data>
+  <data name="SettingsDyn_FBFAD035" xml:space="preserve">
+    <value>Não foi possível ativar o Anime4K</value>
+  </data>
+  <data name="SettingsDyn_FCA25591" xml:space="preserve">
+    <value>O shader foi removido do pipeline de vídeo.</value>
+  </data>
+  <data name="SettingsDyn_FDC97589" xml:space="preserve">
+    <value>Não foi possível salvar</value>
+  </data>
+  <data name="SettingsDyn_FFD1C817" xml:space="preserve">
+    <value>Executável importado removido</value>
+  </data>
+  <data name="SettingsInterfaceSection.Text" xml:space="preserve">
+    <value>INTERFACE</value>
+  </data>
+  <data name="SettingsIntro.Text" xml:space="preserve">
+    <value>Edite as opções e clique em Salvar para aplicá-las</value>
+  </data>
+  <data name="SettingsSave.Text" xml:space="preserve">
+    <value>Salvar</value>
+  </data>
+  <data name="SettingsTabAbout.Text" xml:space="preserve">
+    <value>Sobre</value>
+  </data>
+  <data name="SettingsTabAdvanced.Text" xml:space="preserve">
+    <value>Avançado</value>
+  </data>
+  <data name="SettingsTabGeneral.Text" xml:space="preserve">
+    <value>Geral</value>
+  </data>
+  <data name="SettingsTabInterface.Text" xml:space="preserve">
+    <value>Interface</value>
+  </data>
+  <data name="SettingsTabMedia.Text" xml:space="preserve">
+    <value>Mídia</value>
+  </data>
+  <data name="SettingsTabPlayback.Text" xml:space="preserve">
+    <value>Reprodução</value>
+  </data>
+  <data name="SettingsTitle.Text" xml:space="preserve">
+    <value>Configurações</value>
+  </data>
+  <data name="SettingsDyn_0BF09EB8" xml:space="preserve">
+    <value>Interface: WinUI 3 / Windows App SDK 2.4.0</value>
+  </data>
+  <data name="SettingsDyn_4D4F29F0" xml:space="preserve">
+    <value>Renderização: gpu-next / D3D11</value>
+  </data>
+  <data name="SettingsDyn_6FFBF667" xml:space="preserve">
+    <value>Saída de áudio: WASAPI</value>
+  </data>
+  <data name="SettingsDyn_7002D946" xml:space="preserve">
+    <value>Nenhuma configuração pessoal foi importada.</value>
+  </data>
+  <data name="SettingsDyn_116A3661" xml:space="preserve">
+    <value>Não foi possível ler o arquivo selecionado.</value>
+  </data>
+  <data name="SettingsDyn_9F238E3F" xml:space="preserve">
+    <value>Nenhuma opção válida foi encontrada.</value>
+  </data>
+  <data name="SettingsDyn_6DB8D025" xml:space="preserve">
+    <value>As opções foram validadas, mas não foi possível salvar a configuração.</value>
+  </data>
+  <data name="SettingsDyn_C40B4E38" xml:space="preserve">
+    <value>As opções foram importadas, mas não foi possível salvar os valores do painel.</value>
+  </data>
+  <data name="SettingsDyn_9A17981F" xml:space="preserve">
+    <value> opções incorporadas ao painel; </value>
+  </data>
+  <data name="SettingsDyn_6F6D3BEA" xml:space="preserve">
+    <value> opções adicionais</value>
+  </data>
+  <data name="SettingsDyn_2118896F" xml:space="preserve">
+    <value> ignoradas</value>
+  </data>
+  <data name="SettingsDyn_410739F2" xml:space="preserve">
+    <value>O mecanismo de reprodução não pôde atualizar a lista de shaders.</value>
+  </data>
+  <data name="SettingsDyn_D3C7F652" xml:space="preserve">
+    <value>O arquivo do shader não foi encontrado: </value>
+  </data>
+  <data name="SettingsDyn_C1CBB94C" xml:space="preserve">
+    <value>O mecanismo de reprodução rejeitou o shader: </value>
+  </data>
+  <data name="SettingsDyn_26636E1B" xml:space="preserve">
+    <value>Perfil ou modo Anime4K inválido.</value>
+  </data>
+  <data name="SettingsDyn_D60D8BFC" xml:space="preserve">
+    <value>Este modo não pode ser ativado porque faltam </value>
+  </data>
+  <data name="SettingsDyn_0E1100A7" xml:space="preserve">
+    <value> shader(s). Primeiro arquivo ausente: </value>
+  </data>
+  <data name="SettingsDyn_DBDD8A4A" xml:space="preserve">
+    <value>O shader necessário deixou de estar disponível.</value>
+  </data>
+  <data name="SettingsDyn_485A681E" xml:space="preserve">
+    <value>Não foi possível salvar o modo Anime4K selecionado.</value>
+  </data>
+  <data name="SettingsDyn_E7AF9262" xml:space="preserve">
+    <value>Não foi possível salvar o estado do Anime4K.</value>
+  </data>
+  <data name="SettingsDyn_E7C72C43" xml:space="preserve">
+    <value>Selecione um arquivo de shader GLSL válido (.glsl).</value>
+  </data>
+  <data name="SettingsDyn_9BF6F438" xml:space="preserve">
+    <value>Não foi possível criar a pasta privada de shaders do HC Player.</value>
+  </data>
+  <data name="SettingsDyn_C8755582" xml:space="preserve">
+    <value>Não foi possível copiar o shader para a pasta privada do HC Player.</value>
+  </data>
+  <data name="SettingsDyn_9D7190D6" xml:space="preserve">
+    <value>O shader foi atualizado, mas a configuração não pôde ser salva.</value>
+  </data>
+  <data name="SettingsDyn_DE82901D" xml:space="preserve">
+    <value>O shader foi copiado, mas a configuração não pôde ser salva.</value>
+  </data>
+  <data name="SettingsDyn_D1CCA4DB" xml:space="preserve">
+    <value>O shader não está mais disponível na lista.</value>
+  </data>
+  <data name="SettingsDyn_632E9B32" xml:space="preserve">
+    <value>Não foi possível salvar o estado do shader.</value>
+  </data>
+  <data name="SettingsDyn_63D0B8EB" xml:space="preserve">
+    <value>Não foi possível salvar a nova ordem dos shaders.</value>
+  </data>
+  <data name="SettingsDyn_FB49C851" xml:space="preserve">
+    <value>O mecanismo de reprodução não pôde remover o shader ativo.</value>
+  </data>
+  <data name="SettingsDyn_4983FFCA" xml:space="preserve">
+    <value>Não foi possível salvar a remoção do shader.</value>
+  </data>
+  <data name="SettingsDyn_9BF97507" xml:space="preserve">
+    <value>O shader foi removido da lista, mas o arquivo não pôde ser apagado.</value>
+  </data>
+  <data name="SettingsDyn_8A2D4437" xml:space="preserve">
+    <value>O mecanismo de reprodução não pôde remover todos os shaders gerenciados.</value>
+  </data>
+  <data name="SettingsDyn_3EB477E5" xml:space="preserve">
+    <value>Não foi possível salvar a limpeza da lista de shaders.</value>
+  </data>
+  <data name="SettingsDyn_EC063E97" xml:space="preserve">
+    <value>A lista e o pipeline foram limpos, mas </value>
+  </data>
+  <data name="SettingsDyn_EECA63A0" xml:space="preserve">
+    <value> arquivo(s) privado(s) não puderam ser apagados do disco.</value>
+  </data>
+  <data name="SettingsDyn_0E7E8F51" xml:space="preserve">
+    <value>Selecione um executável válido do yt-dlp para Windows.</value>
+  </data>
+  <data name="SettingsDyn_44D1686B" xml:space="preserve">
+    <value>Não foi possível criar a pasta privada do yt-dlp.</value>
+  </data>
+  <data name="SettingsDyn_F3BCB01F" xml:space="preserve">
+    <value>Não foi possível copiar o executável selecionado.</value>
+  </data>
+  <data name="SettingsDyn_CD281F18" xml:space="preserve">
+    <value>O yt-dlp foi importado, mas o mecanismo de reprodução não pôde ser reiniciado.</value>
+  </data>
+  <data name="SettingsDyn_55D4F804" xml:space="preserve">
+    <value>Não foi possível remover o executável importado.</value>
+  </data>
+  <data name="SettingsDyn_423FC582" xml:space="preserve">
+    <value>O executável foi removido, mas o mecanismo de reprodução não pôde ser reiniciado.</value>
+  </data>
+  <data name="SettingsDyn_C157AC69" xml:space="preserve">
+    <value>Selecione um executável válido do Deno para Windows.</value>
+  </data>
+  <data name="SettingsDyn_4AFCAC84" xml:space="preserve">
+    <value>O arquivo selecionado não é um runtime Deno funcional. Use o deno.exe oficial e confirme que 'deno --version' funciona.</value>
+  </data>
+  <data name="SettingsDyn_DDC88F94" xml:space="preserve">
+    <value>Não foi possível criar a pasta privada do runtime JavaScript.</value>
+  </data>
+  <data name="SettingsDyn_856986AA" xml:space="preserve">
+    <value>Não foi possível copiar o executável do Deno.</value>
+  </data>
+  <data name="SettingsDyn_3BE8EED0" xml:space="preserve">
+    <value>O Deno foi importado, mas o mecanismo de reprodução não pôde ser reiniciado.</value>
+  </data>
+  <data name="SettingsDyn_742CB6DF" xml:space="preserve">
+    <value>Não foi possível remover o runtime JavaScript importado.</value>
+  </data>
+  <data name="SettingsDyn_0FA27D2E" xml:space="preserve">
+    <value>O Deno foi removido, mas o mecanismo de reprodução não pôde ser reiniciado.</value>
+  </data>
+  <data name="SettingsToggleOn" xml:space="preserve">
+    <value>Ativado</value>
+  </data>
+  <data name="SettingsToggleOff" xml:space="preserve">
+    <value>Desativado</value>
+  </data>
+  <data name="MediaInfoHeaderTitle.Text" xml:space="preserve">
+    <value>Informações de mídia</value>
+  </data>
+  <data name="MediaInfoHeaderSubtitle.Text" xml:space="preserve">
+    <value>Informações técnicas fornecidas pelo MediaInfo</value>
+  </data>
+  <data name="MediaInfoCopyAllButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Copiar todas as informações</value>
+  </data>
+  <data name="MediaInfoCopyAllText.Text" xml:space="preserve">
+    <value>Copiar tudo</value>
+  </data>
+  <data name="MediaInfoCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Fechar</value>
+  </data>
+  <data name="MediaInfoLoadingText.Text" xml:space="preserve">
+    <value>Analisando mídia…</value>
+  </data>
+  <data name="MediaInfoSectionGeneral" xml:space="preserve">
+    <value>Geral</value>
+  </data>
+  <data name="MediaInfoSectionVideo" xml:space="preserve">
+    <value>Vídeo</value>
+  </data>
+  <data name="MediaInfoSectionAudio" xml:space="preserve">
+    <value>Áudio</value>
+  </data>
+  <data name="MediaInfoSectionSubtitles" xml:space="preserve">
+    <value>Legendas</value>
+  </data>
+  <data name="MediaInfoSectionImage" xml:space="preserve">
+    <value>Imagem</value>
+  </data>
+  <data name="MediaInfoSectionMenu" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+  <data name="MediaInfoSectionOther" xml:space="preserve">
+    <value>Outros</value>
+  </data>
+  <data name="MediaInfoErrorUnavailableSource" xml:space="preserve">
+    <value>As informações de mídia não estão disponíveis para esta fonte.</value>
+  </data>
+  <data name="MediaInfoErrorNoMediaOpen" xml:space="preserve">
+    <value>Nenhuma mídia está aberta no momento.</value>
+  </data>
+  <data name="MediaInfoErrorNoFileForAnalysis" xml:space="preserve">
+    <value>Nenhum arquivo de mídia está disponível para análise.</value>
+  </data>
+  <data name="MediaInfoErrorLocalFilesOnly" xml:space="preserve">
+    <value>As informações detalhadas do MediaInfo estão disponíveis apenas para arquivos locais.</value>
+  </data>
+  <data name="MediaInfoErrorOpticalDisc" xml:space="preserve">
+    <value>As informações detalhadas do MediaInfo não estão disponíveis para DVD e Blu-ray abertos como mídia óptica.</value>
+  </data>
+  <data name="MediaInfoErrorNoFileProvided" xml:space="preserve">
+    <value>Nenhum arquivo de mídia foi fornecido.</value>
+  </data>
+  <data name="MediaInfoErrorDllUnavailable" xml:space="preserve">
+    <value>MediaInfo.dll não pôde ser carregada ou é incompatível.</value>
+  </data>
+  <data name="MediaInfoErrorAnalysisContext" xml:space="preserve">
+    <value>O MediaInfo não pôde criar um contexto de análise.</value>
+  </data>
+  <data name="MediaInfoErrorOpenSource" xml:space="preserve">
+    <value>O MediaInfo não pôde abrir esta fonte de mídia.</value>
+  </data>
+  <data name="MediaInfoErrorEmptyReport" xml:space="preserve">
+    <value>O MediaInfo retornou um relatório vazio.</value>
+  </data>
+  <data name="MediaInfoField_4AC64F53" xml:space="preserve">
+    <value>Nome completo</value>
+  </data>
+  <data name="MediaInfoField_8ED458CC" xml:space="preserve">
+    <value>Nome do arquivo</value>
+  </data>
+  <data name="MediaInfoField_E4A273E4" xml:space="preserve">
+    <value>Nome da pasta</value>
+  </data>
+  <data name="MediaInfoField_2330B626" xml:space="preserve">
+    <value>Formato</value>
+  </data>
+  <data name="MediaInfoField_337FD644" xml:space="preserve">
+    <value>Versão do formato</value>
+  </data>
+  <data name="MediaInfoField_15C0B7F5" xml:space="preserve">
+    <value>Perfil do formato</value>
+  </data>
+  <data name="MediaInfoField_4987E290" xml:space="preserve">
+    <value>Nível do formato</value>
+  </data>
+  <data name="MediaInfoField_B91079A3" xml:space="preserve">
+    <value>Configurações do formato</value>
+  </data>
+  <data name="MediaInfoField_4B6557BE" xml:space="preserve">
+    <value>Nome comercial</value>
+  </data>
+  <data name="MediaInfoField_E5E301B6" xml:space="preserve">
+    <value>ID do codec</value>
+  </data>
+  <data name="MediaInfoField_EC955E62" xml:space="preserve">
+    <value>Dica do ID do codec</value>
+  </data>
+  <data name="MediaInfoField_0C476EAE" xml:space="preserve">
+    <value>Tamanho do arquivo</value>
+  </data>
+  <data name="MediaInfoField_E19416F3" xml:space="preserve">
+    <value>Duração</value>
+  </data>
+  <data name="MediaInfoField_AC130584" xml:space="preserve">
+    <value>Modo da taxa de bits geral</value>
+  </data>
+  <data name="MediaInfoField_6082B0AF" xml:space="preserve">
+    <value>Taxa de bits geral</value>
+  </data>
+  <data name="MediaInfoField_A7215711" xml:space="preserve">
+    <value>Modo da taxa de quadros</value>
+  </data>
+  <data name="MediaInfoField_B2C15DF2" xml:space="preserve">
+    <value>Taxa de quadros</value>
+  </data>
+  <data name="MediaInfoField_B1B0C403" xml:space="preserve">
+    <value>Contagem de quadros</value>
+  </data>
+  <data name="MediaInfoField_A495B323" xml:space="preserve">
+    <value>Largura</value>
+  </data>
+  <data name="MediaInfoField_55724BAA" xml:space="preserve">
+    <value>Altura</value>
+  </data>
+  <data name="MediaInfoField_F4D887F6" xml:space="preserve">
+    <value>Proporção da tela</value>
+  </data>
+  <data name="MediaInfoField_90518254" xml:space="preserve">
+    <value>Proporção do pixel</value>
+  </data>
+  <data name="MediaInfoField_DA6C0BB3" xml:space="preserve">
+    <value>Modo da taxa de bits</value>
+  </data>
+  <data name="MediaInfoField_F1410DC0" xml:space="preserve">
+    <value>Taxa de bits</value>
+  </data>
+  <data name="MediaInfoField_85978FB0" xml:space="preserve">
+    <value>Taxa de bits máxima</value>
+  </data>
+  <data name="MediaInfoField_8921D078" xml:space="preserve">
+    <value>Formato HDR</value>
+  </data>
+  <data name="MediaInfoField_4F4BFCA4" xml:space="preserve">
+    <value>Espaço de cores</value>
+  </data>
+  <data name="MediaInfoField_4A35C998" xml:space="preserve">
+    <value>Subamostragem de croma</value>
+  </data>
+  <data name="MediaInfoField_FDCCF7FF" xml:space="preserve">
+    <value>Profundidade de bits</value>
+  </data>
+  <data name="MediaInfoField_1C984FCA" xml:space="preserve">
+    <value>Tipo de varredura</value>
+  </data>
+  <data name="MediaInfoField_4C00A30F" xml:space="preserve">
+    <value>Faixa de cores</value>
+  </data>
+  <data name="MediaInfoField_8A3F5942" xml:space="preserve">
+    <value>Primárias de cor</value>
+  </data>
+  <data name="MediaInfoField_CC18EEB0" xml:space="preserve">
+    <value>Características de transferência</value>
+  </data>
+  <data name="MediaInfoField_45724590" xml:space="preserve">
+    <value>Coeficientes de matriz</value>
+  </data>
+  <data name="MediaInfoField_5AD9FC9C" xml:space="preserve">
+    <value>Primárias de cor do monitor de masterização</value>
+  </data>
+  <data name="MediaInfoField_8797E3A9" xml:space="preserve">
+    <value>Luminância do monitor de masterização</value>
+  </data>
+  <data name="MediaInfoField_4421C664" xml:space="preserve">
+    <value>Nível máximo de luz do conteúdo</value>
+  </data>
+  <data name="MediaInfoField_1FC00A5E" xml:space="preserve">
+    <value>Nível máximo médio de luz por quadro</value>
+  </data>
+  <data name="MediaInfoField_74055737" xml:space="preserve">
+    <value>Idioma</value>
+  </data>
+  <data name="MediaInfoField_93A29D95" xml:space="preserve">
+    <value>Título</value>
+  </data>
+  <data name="MediaInfoField_D27CB70E" xml:space="preserve">
+    <value>Padrão</value>
+  </data>
+  <data name="MediaInfoField_18F2DDBC" xml:space="preserve">
+    <value>Forçado</value>
+  </data>
+  <data name="MediaInfoField_A57AA2B5" xml:space="preserve">
+    <value>Canais</value>
+  </data>
+  <data name="MediaInfoField_A8B90D74" xml:space="preserve">
+    <value>Disposição dos canais</value>
+  </data>
+  <data name="MediaInfoField_6B8C79DC" xml:space="preserve">
+    <value>Taxa de amostragem</value>
+  </data>
+  <data name="MediaInfoField_8C9A2458" xml:space="preserve">
+    <value>Modo de compressão</value>
+  </data>
+  <data name="MediaInfoField_08114DA4" xml:space="preserve">
+    <value>Tamanho da faixa</value>
+  </data>
+  <data name="MediaInfoField_061ECD30" xml:space="preserve">
+    <value>Atraso</value>
+  </data>
+  <data name="MediaInfoField_408DCD3D" xml:space="preserve">
+    <value>Origem do atraso</value>
+  </data>
+  <data name="MediaInfoField_818C1D6A" xml:space="preserve">
+    <value>Biblioteca de codificação</value>
+  </data>
+  <data name="MediaInfoField_273BBCDF" xml:space="preserve">
+    <value>Programa usado</value>
+  </data>
+  <data name="MediaInfoField_4C9E7A0B" xml:space="preserve">
+    <value>Configurações de codificação</value>
+  </data>
+  <data name="MediaInfoField_ED9B1EB3" xml:space="preserve">
+    <value>Data de codificação</value>
+  </data>
+  <data name="MediaInfoField_FAE8188D" xml:space="preserve">
+    <value>Data de marcação</value>
+  </data>
+  <data name="MediaInfoField_09E2625E" xml:space="preserve">
+    <value>Duração da fonte</value>
+  </data>
+  <data name="MediaInfoField_BD461956" xml:space="preserve">
+    <value>Contagem de quadros da fonte</value>
+  </data>
+  <data name="MediaInfoField_47F9B143" xml:space="preserve">
+    <value>Taxa de quadros original</value>
+  </data>
+  <data name="MediaInfoField_9AF70109" xml:space="preserve">
+    <value>Rotação</value>
+  </data>
+  <data name="MediaInfoField_970B1385" xml:space="preserve">
+    <value>Descrição de cor presente</value>
+  </data>
+  <data name="MediaInfoField_B159473B" xml:space="preserve">
+    <value>ID do menu</value>
+  </data>
+  <data name="MediaInfoField_22F45052" xml:space="preserve">
+    <value>Número de elementos</value>
+  </data>
+  <data name="MediaInfoField_7D389638" xml:space="preserve">
+    <value>Número de elementos</value>
+  </data>
+  <data name="MediaInfoField_A0A277D2" xml:space="preserve">
+    <value>Formato/Informações</value>
+  </data>
+  <data name="MediaInfoField_3046F1DA" xml:space="preserve">
+    <value>Álbum</value>
+  </data>
+  <data name="MediaInfoField_712EABAC" xml:space="preserve">
+    <value>Álbum/Intérprete</value>
+  </data>
+  <data name="MediaInfoField_35973C4B" xml:space="preserve">
+    <value>Parte/Posição</value>
+  </data>
+  <data name="MediaInfoField_CC6A9728" xml:space="preserve">
+    <value>Parte/Total</value>
+  </data>
+  <data name="MediaInfoField_0E3835A3" xml:space="preserve">
+    <value>Nome da faixa/Posição</value>
+  </data>
+  <data name="MediaInfoField_BF916F70" xml:space="preserve">
+    <value>Nome da faixa/Total</value>
+  </data>
+  <data name="MediaInfoField_D1CE09DB" xml:space="preserve">
+    <value>Intérprete</value>
+  </data>
+  <data name="MediaInfoField_F9D13DCF" xml:space="preserve">
+    <value>Compositor</value>
+  </data>
+  <data name="MediaInfoField_FA09E925" xml:space="preserve">
+    <value>Produtor</value>
+  </data>
+  <data name="MediaInfoField_BFAA9205" xml:space="preserve">
+    <value>Data de gravação</value>
+  </data>
+  <data name="MediaInfoField_6E8B8D7E" xml:space="preserve">
+    <value>ISRC</value>
+  </data>
+  <data name="MediaInfoField_9B3BEDF8" xml:space="preserve">
+    <value>Direitos autorais</value>
+  </data>
+  <data name="MediaInfoField_41C86A48" xml:space="preserve">
+    <value>Capa</value>
+  </data>
+  <data name="MediaInfoField_26FCBE60" xml:space="preserve">
+    <value>Tipo de Capa</value>
+  </data>
+  <data name="MediaInfoField_94359714" xml:space="preserve">
+    <value>MIME da Capa</value>
+  </data>
+  <data name="MediaInfoField_8305C6C3" xml:space="preserve">
+    <value>Letra</value>
+  </data>
+  <data name="MediaInfoField_2937166B" xml:space="preserve">
+    <value>Classificação</value>
+  </data>
+  <data name="MediaInfoField_3B5FD93B" xml:space="preserve">
+    <value>UPC</value>
+  </data>
+  <data name="MediaInfoField_C90FF497" xml:space="preserve">
+    <value>Anexos</value>
+  </data>
+  <data name="MediaInfoField_34A749A2" xml:space="preserve">
+    <value>ID do Codec/Informações</value>
+  </data>
+  <data name="MediaInfoField_C382C04E" xml:space="preserve">
+    <value>Caixa de configuração do codec</value>
+  </data>
+  <data name="MediaInfoField_72D6E988" xml:space="preserve">
+    <value>Bits/(Pixels*Quadros)</value>
+  </data>
+  <data name="MediaInfoField_BBD96A1A" xml:space="preserve">
+    <value>Grupo alternativo</value>
+  </data>
+  <data name="MediaInfoField_33D02AA0" xml:space="preserve">
+    <value>Normalização de Diálogo</value>
+  </data>
+  <data name="MediaInfoField_4715EE5F" xml:space="preserve">
+    <value>Replay gain</value>
+  </data>
+  <data name="MediaInfoField_C8C5A9A8" xml:space="preserve">
+    <value>Pico do replay gain</value>
+  </data>
+  <data name="MediaInfoField_6716AF29" xml:space="preserve">
+    <value>MD5 do conteúdo não codificado</value>
+  </data>
+  <data name="MediaInfoField_EFF1FE1D" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="MediaInfoField_6C4D1020" xml:space="preserve">
+    <value>Tamanho</value>
+  </data>
+  <data name="MediaInfoField_5C8813DD" xml:space="preserve">
+    <value>Biblioteca usada</value>
+  </data>
+  <data name="MediaInfoField_39EEA888" xml:space="preserve">
+    <value>Tipo de serviço</value>
+  </data>
+  <data name="MediaInfoField_920A8127" xml:space="preserve">
+    <value>Índice de complexidade</value>
+  </data>
+  <data name="MediaInfoField_7DCD4A0C" xml:space="preserve">
+    <value>Número de objetos dinâmicos</value>
+  </data>
+  <data name="MediaInfoField_09931CCE" xml:space="preserve">
+    <value>Contagem de canais bed</value>
+  </data>
+  <data name="MediaInfoField_955A3FD5" xml:space="preserve">
+    <value>Configuração dos canais bed</value>
+  </data>
+  <data name="MediaInfoField_7B996143" xml:space="preserve">
+    <value>dmixmod</value>
+  </data>
+  <data name="ContextMenuB001.Text" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="ContextMenuB002.Text" xml:space="preserve">
+    <value>Arquivo...</value>
+  </data>
+  <data name="ContextMenuB003.Text" xml:space="preserve">
+    <value>Pasta...</value>
+  </data>
+  <data name="ContextMenuB004.Text" xml:space="preserve">
+    <value>URL ou caminho copiado</value>
+  </data>
+  <data name="ContextMenuB005.Text" xml:space="preserve">
+    <value>DVD ISO...</value>
+  </data>
+  <data name="ContextMenuB006.Text" xml:space="preserve">
+    <value>Blu-ray ISO...</value>
+  </data>
+  <data name="ContextMenuB007.Text" xml:space="preserve">
+    <value>Reproduzidos recentemente</value>
+  </data>
+  <data name="ContextMenuB008.Text" xml:space="preserve">
+    <value>Reproduzir / Pausar</value>
+  </data>
+  <data name="ContextMenuB008.KeyboardAcceleratorTextOverride" xml:space="preserve">
+    <value>Espaço</value>
+  </data>
+  <data name="ContextMenuB009.Text" xml:space="preserve">
+    <value>Parar</value>
+  </data>
+  <data name="ContextMenuB010.Text" xml:space="preserve">
+    <value>Navegar</value>
+  </data>
+  <data name="ContextMenuB011.Text" xml:space="preserve">
+    <value>Próximo arquivo</value>
+  </data>
+  <data name="ContextMenuB012.Text" xml:space="preserve">
+    <value>Arquivo anterior</value>
+  </data>
+  <data name="ContextMenuB013.Text" xml:space="preserve">
+    <value>Próximo capítulo</value>
+  </data>
+  <data name="ContextMenuB014.Text" xml:space="preserve">
+    <value>Capítulo anterior</value>
+  </data>
+  <data name="ContextMenuB015.Text" xml:space="preserve">
+    <value>Próximo quadro</value>
+  </data>
+  <data name="ContextMenuB016.Text" xml:space="preserve">
+    <value>Quadro anterior</value>
+  </data>
+  <data name="ContextMenuB017.Text" xml:space="preserve">
+    <value>Avançar 5 segundos</value>
+  </data>
+  <data name="ContextMenuB018.Text" xml:space="preserve">
+    <value>Voltar 5 segundos</value>
+  </data>
+  <data name="ContextMenuB019.Text" xml:space="preserve">
+    <value>Avançar 30 segundos</value>
+  </data>
+  <data name="ContextMenuB020.Text" xml:space="preserve">
+    <value>Voltar 30 segundos</value>
+  </data>
+  <data name="ContextMenuB021.Text" xml:space="preserve">
+    <value>Avançar 5 minutos</value>
+  </data>
+  <data name="ContextMenuB022.Text" xml:space="preserve">
+    <value>Voltar 5 minutos</value>
+  </data>
+  <data name="ContextMenuB023.Text" xml:space="preserve">
+    <value>Capítulos</value>
+  </data>
+  <data name="ContextMenuB024.Text" xml:space="preserve">
+    <value>Próximo</value>
+  </data>
+  <data name="ContextMenuB025.Text" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="ContextMenuB026.Text" xml:space="preserve">
+    <value>Faixas</value>
+  </data>
+  <data name="ContextMenuB027.Text" xml:space="preserve">
+    <value>Vídeo</value>
+  </data>
+  <data name="ContextMenuB028.Text" xml:space="preserve">
+    <value>Áudio</value>
+  </data>
+  <data name="ContextMenuB029.Text" xml:space="preserve">
+    <value>Legenda principal</value>
+  </data>
+  <data name="ContextMenuB030.Text" xml:space="preserve">
+    <value>Legenda secundária</value>
+  </data>
+  <data name="ContextMenuB031.Text" xml:space="preserve">
+    <value>Próximo vídeo</value>
+  </data>
+  <data name="ContextMenuB032.Text" xml:space="preserve">
+    <value>Próximo áudio</value>
+  </data>
+  <data name="ContextMenuB033.Text" xml:space="preserve">
+    <value>Próxima legenda</value>
+  </data>
+  <data name="ContextMenuB034.Text" xml:space="preserve">
+    <value>Edições</value>
+  </data>
+  <data name="ContextMenuB035.Text" xml:space="preserve">
+    <value>Playlist</value>
+  </data>
+  <data name="ContextMenuB036.Text" xml:space="preserve">
+    <value>Próximo arquivo</value>
+  </data>
+  <data name="ContextMenuB037.Text" xml:space="preserve">
+    <value>Arquivo anterior</value>
+  </data>
+  <data name="ContextMenuB038.Text" xml:space="preserve">
+    <value>Embaralhar ordem</value>
+  </data>
+  <data name="ContextMenuB039.Text" xml:space="preserve">
+    <value>Vídeo</value>
+  </data>
+  <data name="ContextMenuB040.Text" xml:space="preserve">
+    <value>Próxima faixa</value>
+  </data>
+  <data name="ContextMenuB041.Text" xml:space="preserve">
+    <value>Diminuir contraste</value>
+  </data>
+  <data name="ContextMenuB042.Text" xml:space="preserve">
+    <value>Aumentar contraste</value>
+  </data>
+  <data name="ContextMenuB043.Text" xml:space="preserve">
+    <value>Diminuir brilho</value>
+  </data>
+  <data name="ContextMenuB044.Text" xml:space="preserve">
+    <value>Aumentar brilho</value>
+  </data>
+  <data name="ContextMenuB045.Text" xml:space="preserve">
+    <value>Diminuir gama</value>
+  </data>
+  <data name="ContextMenuB046.Text" xml:space="preserve">
+    <value>Aumentar gama</value>
+  </data>
+  <data name="ContextMenuB047.Text" xml:space="preserve">
+    <value>Diminuir saturação</value>
+  </data>
+  <data name="ContextMenuB048.Text" xml:space="preserve">
+    <value>Aumentar saturação</value>
+  </data>
+  <data name="ContextMenuB049.Text" xml:space="preserve">
+    <value>Capturar tela</value>
+  </data>
+  <data name="ContextMenuB050.Text" xml:space="preserve">
+    <value>Capturar sem legendas</value>
+  </data>
+  <data name="ContextMenuB051.Text" xml:space="preserve">
+    <value>Proporção</value>
+  </data>
+  <data name="ContextMenuB052.Text" xml:space="preserve">
+    <value>Original</value>
+  </data>
+  <data name="ContextMenuB053.Text" xml:space="preserve">
+    <value>16:9</value>
+  </data>
+  <data name="ContextMenuB054.Text" xml:space="preserve">
+    <value>4:3</value>
+  </data>
+  <data name="ContextMenuB055.Text" xml:space="preserve">
+    <value>2.35:1</value>
+  </data>
+  <data name="ContextMenuB056.Text" xml:space="preserve">
+    <value>Girar vídeo</value>
+  </data>
+  <data name="ContextMenuB057.Text" xml:space="preserve">
+    <value>Alternar deband</value>
+  </data>
+  <data name="ContextMenuB058.Text" xml:space="preserve">
+    <value>Alternar desentrelaçamento</value>
+  </data>
+  <data name="ContextMenuB060.Text" xml:space="preserve">
+    <value>Áudio</value>
+  </data>
+  <data name="ContextMenuB061.Text" xml:space="preserve">
+    <value>Faixa de áudio</value>
+  </data>
+  <data name="ContextMenuB062.Text" xml:space="preserve">
+    <value>Próxima faixa</value>
+  </data>
+  <data name="ContextMenuB063.Text" xml:space="preserve">
+    <value>Atraso +0,1 s</value>
+  </data>
+  <data name="ContextMenuB064.Text" xml:space="preserve">
+    <value>Atraso −0,1 s</value>
+  </data>
+  <data name="ContextMenuB065.Text" xml:space="preserve">
+    <value>Legenda</value>
+  </data>
+  <data name="ContextMenuB066.Text" xml:space="preserve">
+    <value>Principal</value>
+  </data>
+  <data name="ContextMenuB067.Text" xml:space="preserve">
+    <value>Secundária</value>
+  </data>
+  <data name="ContextMenuB068.Text" xml:space="preserve">
+    <value>Próxima legenda</value>
+  </data>
+  <data name="ContextMenuB069.Text" xml:space="preserve">
+    <value>Mostrar / ocultar</value>
+  </data>
+  <data name="ContextMenuB070.Text" xml:space="preserve">
+    <value>Atraso −0,1 s</value>
+  </data>
+  <data name="ContextMenuB071.Text" xml:space="preserve">
+    <value>Atraso +0,1 s</value>
+  </data>
+  <data name="ContextMenuB072.Text" xml:space="preserve">
+    <value>Mover para cima</value>
+  </data>
+  <data name="ContextMenuB073.Text" xml:space="preserve">
+    <value>Mover para baixo</value>
+  </data>
+  <data name="ContextMenuB074.Text" xml:space="preserve">
+    <value>Legenda secundária</value>
+  </data>
+  <data name="ContextMenuB075.Text" xml:space="preserve">
+    <value>Próxima</value>
+  </data>
+  <data name="ContextMenuB076.Text" xml:space="preserve">
+    <value>Mostrar / ocultar</value>
+  </data>
+  <data name="ContextMenuB077.Text" xml:space="preserve">
+    <value>Atraso −0,1 s</value>
+  </data>
+  <data name="ContextMenuB078.Text" xml:space="preserve">
+    <value>Atraso +0,1 s</value>
+  </data>
+  <data name="ContextMenuB079.Text" xml:space="preserve">
+    <value>Mover para cima</value>
+  </data>
+  <data name="ContextMenuB080.Text" xml:space="preserve">
+    <value>Mover para baixo</value>
+  </data>
+  <data name="ContextMenuB081.Text" xml:space="preserve">
+    <value>Diminuir fonte</value>
+  </data>
+  <data name="ContextMenuB082.Text" xml:space="preserve">
+    <value>Aumentar fonte</value>
+  </data>
+  <data name="ContextMenuB083.Text" xml:space="preserve">
+    <value>Alternar estilo ASS</value>
+  </data>
+  <data name="ContextMenuB084.Text" xml:space="preserve">
+    <value>Alternar cor</value>
+  </data>
+  <data name="ContextMenuB085.Text" xml:space="preserve">
+    <value>Perfis</value>
+  </data>
+  <data name="ContextMenuB086.Text" xml:space="preserve">
+    <value>Pan &amp; Scan</value>
+  </data>
+  <data name="ContextMenuB087.Text" xml:space="preserve">
+    <value>Aumentar tamanho</value>
+  </data>
+  <data name="ContextMenuB088.Text" xml:space="preserve">
+    <value>Diminuir tamanho</value>
+  </data>
+  <data name="ContextMenuB089.Text" xml:space="preserve">
+    <value>Mover para esquerda</value>
+  </data>
+  <data name="ContextMenuB090.Text" xml:space="preserve">
+    <value>Mover para direita</value>
+  </data>
+  <data name="ContextMenuB091.Text" xml:space="preserve">
+    <value>Mover para cima</value>
+  </data>
+  <data name="ContextMenuB092.Text" xml:space="preserve">
+    <value>Mover para baixo</value>
+  </data>
+  <data name="ContextMenuB093.Text" xml:space="preserve">
+    <value>Diminuir altura</value>
+  </data>
+  <data name="ContextMenuB094.Text" xml:space="preserve">
+    <value>Aumentar altura</value>
+  </data>
+  <data name="ContextMenuB095.Text" xml:space="preserve">
+    <value>Resetar</value>
+  </data>
+  <data name="ContextMenuB096.Text" xml:space="preserve">
+    <value>Velocidade</value>
+  </data>
+  <data name="ContextMenuB097.Text" xml:space="preserve">
+    <value>Diminuir 10%</value>
+  </data>
+  <data name="ContextMenuB098.Text" xml:space="preserve">
+    <value>Aumentar 10%</value>
+  </data>
+  <data name="ContextMenuB099.Text" xml:space="preserve">
+    <value>0,5×</value>
+  </data>
+  <data name="ContextMenuB100.Text" xml:space="preserve">
+    <value>0,75×</value>
+  </data>
+  <data name="ContextMenuB101.Text" xml:space="preserve">
+    <value>Normal — 1×</value>
+  </data>
+  <data name="ContextMenuB102.Text" xml:space="preserve">
+    <value>1,25×</value>
+  </data>
+  <data name="ContextMenuB103.Text" xml:space="preserve">
+    <value>1,5×</value>
+  </data>
+  <data name="ContextMenuB104.Text" xml:space="preserve">
+    <value>2×</value>
+  </data>
+  <data name="ContextMenuB105.Text" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="ContextMenuB106.Text" xml:space="preserve">
+    <value>Aumentar</value>
+  </data>
+  <data name="ContextMenuB107.Text" xml:space="preserve">
+    <value>Diminuir</value>
+  </data>
+  <data name="ContextMenuB108.Text" xml:space="preserve">
+    <value>Mudo</value>
+  </data>
+  <data name="ContextMenuB109.Text" xml:space="preserve">
+    <value>Tela</value>
+  </data>
+  <data name="ContextMenuB110.Text" xml:space="preserve">
+    <value>Alternar OSD de tempo</value>
+  </data>
+  <data name="ContextMenuB111.Text" xml:space="preserve">
+    <value>Mostrar progresso</value>
+  </data>
+  <data name="ContextMenuB112.Text" xml:space="preserve">
+    <value>Mostrar quadro atual</value>
+  </data>
+  <data name="ContextMenuB113.Text" xml:space="preserve">
+    <value>Informações de mídia</value>
+  </data>
+  <data name="ContextMenuB114.Text" xml:space="preserve">
+    <value>Estatísticas de reprodução</value>
+  </data>
+  <data name="ContextMenuB115.Text" xml:space="preserve">
+    <value>Janela</value>
+  </data>
+  <data name="ContextMenuB116.Text" xml:space="preserve">
+    <value>Tela inteira</value>
+  </data>
+  <data name="ContextMenuB117.Text" xml:space="preserve">
+    <value>Sem bordas</value>
+  </data>
+  <data name="ContextMenuB118.Text" xml:space="preserve">
+    <value>Sempre visível</value>
+  </data>
+  <data name="ContextMenuB119.Text" xml:space="preserve">
+    <value>Capturar conteúdo</value>
+  </data>
+  <data name="ContextMenuB120.Text" xml:space="preserve">
+    <value>Ferramentas</value>
+  </data>
+  <data name="ContextMenuB121.Text" xml:space="preserve">
+    <value>Console de reprodução</value>
+  </data>
+  <data name="ContextMenuB122.Text" xml:space="preserve">
+    <value>Definir / limpar loop A–B</value>
+  </data>
+  <data name="ContextMenuB123.Text" xml:space="preserve">
+    <value>Alternar loop do arquivo</value>
+  </data>
+  <data name="ContextMenuB124.Text" xml:space="preserve">
+    <value>Alternar decodificação</value>
+  </data>
+  <data name="ContextMenuB125.Text" xml:space="preserve">
+    <value>Alternar pico HDR</value>
+  </data>
+  <data name="ContextMenuB126.Text" xml:space="preserve">
+    <value>Alternar redução de escala</value>
+  </data>
+  <data name="ContextMenuB127.Text" xml:space="preserve">
+    <value>Configurações</value>
+  </data>
+  <data name="ContextMenuB128.Text" xml:space="preserve">
+    <value>Sair</value>
+  </data>
+  <data name="ContextMenuDynDeactivateProfile" xml:space="preserve">
+    <value>Desativar perfil</value>
+  </data>
+  <data name="ContextMenuDynClearHistory" xml:space="preserve">
+    <value>Limpar histórico</value>
+  </data>
+  <data name="ContextMenuDynAudioBase" xml:space="preserve">
+    <value>Áudio </value>
+  </data>
+  <data name="ContextMenuDynVideoBase" xml:space="preserve">
+    <value>Vídeo </value>
+  </data>
+  <data name="ContextMenuDynSubtitleBase" xml:space="preserve">
+    <value>Legenda </value>
+  </data>
+  <data name="ContextMenuDynForcedSuffix" xml:space="preserve">
+    <value>  ·  forçada</value>
+  </data>
+  <data name="ContextMenuDynExternalSuffix" xml:space="preserve">
+    <value>  ·  externa</value>
+  </data>
+  <data name="ContextMenuDynDefaultSuffix" xml:space="preserve">
+    <value>  ·  padrão</value>
+  </data>
+  <data name="ContextMenuDynNoAudio" xml:space="preserve">
+    <value>Sem áudio</value>
+  </data>
+  <data name="ContextMenuDynDisabled" xml:space="preserve">
+    <value>Desativado</value>
+  </data>
+  <data name="ContextMenuDynNext" xml:space="preserve">
+    <value>Próximo</value>
+  </data>
+  <data name="ContextMenuDynPrevious" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="ContextMenuDynChapterBase" xml:space="preserve">
+    <value>Capítulo </value>
+  </data>
+  <data name="ContextMenuDynTitlePrefix" xml:space="preserve">
+    <value>Título:</value>
+  </data>
+  <data name="ContextMenuDynTitleBase" xml:space="preserve">
+    <value>Título: </value>
+  </data>
+  <data name="ContextMenuDynEditionBase" xml:space="preserve">
+    <value>Edição: </value>
+  </data>
+  <data name="ContextMenuDynNextFile" xml:space="preserve">
+    <value>Próximo arquivo</value>
+  </data>
+  <data name="ContextMenuDynPreviousFile" xml:space="preserve">
+    <value>Arquivo anterior</value>
+  </data>
+  <data name="ContextMenuDynShuffleOrder" xml:space="preserve">
+    <value>Embaralhar ordem</value>
+  </data>
+  <data name="MainPageOpenButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Abrir arquivos</value>
+  </data>
+  <data name="MainPageOpenText.Text" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="MainPageOpenFolderItem.Text" xml:space="preserve">
+    <value>Abrir pasta</value>
+  </data>
+  <data name="MainPageNowPlayingText.Text" xml:space="preserve">
+    <value>Nenhuma mídia aberta</value>
+  </data>
+  <data name="MainPageCaptureButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Capturar tela</value>
+  </data>
+  <data name="MainPageCaptureButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Capturar tela (clique direito para mais opções)</value>
+  </data>
+  <data name="MainPageCaptureWithSubtitlesItem.Text" xml:space="preserve">
+    <value>Capturar com legendas</value>
+  </data>
+  <data name="MainPageCaptureVideoOnlyItem.Text" xml:space="preserve">
+    <value>Capturar sem legendas</value>
+  </data>
+  <data name="MainPageOpenCaptureFolderItem.Text" xml:space="preserve">
+    <value>Abrir pasta de capturas</value>
+  </data>
+  <data name="MainPageSettingsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Configurações</value>
+  </data>
+  <data name="MainPagePreviousChapterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Capítulo anterior</value>
+  </data>
+  <data name="MainPageSeekBackwardButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Voltar 10 segundos</value>
+  </data>
+  <data name="MainPagePlayButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Reproduzir/Pausar</value>
+  </data>
+  <data name="MainPageSeekForwardButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Avançar 10 segundos</value>
+  </data>
+  <data name="MainPageNextChapterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Próximo capítulo</value>
+  </data>
+  <data name="MainPageShuffleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Reprodução aleatória</value>
+  </data>
+  <data name="MainPageShuffleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Ativar reprodução aleatória</value>
+  </data>
+  <data name="MainPageMediaInfoButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Informações de mídia</value>
+  </data>
+  <data name="MainPageMediaInfoButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Informações de mídia (Ctrl+I)</value>
+  </data>
+  <data name="MainPageLoopButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Repetir vídeo</value>
+  </data>
+  <data name="MainPageLoopButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Ativar repetição</value>
+  </data>
+  <data name="MainPageTimeDisplayHost.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Opções de exibição do tempo</value>
+  </data>
+  <data name="MainPageRemainingTimeItem.Text" xml:space="preserve">
+    <value>Tempo restante</value>
+  </data>
+  <data name="MainPageHighPrecisionTimeItem.Text" xml:space="preserve">
+    <value>Alta precisão</value>
+  </data>
+  <data name="MainPageShowPercentageItem.Text" xml:space="preserve">
+    <value>Mostrar porcentagem</value>
+  </data>
+  <data name="MainPageSpeedButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Velocidade de reprodução</value>
+  </data>
+  <data name="MainPageTracksButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Áudio e legendas</value>
+  </data>
+  <data name="MainPageTracksButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Áudio e legendas</value>
+  </data>
+  <data name="MainPageStatsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Estatísticas de reprodução</value>
+  </data>
+  <data name="MainPageStatsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Estatísticas de reprodução</value>
+  </data>
+  <data name="MainPagePipButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Picture-in-Picture (Ctrl+P)</value>
+  </data>
+  <data name="MainPageDynTimeDisplayOptions" xml:space="preserve">
+    <value>Opções de exibição do tempo</value>
+  </data>
+  <data name="MainPageDynBackToWindow" xml:space="preserve">
+    <value>Voltar para a janela (Ctrl+P)</value>
+  </data>
+  <data name="MainPageDynPictureInPicture" xml:space="preserve">
+    <value>Picture-in-Picture (Ctrl+P)</value>
+  </data>
+  <data name="MainPageDynPlaybackComponentMissing" xml:space="preserve">
+    <value>Componente de reprodução não encontrado</value>
+  </data>
+  <data name="MainPageDynNoMediaOpen" xml:space="preserve">
+    <value>Nenhuma mídia aberta</value>
+  </data>
+  <data name="MainPageDynPreparingPlayer" xml:space="preserve">
+    <value>Preparando player...</value>
+  </data>
+  <data name="MainPageDynPreviousFile" xml:space="preserve">
+    <value>Arquivo anterior</value>
+  </data>
+  <data name="MainPageDynNextFile" xml:space="preserve">
+    <value>Próximo arquivo</value>
+  </data>
+  <data name="MainPageDynMediaFiles" xml:space="preserve">
+    <value>Arquivos de mídia</value>
+  </data>
+  <data name="MainPageDynVideoFiles" xml:space="preserve">
+    <value>Arquivos de vídeo</value>
+  </data>
+  <data name="MainPageDynAudioFiles" xml:space="preserve">
+    <value>Arquivos de áudio</value>
+  </data>
+  <data name="MainPageDynPlaylistsDiscImages" xml:space="preserve">
+    <value>Playlists e imagens de disco</value>
+  </data>
+  <data name="MainPageDynImageFiles" xml:space="preserve">
+    <value>Arquivos de imagem</value>
+  </data>
+  <data name="MainPageDynAllFiles" xml:space="preserve">
+    <value>Todos os arquivos</value>
+  </data>
+  <data name="MainPageDynOpenMedia" xml:space="preserve">
+    <value>Abrir mídia</value>
+  </data>
+  <data name="MainPageDynPlayAgain" xml:space="preserve">
+    <value>Reproduzir novamente</value>
+  </data>
+  <data name="MainPageDynPause" xml:space="preserve">
+    <value>Pausar</value>
+  </data>
+  <data name="MainPageDynPlay" xml:space="preserve">
+    <value>Reproduzir</value>
+  </data>
+  <data name="MainPageDynDisableRepeat" xml:space="preserve">
+    <value>Desativar repetição</value>
+  </data>
+  <data name="MainPageDynEnableRepeat" xml:space="preserve">
+    <value>Ativar repetição</value>
+  </data>
+  <data name="MainPageDynDisableShuffle" xml:space="preserve">
+    <value>Desativar reprodução aleatória</value>
+  </data>
+  <data name="MainPageDynEnableShuffle" xml:space="preserve">
+    <value>Ativar reprodução aleatória</value>
+  </data>
+  <data name="MainPageDynForcedSuffix" xml:space="preserve">
+    <value>  ·  forçada</value>
+  </data>
+  <data name="MainPageDynExternalSuffix" xml:space="preserve">
+    <value>  ·  externa</value>
+  </data>
+  <data name="MainPageDynDefaultSuffix" xml:space="preserve">
+    <value>  ·  padrão</value>
+  </data>
+  <data name="MainPageDynNoAudio" xml:space="preserve">
+    <value>Sem áudio</value>
+  </data>
+  <data name="MainPageDynDisabled" xml:space="preserve">
+    <value>Desativadas</value>
+  </data>
+  <data name="MainPageDynAudioHeader" xml:space="preserve">
+    <value>ÁUDIO</value>
+  </data>
+  <data name="MainPageDynAudioBase" xml:space="preserve">
+    <value>Áudio</value>
+  </data>
+  <data name="MainPageDynSubtitlesHeader" xml:space="preserve">
+    <value>LEGENDAS</value>
+  </data>
+  <data name="MainPageDynSubtitleBase" xml:space="preserve">
+    <value>Legenda</value>
+  </data>
+  <data name="MainPageDynChapterBase" xml:space="preserve">
+    <value>Capítulo </value>
+  </data>
+  <data name="MainPageDynPreviousChapter" xml:space="preserve">
+    <value>Capítulo anterior</value>
+  </data>
+  <data name="MainPageDynNextChapter" xml:space="preserve">
+    <value>Próximo capítulo</value>
+  </data>
+  <data name="ContextMenuOsdPlaylistShuffled" xml:space="preserve">
+    <value>Playlist: ordem embaralhada</value>
+  </data>
+  <data name="ContextMenuOsdAspectOriginal" xml:space="preserve">
+    <value>Proporção: Original</value>
+  </data>
+  <data name="ContextMenuOsdAspect169" xml:space="preserve">
+    <value>Proporção: 16:9</value>
+  </data>
+  <data name="ContextMenuOsdAspect43" xml:space="preserve">
+    <value>Proporção: 4:3</value>
+  </data>
+  <data name="ContextMenuOsdAspect235" xml:space="preserve">
+    <value>Proporção: 2,35:1</value>
+  </data>
+  <data name="OsdLoopEnabled" xml:space="preserve">
+    <value>Loop do arquivo: Ativado</value>
+  </data>
+  <data name="OsdLoopDisabled" xml:space="preserve">
+    <value>Loop do arquivo: Desativado</value>
+  </data>
+  <data name="OsdNextChapter" xml:space="preserve">
+    <value>Próximo capítulo</value>
+  </data>
+  <data name="OsdPreviousChapter" xml:space="preserve">
+    <value>Capítulo anterior</value>
+  </data>
+  <data name="OsdTitlePrefix" xml:space="preserve">
+    <value>Título: </value>
+  </data>
+  <data name="OsdEditionPrefix" xml:space="preserve">
+    <value>Edição: </value>
+  </data>
+  <data name="OsdDecimalSeparator" xml:space="preserve">
+    <value>,</value>
+  </data>
+  <data name="OsdSpeedPrefix" xml:space="preserve">
+    <value>Velocidade: </value>
+  </data>
+  <data name="OsdSubtitleColorPrefix" xml:space="preserve">
+    <value>Cor da legenda: </value>
+  </data>
+  <data name="OsdSubtitleColorIceWhite" xml:space="preserve">
+    <value>Branco Gelo</value>
+  </data>
+  <data name="OsdSubtitleColorGold" xml:space="preserve">
+    <value>Amarelo Ouro</value>
+  </data>
+  <data name="OsdScreenshotWithSubtitlesSaved" xml:space="preserve">
+    <value>Captura de tela salva</value>
+  </data>
+  <data name="OsdScreenshotVideoOnlySaved" xml:space="preserve">
+    <value>Captura salva (sem legendas)</value>
+  </data>
+  <data name="OsdProfileDisabled" xml:space="preserve">
+    <value>Perfil desativado</value>
+  </data>
+  <data name="OsdProfilePrefix" xml:space="preserve">
+    <value>Perfil: </value>
+  </data>
+  <data name="OsdTrackAudio" xml:space="preserve">
+    <value>Faixa de áudio</value>
+  </data>
+  <data name="OsdTrackVideo" xml:space="preserve">
+    <value>Faixa de vídeo</value>
+  </data>
+  <data name="OsdTrackSecondarySubtitle" xml:space="preserve">
+    <value>Legenda secundária</value>
+  </data>
+  <data name="OsdTrackSubtitle" xml:space="preserve">
+    <value>Legenda</value>
+  </data>
+  <data name="OsdTrackDisabled" xml:space="preserve">
+    <value>Desativada</value>
+  </data>
+  <data name="OsdAlwaysOnTopEnabled" xml:space="preserve">
+    <value>Janela sempre visível: Ativada</value>
+  </data>
+  <data name="OsdAlwaysOnTopDisabled" xml:space="preserve">
+    <value>Janela sempre visível: Desativada</value>
+  </data>
+  <data name="OsdBorderlessWindowOnly" xml:space="preserve">
+    <value>Sem bordas está disponível no modo janela</value>
+  </data>
+  <data name="OsdBorderlessEnabled" xml:space="preserve">
+    <value>Janela sem bordas: Ativada</value>
+  </data>
+  <data name="OsdBorderlessDisabled" xml:space="preserve">
+    <value>Janela sem bordas: Desativada</value>
+  </data>
+  <data name="TaskbarPrevious" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="TaskbarPlay" xml:space="preserve">
+    <value>Reproduzir</value>
+  </data>
+  <data name="TaskbarPause" xml:space="preserve">
+    <value>Pausar</value>
+  </data>
+  <data name="TaskbarNext" xml:space="preserve">
+    <value>Próximo</value>
+  </data>
+  <data name="NativeEmptyStateTitle" xml:space="preserve">
+    <value>Pronto para reproduzir</value>
+  </data>
+  <data name="NativeEmptyStateSubtitle" xml:space="preserve">
+    <value>Arraste um arquivo ou cole uma URL para começar</value>
+  </data>
+  <data name="PickerOpenFolderDisc" xml:space="preserve">
+    <value>Abrir pasta, DVD ou Blu-ray</value>
+  </data>
+  <data name="PickerOpenBluRayIso" xml:space="preserve">
+    <value>Abrir imagem Blu-ray ISO</value>
+  </data>
+  <data name="PickerOpenDvdIso" xml:space="preserve">
+    <value>Abrir imagem DVD ISO</value>
+  </data>
+  <data name="OsdTimeUnknownDuration" xml:space="preserve">
+    <value>${playback-time:--:--}${?duration: / ${duration}}${!duration: / duração desconhecida}</value>
+  </data>
+  <data name="InputOsd_DA559476" xml:space="preserve">
+    <value>${?video-unscaled==yes:🎞 Vídeo sem escala: Sim}${?video-unscaled==no:🎞 Vídeo sem escala: Não}</value>
+  </data>
+  <data name="InputOsd_5A95AC3C" xml:space="preserve">
+    <value>⏭ Próximo arquivo</value>
+  </data>
+  <data name="InputOsd_7DA10311" xml:space="preserve">
+    <value>⏮ Arquivo anterior</value>
+  </data>
+  <data name="InputOsd_CBC485DE" xml:space="preserve">
+    <value>⏭ Próximo capítulo</value>
+  </data>
+  <data name="InputOsd_0C8494AB" xml:space="preserve">
+    <value>⏮ Capítulo anterior</value>
+  </data>
+  <data name="InputOsd_E912054E" xml:space="preserve">
+    <value>▶| Próximo quadro</value>
+  </data>
+  <data name="InputOsd_230BB556" xml:space="preserve">
+    <value>|◀ Quadro anterior</value>
+  </data>
+  <data name="InputOsd_22318A79" xml:space="preserve">
+    <value>⏩ +5 segundos</value>
+  </data>
+  <data name="InputOsd_1C85E8A0" xml:space="preserve">
+    <value>⏪ -5 segundos</value>
+  </data>
+  <data name="InputOsd_63C8A7B7" xml:space="preserve">
+    <value>⏩ +30 segundos</value>
+  </data>
+  <data name="InputOsd_9D5F4716" xml:space="preserve">
+    <value>⏪ -30 segundos</value>
+  </data>
+  <data name="InputOsd_9FF48CDC" xml:space="preserve">
+    <value>⏩ +5 minutos</value>
+  </data>
+  <data name="InputOsd_1B39E3DD" xml:space="preserve">
+    <value>⏪ -5 minutos</value>
+  </data>
+  <data name="InputOsd_D395024F" xml:space="preserve">
+    <value>🎬 Edição: ${edition:Indisponível}</value>
+  </data>
+  <data name="InputOsd_C2176A16" xml:space="preserve">
+    <value>🎞 Faixa de vídeo: ${?video==no:Nenhuma}${!video==no:${video}}</value>
+  </data>
+  <data name="InputOsd_03D79FC1" xml:space="preserve">
+    <value>🎨 Contraste: ${contrast}</value>
+  </data>
+  <data name="InputOsd_2BA46398" xml:space="preserve">
+    <value>☀ Brilho: ${brightness}</value>
+  </data>
+  <data name="InputOsd_E1B25C32" xml:space="preserve">
+    <value>🌗 Gama: ${gamma}</value>
+  </data>
+  <data name="InputOsd_4E54FC13" xml:space="preserve">
+    <value>🌈 Saturação: ${saturation}</value>
+  </data>
+  <data name="InputOsd_FF9D33E0" xml:space="preserve">
+    <value>📸 Captura de tela salva</value>
+  </data>
+  <data name="InputOsd_9D9ED054" xml:space="preserve">
+    <value>📸 Captura salva (sem legendas)</value>
+  </data>
+  <data name="InputOsd_E617D61A" xml:space="preserve">
+    <value>📐 Proporção: ${video-aspect-override}</value>
+  </data>
+  <data name="InputOsd_856A1315" xml:space="preserve">
+    <value>🔄 Rotação: ${video-rotate}°</value>
+  </data>
+  <data name="InputOsd_8D810E51" xml:space="preserve">
+    <value>${?deband==yes:🔲 Deband: Ativado}${?deband==no:🔲 Deband: Desativado}</value>
+  </data>
+  <data name="InputOsd_544197E0" xml:space="preserve">
+    <value>${?deinterlace==yes:📺 Desentrelaçamento: Ativado }${?deinterlace==no:📺 Desentrelaçamento: Desativado }${?deinterlace==auto:📺 Desentrelaçamento: Automático }</value>
+  </data>
+  <data name="InputOsd_32BCAFB5" xml:space="preserve">
+    <value>🔊 Faixa de áudio: ${?audio==no:Nenhuma}${!audio==no:${audio}}</value>
+  </data>
+  <data name="InputOsd_3DE6D4A9" xml:space="preserve">
+    <value>🔊 Atraso de áudio: ${audio-delay}s</value>
+  </data>
+  <data name="InputOsd_2EDE300A" xml:space="preserve">
+    <value>💬 Legenda: ${?sid==no:Não}${!sid==no:${sid}}</value>
+  </data>
+  <data name="InputOsd_6F1F9925" xml:space="preserve">
+    <value>${?sub-visibility==yes:💬 Legenda: Visível}${?sub-visibility==no:💬 Legenda: Oculta}</value>
+  </data>
+  <data name="InputOsd_06CF7378" xml:space="preserve">
+    <value>💬 Atraso da legenda: ${sub-delay}s</value>
+  </data>
+  <data name="InputOsd_AF007766" xml:space="preserve">
+    <value>💬 Posição da legenda: ${sub-pos}</value>
+  </data>
+  <data name="InputOsd_6BCC7814" xml:space="preserve">
+    <value>💬 Legenda secundária: ${?secondary-sid==no:Não}${!secondary-sid==no:${secondary-sid}}</value>
+  </data>
+  <data name="InputOsd_1EADAC4D" xml:space="preserve">
+    <value>${?secondary-sub-visibility==yes:💬 Legenda secundária: Visível}${?secondary-sub-visibility==no:💬 Legenda secundária: Oculta}</value>
+  </data>
+  <data name="InputOsd_C27262C6" xml:space="preserve">
+    <value>💬 Atraso da legenda secundária: ${secondary-sub-delay}s</value>
+  </data>
+  <data name="InputOsd_385C76A8" xml:space="preserve">
+    <value>💬 Posição da legenda secundária: ${secondary-sub-pos}</value>
+  </data>
+  <data name="InputOsd_82893A8A" xml:space="preserve">
+    <value>💬 Tamanho da fonte: ${sub-scale}</value>
+  </data>
+  <data name="InputOsd_8682EF5A" xml:space="preserve">
+    <value>🔍 Zoom: ${video-zoom}</value>
+  </data>
+  <data name="InputOsd_EE48AB17" xml:space="preserve">
+    <value>↔ Pan X: ${video-pan-x}</value>
+  </data>
+  <data name="InputOsd_DB6F6F8A" xml:space="preserve">
+    <value>↕ Pan Y: ${video-pan-y}</value>
+  </data>
+  <data name="InputOsd_70614FDB" xml:space="preserve">
+    <value> Pan &amp; Scan: ${panscan}</value>
+  </data>
+  <data name="InputOsd_1E7B043A" xml:space="preserve">
+    <value>🔄 Pan &amp; Scan resetado</value>
+  </data>
+  <data name="InputOsd_95DADEFC" xml:space="preserve">
+    <value>⏱ Velocidade: ${speed}x</value>
+  </data>
+  <data name="InputOsd_C31219D1" xml:space="preserve">
+    <value>⏱ Velocidade: ${speed}x (metade)</value>
+  </data>
+  <data name="InputOsd_D7339249" xml:space="preserve">
+    <value>⏱ Velocidade: ${speed}x (dobro)</value>
+  </data>
+  <data name="InputOsd_40C0811C" xml:space="preserve">
+    <value>🔊 Volume: ${volume}%</value>
+  </data>
+  <data name="InputOsd_E05C62BF" xml:space="preserve">
+    <value>${?mute==yes:🔇 Mudo: Sim }${?mute==no:🔊 Mudo: Não }</value>
+  </data>
+  <data name="InputOsd_64FD781F" xml:space="preserve">
+    <value>🖥 Tamanho da janela: ${window-scale}x</value>
+  </data>
+  <data name="InputOsd_AC5C8DA1" xml:space="preserve">
+    <value>🖥 Janela: 50%</value>
+  </data>
+  <data name="InputOsd_2F313955" xml:space="preserve">
+    <value>🖥 Janela: 100%</value>
+  </data>
+  <data name="InputOsd_00D84406" xml:space="preserve">
+    <value>🖥 Janela: 200%</value>
+  </data>
+  <data name="InputOsd_5F34F877" xml:space="preserve">
+    <value>🖥 Janela: 300%</value>
+  </data>
+  <data name="InputOsd_26401007" xml:space="preserve">
+    <value>🕐 OSD de tempo alternado</value>
+  </data>
+  <data name="InputOsd_62AA4BD4" xml:space="preserve">
+    <value>📸 Captura do conteúdo salva</value>
+  </data>
+  <data name="InputOsd_9A301A40" xml:space="preserve">
+    <value>🔁 Loop A-B: ${?ab-loop-a==no:Não}${!ab-loop-a==no:${ab-loop-a}} → ${?ab-loop-b==no:Não}${!ab-loop-b==no:${ab-loop-b}}</value>
+  </data>
+  <data name="InputOsd_D1554433" xml:space="preserve">
+    <value>${?loop-file==inf:🔁 Loop de arquivo: Ativado }${?loop-file==no:🔁 Loop de arquivo: Desativado }</value>
+  </data>
+  <data name="InputOsd_E16E6CB4" xml:space="preserve">
+    <value>⚙ Decodificação: ${?hwdec==auto:Automática }${?hwdec==no:Desativada }</value>
+  </data>
+  <data name="InputOsd_DD4F0D62" xml:space="preserve">
+    <value>🎞 Quadro Atual: ${estimated-frame-number} / ${estimated-frame-count}</value>
+  </data>
+  <data name="InputOsd_7867A5E2" xml:space="preserve">
+    <value>💬 Legenda anterior: ${?sid==no:Não}${!sid==no:${sid}}</value>
+  </data>
+  <data name="InputOsd_59422685" xml:space="preserve">
+    <value>📐 Proporção (Invertida): ${video-aspect-override}</value>
+  </data>
+  <data name="InputOsd_7258D200" xml:space="preserve">
+    <value>💬 Legenda (Propriedades de vídeo): ${?sub-ass-use-video-data==none:Nenhuma ✖}${?sub-ass-use-video-data==all:Todas ✔}${?sub-ass-use-video-data==aspect-ratio:Proporção de tela 📐}</value>
+  </data>
+  <data name="InputOsd_BDFA5674" xml:space="preserve">
+    <value>💬 Estilo da Legenda (ASS): ${?sub-ass-override==no:Padrão Original 🎬}${?sub-ass-override==force:Forçar Estilo Personalizado 🎨}${?sub-ass-override==strip:Texto Limpo (Sem Formatação) ✖}</value>
+  </data>
+  <data name="InputOsd_93E1EE3D" xml:space="preserve">
+    <value>Pico HDR: ${target-peak}</value>
+  </data>
+  <data name="InputOsd_6B5ED844" xml:space="preserve">
+    <value>Redução de escala: ${dscale}</value>
+  </data>
+  <data name="PickerIsoImageFilter" xml:space="preserve">
+    <value>Imagem de disco ISO</value>
+  </data>
+  <data name="PickerAllFilesFilter" xml:space="preserve">
+    <value>Todos os arquivos</value>
+  </data>
+  <data name="DiscTitlePrefix" xml:space="preserve">
+    <value>Título:</value>
+  </data>
+  <data name="AudioDeviceSystemDefault" xml:space="preserve">
+    <value>Padrão do sistema</value>
+  </data>
+  <data name="AudioDeviceDefaultPrefix" xml:space="preserve">
+    <value>Padrão</value>
+  </data>
+  <data name="NativeContextMenuErrorPrefix" xml:space="preserve">
+    <value>Erro no menu de contexto: </value>
+  </data>
+  <data name="SettingsDyn_1DE23BC0" xml:space="preserve">
+    <value>O mecanismo de reprodução rejeitou </value>
+  </data>
+  <data name="SettingsDyn_8B33368E" xml:space="preserve">
+    <value>Não foi possível salvar as configurações no disco.</value>
+  </data>
+  <data name="SettingsDyn_18F81F2C" xml:space="preserve">
+    <value>As opções foram salvas, mas o mecanismo de reprodução não pôde ser reiniciado.</value>
+  </data>
+  <data name="SettingsDyn_7F54C36A" xml:space="preserve">
+    <value>O mecanismo de reprodução não está disponível para validar o arquivo.</value>
+  </data>
+  <data name="SettingsDyn_7F7EB683" xml:space="preserve">
+    <value>O mecanismo de reprodução não conseguiu iniciar a validação.</value>
+  </data>
+  <data name="SettingsDyn_766EA6D3" xml:space="preserve">
+    <value>. Aplicada preservando a reprodução atual.</value>
+  </data>
+  <data name="SettingsDyn_5D890282" xml:space="preserve">
+    <value>. Salva; será aplicada na próxima inicialização do motor.</value>
+  </data>
+  <data name="SettingsDyn_6CC0165E" xml:space="preserve">
+    <value>. Será aplicada ao iniciar o player.</value>
+  </data>
+  <data name="MainPageLiveSourceBadge.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Ao vivo</value>
+  </data>
+  <data name="MainPageLiveSourceBadgeText.Text" xml:space="preserve">
+    <value>AO VIVO</value>
+  </data>
+  <data name="SettingsDyn_6FC53BE5" xml:space="preserve">
+    <value>Deixe vazio para seleção automática do yt-dlp; preencha apenas para usar um formato personalizado</value>
+  </data>
+  <data name="SettingsDyn_30A97C4D" xml:space="preserve">
+    <value>Automático (recomendado)</value>
+  </data>
+  <data name="SettingsInstanceModeTitle.Text" xml:space="preserve">
+    <value>Instâncias do aplicativo</value>
+  </data>
+  <data name="SettingsInstanceModeDescription.Text" xml:space="preserve">
+    <value>Define se novas aberturas reutilizam a janela atual ou criam outra</value>
+  </data>
+  <data name="SettingsInstanceModeSingle.Content" xml:space="preserve">
+    <value>Uma única instância</value>
+  </data>
+  <data name="SettingsInstanceModeMultiple.Content" xml:space="preserve">
+    <value>Várias instâncias</value>
+  </data>
+  <data name="SettingsWindowFollowVideoTitle.Text" xml:space="preserve">
+    <value>Ajustar janela ao vídeo</value>
+  </data>
+  <data name="SettingsWindowFollowVideoDescription.Text" xml:space="preserve">
+    <value>Adapta dinamicamente o tamanho e a proporção da janela à mídia</value>
+  </data>
+  <data name="SettingsRememberWindowSizeTitle.Text" xml:space="preserve">
+    <value>Lembrar tamanho da janela</value>
+  </data>
+  <data name="SettingsRememberWindowSizeDescription.Text" xml:space="preserve">
+    <value>Restaura o último tamanho normal usado ao abrir o HC Player</value>
+  </data>
+  <data name="SettingsCompactContextMenuTitle.Text" xml:space="preserve">
+    <value>Menu de contexto compacto</value>
+  </data>
+  <data name="SettingsCompactContextMenuDescription.Text" xml:space="preserve">
+    <value>Mostra apenas os comandos essenciais no menu de clique direito</value>
+  </data>
+  <data name="SettingsAudioExclusiveTitle.Text" xml:space="preserve">
+    <value>Modo exclusivo de áudio</value>
+  </data>
+  <data name="SettingsAudioExclusiveDescription.Text" xml:space="preserve">
+    <value>Reserva o dispositivo selecionado para o HC Player enquanto o áudio estiver em uso</value>
+  </data>
+  <data name="SettingsDeinterlaceTitle.Text" xml:space="preserve">
+    <value>Desentrelaçamento</value>
+  </data>
+  <data name="SettingsDeinterlaceDescription.Text" xml:space="preserve">
+    <value>Remove artefatos de pente em vídeo entrelaçado; o atalho D alterna durante a reprodução</value>
+  </data>
+  <data name="SettingsDeinterlaceOff.Content" xml:space="preserve">
+    <value>Desativado</value>
+  </data>
+  <data name="SettingsDeinterlaceOn.Content" xml:space="preserve">
+    <value>Ativado</value>
+  </data>
+  <data name="SettingsDeinterlaceAuto.Content" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+
+  <data name="SettingsHelpSection.Text" xml:space="preserve">
+    <value>AJUDA</value>
+  </data>
+  <data name="SettingsKeyboardShortcutsTitle.Text" xml:space="preserve">
+    <value>Atalhos de teclado</value>
+  </data>
+  <data name="SettingsKeyboardShortcutsDescription.Text" xml:space="preserve">
+    <value>Consulte todos os comandos de teclado disponíveis no HC&#160;Player</value>
+  </data>
+  <data name="SettingsKeyboardShortcutsButton.Text" xml:space="preserve">
+    <value>Ver atalhos</value>
+  </data>
+  <data name="KeyboardShortcutsFlyoutTitle.Text" xml:space="preserve">
+    <value>Atalhos de teclado</value>
+  </data>
+  <data name="KeyboardShortcutsFlyoutDescription.Text" xml:space="preserve">
+    <value>Comandos atualmente definidos pelo HC Player e pelo preset de teclado do mpv</value>
+  </data>
+  <data name="KeyboardShortcutsFlyoutAvailability.Text" xml:space="preserve">
+    <value>Os atalhos de reprodução ficam ativos com os painéis laterais fechados</value>
+  </data>
+  <data name="KeyboardShortcutsProfileNote.Text" xml:space="preserve">
+    <value>Perfis importados usam F1–F12 quando o slot correspondente existe. Nesses slots, o perfil tem prioridade; F11/F12 voltam a controlar a playlist quando não há perfil ocupando o respectivo slot.</value>
+  </data>
+  <data name="ShortcutSectionAppWindow.Text" xml:space="preserve">
+    <value>APLICATIVO E JANELA</value>
+  </data>
+  <data name="ShortcutSectionPlayback.Text" xml:space="preserve">
+    <value>REPRODUÇÃO E NAVEGAÇÃO</value>
+  </data>
+  <data name="ShortcutSectionVideo.Text" xml:space="preserve">
+    <value>VÍDEO E IMAGEM</value>
+  </data>
+  <data name="ShortcutSectionPanScan.Text" xml:space="preserve">
+    <value>ZOOM E PAN &amp; SCAN</value>
+  </data>
+  <data name="ShortcutSectionAudio.Text" xml:space="preserve">
+    <value>ÁUDIO E VOLUME</value>
+  </data>
+  <data name="ShortcutSectionSubtitles.Text" xml:space="preserve">
+    <value>LEGENDAS</value>
+  </data>
+  <data name="ShortcutSectionCapture.Text" xml:space="preserve">
+    <value>CAPTURA DE TELA</value>
+  </data>
+  <data name="ShortcutSectionWindowOsd.Text" xml:space="preserve">
+    <value>JANELA E OSD</value>
+  </data>
+  <data name="ShortcutAction001.Text" xml:space="preserve">
+    <value>Abrir arquivo</value>
+  </data>
+  <data name="ShortcutAction002.Text" xml:space="preserve">
+    <value>Abrir pasta</value>
+  </data>
+  <data name="ShortcutAction003.Text" xml:space="preserve">
+    <value>Abrir mídia da área de transferência</value>
+  </data>
+  <data name="ShortcutAction004.Text" xml:space="preserve">
+    <value>Parar reprodução e limpar a mídia atual</value>
+  </data>
+  <data name="ShortcutAction005.Text" xml:space="preserve">
+    <value>Abrir Configurações</value>
+  </data>
+  <data name="ShortcutAction006.Text" xml:space="preserve">
+    <value>Alternar tela cheia</value>
+  </data>
+  <data name="ShortcutAction007.Text" xml:space="preserve">
+    <value>Sair da tela cheia</value>
+  </data>
+  <data name="ShortcutAction008.Text" xml:space="preserve">
+    <value>Alternar sempre visível</value>
+  </data>
+  <data name="ShortcutAction009.Text" xml:space="preserve">
+    <value>Alternar janela sem bordas</value>
+  </data>
+  <data name="ShortcutAction010.Text" xml:space="preserve">
+    <value>Mostrar / ocultar estatísticas</value>
+  </data>
+  <data name="ShortcutAction011.Text" xml:space="preserve">
+    <value>Abrir o console do mpv</value>
+  </data>
+  <data name="ShortcutAction012.Text" xml:space="preserve">
+    <value>Fechar o HC Player</value>
+  </data>
+  <data name="ShortcutAction013.Text" xml:space="preserve">
+    <value>Aplicar o perfil importado correspondente, quando disponível</value>
+  </data>
+  <data name="ShortcutAction014.Text" xml:space="preserve">
+    <value>Reproduzir / pausar</value>
+  </data>
+  <data name="ShortcutAction015.Text" xml:space="preserve">
+    <value>Arquivo anterior / próximo da playlist</value>
+  </data>
+  <data name="ShortcutAction016.Text" xml:space="preserve">
+    <value>Capítulo anterior / próximo</value>
+  </data>
+  <data name="ShortcutAction017.Text" xml:space="preserve">
+    <value>Quadro anterior / próximo</value>
+  </data>
+  <data name="ShortcutAction018.Text" xml:space="preserve">
+    <value>Retroceder / avançar 5 segundos</value>
+  </data>
+  <data name="ShortcutAction019.Text" xml:space="preserve">
+    <value>Retroceder / avançar 30 segundos</value>
+  </data>
+  <data name="ShortcutAction020.Text" xml:space="preserve">
+    <value>Retroceder / avançar 5 minutos</value>
+  </data>
+  <data name="ShortcutAction021.Text" xml:space="preserve">
+    <value>Alternar edição da mídia</value>
+  </data>
+  <data name="ShortcutAction022.Text" xml:space="preserve">
+    <value>Mostrar número do quadro atual</value>
+  </data>
+  <data name="ShortcutAction023.Text" xml:space="preserve">
+    <value>Alternar vídeo sem escala</value>
+  </data>
+  <data name="ShortcutAction024.Text" xml:space="preserve">
+    <value>Mostrar progresso</value>
+  </data>
+  <data name="ShortcutAction025.Text" xml:space="preserve">
+    <value>Definir pontos do loop A–B</value>
+  </data>
+  <data name="ShortcutAction026.Text" xml:space="preserve">
+    <value>Alternar loop do arquivo</value>
+  </data>
+  <data name="ShortcutAction027.Text" xml:space="preserve">
+    <value>Alternar decodificação por hardware</value>
+  </data>
+  <data name="ShortcutAction028.Text" xml:space="preserve">
+    <value>Diminuir / aumentar velocidade gradualmente</value>
+  </data>
+  <data name="ShortcutAction029.Text" xml:space="preserve">
+    <value>Reduzir à metade / dobrar a velocidade</value>
+  </data>
+  <data name="ShortcutAction030.Text" xml:space="preserve">
+    <value>Alternar faixa de vídeo</value>
+  </data>
+  <data name="ShortcutAction031.Text" xml:space="preserve">
+    <value>Diminuir / aumentar contraste</value>
+  </data>
+  <data name="ShortcutAction032.Text" xml:space="preserve">
+    <value>Diminuir / aumentar brilho</value>
+  </data>
+  <data name="ShortcutAction033.Text" xml:space="preserve">
+    <value>Diminuir / aumentar gama</value>
+  </data>
+  <data name="ShortcutAction034.Text" xml:space="preserve">
+    <value>Diminuir / aumentar saturação</value>
+  </data>
+  <data name="ShortcutAction035.Text" xml:space="preserve">
+    <value>Alternar proporção de tela</value>
+  </data>
+  <data name="ShortcutAction036.Text" xml:space="preserve">
+    <value>Alternar proporção na ordem inversa</value>
+  </data>
+  <data name="ShortcutAction037.Text" xml:space="preserve">
+    <value>Girar o vídeo em passos de 90°</value>
+  </data>
+  <data name="ShortcutAction038.Text" xml:space="preserve">
+    <value>Alternar desentrelaçamento</value>
+  </data>
+  <data name="ShortcutAction039.Text" xml:space="preserve">
+    <value>Alternar deband</value>
+  </data>
+  <data name="ShortcutAction041.Text" xml:space="preserve">
+    <value>Alternar pico-alvo HDR</value>
+  </data>
+  <data name="ShortcutAction042.Text" xml:space="preserve">
+    <value>Alternar algoritmo de redução de escala</value>
+  </data>
+  <data name="ShortcutAction043.Text" xml:space="preserve">
+    <value>Aumentar / diminuir zoom</value>
+  </data>
+  <data name="ShortcutAction044.Text" xml:space="preserve">
+    <value>Mover imagem para esquerda / direita</value>
+  </data>
+  <data name="ShortcutAction045.Text" xml:space="preserve">
+    <value>Mover imagem para cima / baixo</value>
+  </data>
+  <data name="ShortcutAction046.Text" xml:space="preserve">
+    <value>Diminuir / aumentar Pan &amp; Scan</value>
+  </data>
+  <data name="ShortcutAction047.Text" xml:space="preserve">
+    <value>Resetar zoom e posição</value>
+  </data>
+  <data name="ShortcutAction048.Text" xml:space="preserve">
+    <value>Alternar faixa de áudio</value>
+  </data>
+  <data name="ShortcutAction049.Text" xml:space="preserve">
+    <value>Aumentar atraso do áudio em 0,1 s</value>
+  </data>
+  <data name="ShortcutAction050.Text" xml:space="preserve">
+    <value>Diminuir atraso do áudio em 0,1 s</value>
+  </data>
+  <data name="ShortcutAction051.Text" xml:space="preserve">
+    <value>Aumentar / diminuir volume em 2%</value>
+  </data>
+  <data name="ShortcutAction052.Text" xml:space="preserve">
+    <value>Alternar mudo</value>
+  </data>
+  <data name="ShortcutAction053.Text" xml:space="preserve">
+    <value>Próxima legenda</value>
+  </data>
+  <data name="ShortcutAction054.Text" xml:space="preserve">
+    <value>Legenda anterior</value>
+  </data>
+  <data name="ShortcutAction055.Text" xml:space="preserve">
+    <value>Mostrar / ocultar legenda</value>
+  </data>
+  <data name="ShortcutAction056.Text" xml:space="preserve">
+    <value>Atrasar / adiantar legenda em 0,1 s</value>
+  </data>
+  <data name="ShortcutAction057.Text" xml:space="preserve">
+    <value>Subir / descer posição da legenda</value>
+  </data>
+  <data name="ShortcutAction058.Text" xml:space="preserve">
+    <value>Diminuir / aumentar tamanho da legenda</value>
+  </data>
+  <data name="ShortcutAction059.Text" xml:space="preserve">
+    <value>Alternar cor da legenda entre Branco Gelo e Amarelo Ouro</value>
+  </data>
+  <data name="ShortcutAction060.Text" xml:space="preserve">
+    <value>Alternar legenda secundária</value>
+  </data>
+  <data name="ShortcutAction061.Text" xml:space="preserve">
+    <value>Mostrar / ocultar legenda secundária</value>
+  </data>
+  <data name="ShortcutAction062.Text" xml:space="preserve">
+    <value>Atrasar / adiantar legenda secundária em 0,1 s</value>
+  </data>
+  <data name="ShortcutAction063.Text" xml:space="preserve">
+    <value>Subir / descer posição da legenda secundária</value>
+  </data>
+  <data name="ShortcutAction064.Text" xml:space="preserve">
+    <value>Alternar uso das propriedades de vídeo nas legendas ASS</value>
+  </data>
+  <data name="ShortcutAction065.Text" xml:space="preserve">
+    <value>Alternar tratamento do estilo ASS</value>
+  </data>
+  <data name="ShortcutAction066.Text" xml:space="preserve">
+    <value>Salvar captura com legendas</value>
+  </data>
+  <data name="ShortcutAction067.Text" xml:space="preserve">
+    <value>Salvar captura sem legendas</value>
+  </data>
+  <data name="ShortcutAction068.Text" xml:space="preserve">
+    <value>Aumentar / diminuir escala da janela</value>
+  </data>
+  <data name="ShortcutAction069.Text" xml:space="preserve">
+    <value>Definir janela em 50% / 100% / 200% / 300%</value>
+  </data>
+  <data name="ShortcutAction070.Text" xml:space="preserve">
+    <value>Alternar nível do OSD de tempo</value>
+  </data>
+  <data name="SettingsMediaBadgesSection.Text" xml:space="preserve">
+    <value>BADGES DE MÍDIA</value>
+  </data>
+  <data name="SettingsMediaBadgeStyleTitle.Text" xml:space="preserve">
+    <value>Estilo das badges</value>
+  </data>
+  <data name="SettingsMediaBadgeStyleDescription.Text" xml:space="preserve">
+    <value>Escolhe entre o visual padrão do HC Player e um conjunto importado</value>
+  </data>
+  <data name="SettingsMediaBadgeStyleDefault.Content" xml:space="preserve">
+    <value>Padrão HC Player</value>
+  </data>
+  <data name="SettingsMediaBadgeStyleCustom.Content" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="SettingsMediaBadgeCustomSetTitle.Text" xml:space="preserve">
+    <value>Conjunto personalizado</value>
+  </data>
+  <data name="SettingsMediaBadgeCustomSetDescription.Text" xml:space="preserve">
+    <value>Importe PNG ou SVG com fundo transparente; o HC Player preserva a proporção e encaixa cada imagem automaticamente</value>
+  </data>
+  <data name="SettingsMediaBadgeCustomSetHint.Text" xml:space="preserve">
+    <value>Para melhores resultados, recorte a imagem rente ao conteúdo. DVD e Blu-ray aparecem somente quando o usuário importa os logos</value>
+  </data>
+  <data name="SettingsMediaBadgeImportButton.Text" xml:space="preserve">
+    <value>Importar conjunto…</value>
+  </data>
+  <data name="SettingsMediaBadgeFormatButton.Text" xml:space="preserve">
+    <value>Ver padrão</value>
+  </data>
+  <data name="SettingsMediaBadgeFormatTitle.Text" xml:space="preserve">
+    <value>Padrão do conjunto</value>
+  </data>
+  <data name="SettingsMediaBadgeFormatDescription.Text" xml:space="preserve">
+    <value>Use arquivos .png ou .svg de até 8 MB. Não há resolução fixa: o HC Player redimensiona sem deformar.</value>
+  </data>
+  <data name="SettingsMediaBadgeRightsNotice.Text" xml:space="preserve">
+    <value>Use somente imagens que você tenha direito de utilizar</value>
+  </data>
+  <data name="SettingsMediaBadgeResetButton.Text" xml:space="preserve">
+    <value>Restaurar padrão</value>
+  </data>
+  <data name="SettingsMediaBadgeSetStatus.Text" xml:space="preserve">
+    <value>Nenhum conjunto personalizado importado</value>
+  </data>
+  <data name="MediaBadgeFolderPickerTitle" xml:space="preserve">
+    <value>Selecionar pasta com badges personalizadas</value>
+  </data>
+  <data name="MediaBadgeFilesImported" xml:space="preserve">
+    <value>arquivos de badge importados</value>
+  </data>
+  <data name="MediaBadgeImportFailed" xml:space="preserve">
+    <value>Nenhuma badge compatível foi importada</value>
+  </data>
+  <data name="MediaBadgeResetFailed" xml:space="preserve">
+    <value>Não foi possível restaurar as badges padrão</value>
+  </data>
+  <data name="MediaBadgeNoCustomSet" xml:space="preserve">
+    <value>Nenhum conjunto personalizado importado</value>
+  </data>
+  <data name="SettingsMediaBadgeFileNames.Text" xml:space="preserve">
+    <value>DolbyAudio.Dark / DolbyAudio.Light&#x0A;DolbyVision.Dark / DolbyVision.Light&#x0A;DolbyAtmos.Dark / DolbyAtmos.Light&#x0A;DTS.Dark / DTS.Light&#x0A;DTSX.Dark / DTSX.Light&#x0A;YouTube.Dark / YouTube.Light&#x0A;HDR10Plus.Dark / HDR10Plus.Light&#x0A;HDR.Dark / HDR.Light&#x0A;DVD.Dark / DVD.Light&#x0A;BluRay.Dark / BluRay.Light&#x0A;&#x0A;DVD.png e BluRay.png também são aceitos para os dois temas. Separadores são opcionais.</value>
+  </data>
+  <data name="SettingsMediaBadgeIndividualTitle.Text" xml:space="preserve">
+    <value>Badge individual</value>
+  </data>
+  <data name="SettingsMediaBadgeIndividualDescription.Text" xml:space="preserve">
+    <value>Nome do arquivo define a badge e o tema</value>
+  </data>
+  <data name="SettingsMediaBadgeIndividualBadgeLabel.Text" xml:space="preserve">
+    <value>Badge</value>
+  </data>
+  <data name="SettingsMediaBadgeVariantLabel.Text" xml:space="preserve">
+    <value>Variante</value>
+  </data>
+  <data name="SettingsMediaBadgeVariantBoth.Content" xml:space="preserve">
+    <value>Ambos os temas</value>
+  </data>
+  <data name="SettingsMediaBadgeVariantDark.Content" xml:space="preserve">
+    <value>Tema escuro</value>
+  </data>
+  <data name="SettingsMediaBadgeVariantLight.Content" xml:space="preserve">
+    <value>Tema claro</value>
+  </data>
+  <data name="SettingsMediaBadgeIndividualImportButton.Text" xml:space="preserve">
+    <value>Importar imagem…</value>
+  </data>
+  <data name="SettingsMediaBadgeIndividualRemoveButton.Text" xml:space="preserve">
+    <value>Remover</value>
+  </data>
+  <data name="SettingsMediaBadgeIndividualStatus.Text" xml:space="preserve">
+    <value>Usada apenas no tema indicado pelo nome</value>
+  </data>
+  <data name="MediaBadgeFilePickerTitle" xml:space="preserve">
+    <value>Selecionar imagem da badge</value>
+  </data>
+  <data name="MediaBadgeImageFilter" xml:space="preserve">
+    <value>Imagens de badge (*.png;*.svg)</value>
+  </data>
+  <data name="MediaBadgeIndividualImportFailed" xml:space="preserve">
+    <value>Não foi possível importar a badge selecionada</value>
+  </data>
+  <data name="MediaBadgeIndividualImportedBoth" xml:space="preserve">
+    <value>Badge importada para os temas claro e escuro</value>
+  </data>
+  <data name="MediaBadgeIndividualImportedOne" xml:space="preserve">
+    <value>Badge importada para a variante selecionada</value>
+  </data>
+  <data name="MediaBadgeIndividualRemoveFailed" xml:space="preserve">
+    <value>Não foi possível remover a badge selecionada</value>
+  </data>
+  <data name="MediaBadgeIndividualRemoved" xml:space="preserve">
+    <value>Badge personalizada removida; a outra variante ou a padrão será usada como fallback</value>
+  </data>
+  <data name="MediaBadgeIndividualNothingToRemove" xml:space="preserve">
+    <value>Nenhuma imagem personalizada definida para essa seleção</value>
+  </data>
+  <data name="MediaBadgeCustomSetActive" xml:space="preserve">
+    <value>Conjunto personalizado ativo</value>
+  </data>
+  <data name="MediaBadgeVariantStateCustom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="MediaBadgeVariantStateDefault" xml:space="preserve">
+    <value>Padrão HC Player</value>
+  </data>
+  <data name="MediaBadgeVariantStateDark" xml:space="preserve">
+    <value>Tema escuro</value>
+  </data>
+  <data name="MediaBadgeVariantStateLight" xml:space="preserve">
+    <value>Tema claro</value>
+  </data>
+  <data name="SettingsMediaBadgeIndividualNaming.Text" xml:space="preserve">
+    <value>Use nome da badge + Dark/Light; separadores são opcionais. Ex.: DolbyVision.Dark.png</value>
+  </data>
+<data name="MediaBadgeFilenameInvalid" xml:space="preserve">
+    <value>Nome incompatível. Use, por exemplo, DolbyVision.Dark.png</value>
+  </data>
+  <data name="MediaBadgeFilenameThemeDark" xml:space="preserve">
+    <value>Tema escuro</value>
+  </data>
+  <data name="MediaBadgeFilenameThemeLight" xml:space="preserve">
+    <value>Tema claro</value>
+  </data>
+  <data name="MediaBadgeFilenameImported" xml:space="preserve">
+    <value>importada</value>
+  </data>
+  <data name="SettingsProfilesQuickAccessTitle.Text" xml:space="preserve">
+    <value>Acesso rápido aos perfis</value>
+  </data>
+  <data name="SettingsProfilesQuickAccessDescription.Text" xml:space="preserve">
+    <value>Mostra um botão na barra de controles para acessar os perfis importados</value>
+  </data>
+  <data name="MainPageProfilesButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Perfis de reprodução</value>
+  </data>
+  <data name="MainPageProfilesButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Perfis de reprodução</value>
+  </data>
+  <data name="MainPageDynDeactivateProfile" xml:space="preserve">
+    <value>Desativar perfil</value>
+  </data>
+  <data name="SettingsTemporalScalerDisabledHint.Text" xml:space="preserve">
+    <value>Disponível quando a interpolação temporal estiver ativada</value>
+  </data>
+  <data name="SettingsTemporalScalerOversample.Content" xml:space="preserve">
+    <value>oversample</value>
+  </data>
+  <data name="SettingsTemporalScalerLinear.Content" xml:space="preserve">
+    <value>linear</value>
+  </data>
+  <data name="SettingsTemporalScalerBox.Content" xml:space="preserve">
+    <value>box</value>
+  </data>
+  <data name="SettingsTemporalScalerTriangle.Content" xml:space="preserve">
+    <value>triangle</value>
+  </data>
+  <data name="SettingsTemporalScalerSphinx.Content" xml:space="preserve">
+    <value>sphinx</value>
+  </data>
+  <data name="SettingsTemporalScalerMitchell.Content" xml:space="preserve">
+    <value>mitchell</value>
+  </data>
+  <data name="SettingsTemporalScalerCatmullRom.Content" xml:space="preserve">
+    <value>catmull_rom</value>
+  </data>
+  <data name="SettingsWindowsIntegrationSection.Text" xml:space="preserve">
+    <value>WINDOWS</value>
+  </data>
+  <data name="SettingsDefaultPlayerTitle.Text" xml:space="preserve">
+    <value>Player de mídia padrão</value>
+  </data>
+  <data name="SettingsDefaultPlayerDescription.Text" xml:space="preserve">
+    <value>Abra as Configurações do Windows para escolher o HC Player como padrão nos formatos compatíveis</value>
+  </data>
+  <data name="SettingsDefaultPlayerButton.Text" xml:space="preserve">
+    <value>Definir como padrão</value>
+  </data>
+  <data name="PlaylistHeaderTitle.Text" xml:space="preserve">
+    <value>Fila de reprodução</value>
+  </data>
+  <data name="PlaylistHeaderSubtitle.Text" xml:space="preserve">
+    <value>Itens atuais da playlist</value>
+  </data>
+  <data name="PlaylistMoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Mais opções da fila</value>
+  </data>
+  <data name="PlaylistAddFolderMenuItem.Text" xml:space="preserve">
+    <value>Adicionar pasta à fila</value>
+  </data>
+  <data name="PlaylistAddFolderDialogTitle" xml:space="preserve">
+    <value>Adicionar pasta à fila</value>
+  </data>
+  <data name="PlaylistClearQueueMenuItem.Text" xml:space="preserve">
+    <value>Limpar fila</value>
+  </data>
+  <data name="PlaylistCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Fechar</value>
+  </data>
+  <data name="PlaylistEmptyText.Text" xml:space="preserve">
+    <value>Nenhum item na fila</value>
+  </data>
+  <data name="PlaylistEmptyLabel" xml:space="preserve">
+    <value>Nenhum item na fila</value>
+  </data>
+  <data name="PlaylistCurrentLabel" xml:space="preserve">
+    <value>Reproduzindo</value>
+  </data>
+  <data name="PlaylistPausedLabel" xml:space="preserve">
+    <value>Pausado</value>
+  </data>
+  <data name="PlaylistFinishedLabel" xml:space="preserve">
+    <value>Concluído</value>
+  </data>
+  <data name="PlaylistAddButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Adicionar arquivos à fila</value>
+  </data>
+  <data name="PlaylistAddPlaylistsFilter" xml:space="preserve">
+    <value>Playlists</value>
+  </data>
+  <data name="PlaylistAddDialogTitle" xml:space="preserve">
+    <value>Adicionar arquivos à fila</value>
+  </data>
+  <data name="PlaylistReorderLabel" xml:space="preserve">
+    <value>Arrastar para reordenar</value>
+  </data>
+  <data name="PlaylistRemoveLabel" xml:space="preserve">
+    <value>Remover da fila</value>
+  </data>
+  <data name="PlaylistItemLabel" xml:space="preserve">
+    <value>Item da playlist</value>
+  </data>
+  <data name="PlaylistExternalDropText.Text" xml:space="preserve">
+    <value>Solte para adicionar à fila</value>
+  </data>
+  <data name="SettingsDyn_96B47888" xml:space="preserve">
+    <value>O mecanismo de reprodução não está disponível para validar as opções do yt-dlp.</value>
+  </data>
+  <data name="SettingsDyn_3D6947A0" xml:space="preserve">
+    <value>Não foi possível preparar a validação das opções do yt-dlp.</value>
+  </data>
+  <data name="SettingsDyn_93009E52" xml:space="preserve">
+    <value>A sintaxe de ytdl-raw-options não é válida.</value>
+  </data>
+  <data name="SettingsDyn_EDD4DDE6" xml:space="preserve">
+    <value>Não foi possível inicializar a validação das opções do yt-dlp.</value>
+  </data>
+  <data name="SettingsDyn_7BB8D651" xml:space="preserve">
+    <value>Não foi possível interpretar ytdl-raw-options.</value>
+  </data>
+  <data name="SettingsDyn_3A046176" xml:space="preserve">
+    <value>O yt-dlp não está disponível para validar as opções avançadas.</value>
+  </data>
+  <data name="SettingsDyn_BE1272DD" xml:space="preserve">
+    <value>Volume inicial deve estar entre 0 e 1000.</value>
+  </data>
+  <data name="SettingsDyn_6843134C" xml:space="preserve">
+    <value>Limite de volume deve estar entre 100 e 1000.</value>
+  </data>
+  <data name="SettingsDyn_0EE5CFAD" xml:space="preserve">
+    <value>Volume inicial não pode ser maior que o limite de volume.</value>
+  </data>
+  <data name="SettingsDyn_65D7ED84" xml:space="preserve">
+    <value>Não foi possível preparar a consulta às opções do yt-dlp.</value>
+  </data>
+  <data name="SettingsDyn_25B0DDC5" xml:space="preserve">
+    <value>Não foi possível executar o yt-dlp atual para consultar suas opções.</value>
+  </data>
+  <data name="SettingsDyn_4F2D0A51" xml:space="preserve">
+    <value>Não foi possível consultar as opções suportadas pelo yt-dlp atual.</value>
+  </data>
+  <data name="SettingsDyn_181680E8" xml:space="preserve">
+    <value>O yt-dlp atual não retornou uma lista de opções reconhecível.</value>
+  </data>
+  <data name="SettingsDyn_6AB03FEC" xml:space="preserve">
+    <value>O yt-dlp atual não reconhece a opção: </value>
+  </data>
+  <data name="ContextMenuB129.Text" xml:space="preserve">
+    <value>Adicionar faixa externa...</value>
+  </data>
+  <data name="ContextMenuB130.Text" xml:space="preserve">
+    <value>Adicionar legenda externa...</value>
+  </data>
+  <data name="PickerExternalAudioFilesFilter" xml:space="preserve">
+    <value>Arquivos de áudio</value>
+  </data>
+  <data name="PickerExternalSubtitleFilesFilter" xml:space="preserve">
+    <value>Arquivos de legenda</value>
+  </data>
+  <data name="PickerExternalAudioTitle" xml:space="preserve">
+    <value>Adicionar faixa de áudio externa</value>
+  </data>
+  <data name="PickerExternalSubtitleTitle" xml:space="preserve">
+    <value>Adicionar legenda externa</value>
+  </data>
+  <data name="SettingsResetSection.Text" xml:space="preserve">
+    <value>REDEFINIR</value>
+  </data>
+  <data name="SettingsResetTitle.Text" xml:space="preserve">
+    <value>Redefinir configurações</value>
+  </data>
+  <data name="SettingsResetDescription.Text" xml:space="preserve">
+    <value>Restaura as configurações do HC Player aos valores padrão sem apagar seus arquivos pessoais</value>
+  </data>
+  <data name="SettingsResetButton.Text" xml:space="preserve">
+    <value>Redefinir</value>
+  </data>
+  <data name="SettingsResetDialogTitle" xml:space="preserve">
+    <value>Redefinir configurações?</value>
+  </data>
+  <data name="SettingsResetDialogMessage" xml:space="preserve">
+    <value>As configurações de reprodução, vídeo, áudio, legendas, interface, streaming e captura voltarão aos valores padrão. O tema atual, fontes, shaders, badges, yt-dlp/Deno, capturas e arquivos de mídia serão preservados. Shaders importados permanecerão instalados, mas serão desativados. Alterações ainda não salvas serão descartadas.</value>
+  </data>
+  <data name="SettingsResetDialogPrimary" xml:space="preserve">
+    <value>Redefinir</value>
+  </data>
+  <data name="SettingsResetDialogCancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="SettingsResetSuccessTitle" xml:space="preserve">
+    <value>Configurações redefinidas</value>
+  </data>
+  <data name="SettingsResetSuccessMessage" xml:space="preserve">
+    <value>Os valores padrão serão usados na próxima inicialização do HC Player. Reinicie o aplicativo para concluir.</value>
+  </data>
+  <data name="SettingsResetFailedTitle" xml:space="preserve">
+    <value>Não foi possível redefinir</value>
+  </data>
+  <data name="SettingsResetFailedMessage" xml:space="preserve">
+    <value>Não foi possível concluir a redefinição das configurações.</value>
+  </data>
+  <data name="SettingsDyn_85E8D934" xml:space="preserve">
+    <value>Perfil ICC do Windows</value>
+  </data>
+  <data name="SettingsDyn_79980472" xml:space="preserve">
+    <value>Usa automaticamente o perfil de cores associado à tela para o gerenciamento de cor durante a reprodução</value>
+  </data>
+  <data name="ShortcutAction071.Text" xml:space="preserve">
+    <value>Abrir Informações de mídia</value>
+  </data>
+  <data name="ShortcutAction072.Text" xml:space="preserve">
+    <value>Alternar Picture-in-Picture</value>
+  </data>
+  <data name="ShortcutAction073.Text" xml:space="preserve">
+    <value>Abrir fila de reprodução</value>
+  </data>
+  <data name="SettingsDyn_3821F60F" xml:space="preserve">
+    <value>A API gráfica D3D11 requer o contexto gráfico d3d11.</value>
+  </data>
+  <data name="SettingsDyn_00520177" xml:space="preserve">
+    <value>A API gráfica Vulkan requer o contexto gráfico winvk no Windows.</value>
+  </data>
+  <data name="SettingsDyn_396B451D" xml:space="preserve">
+    <value>A API gráfica OpenGL requer o contexto gráfico win ou angle no Windows.</value>
+  </data>
+  <data name="SettingsDyn_9E222085" xml:space="preserve">
+    <value>d3d11va direto requer a saída de vídeo gpu ou gpu-next.</value>
+  </data>
+  <data name="SettingsDyn_711CD492" xml:space="preserve">
+    <value>d3d11va direto requer o contexto gráfico d3d11 ou angle.</value>
+  </data>
+  <data name="SettingsDyn_3D0A33FD" xml:space="preserve">
+    <value>O tone mapping selecionado requer a saída de vídeo gpu-next.</value>
+  </data>
+  <data name="SettingsDyn_66F57DB1" xml:space="preserve">
+    <value>target-colorspace-hint=yes requer a saída de vídeo gpu-next.</value>
+  </data>
+  <data name="SettingsDyn_C4176441" xml:space="preserve">
+    <value>d3d11va direto não é compatível com a API gráfica Vulkan.</value>
+  </data>
+  <data name="SettingsDyn_B9FB35FD" xml:space="preserve">
+    <value>d3d11va direto com OpenGL requer o contexto gráfico angle.</value>
+  </data>
+  <data name="SettingsDyn_2B582943" xml:space="preserve">
+    <value>target-colorspace-hint=yes requer contexto gráfico d3d11 ou winvk no Windows.</value>
+  </data>
+  <data name="SettingsDyn_7E120537" xml:space="preserve">
+    <value>A nova configuração de vídeo não pôde iniciar o mecanismo de reprodução. A configuração anterior foi restaurada.</value>
+  </data>
+  <data name="SettingsDyn_75A1DFE2" xml:space="preserve">
+    <value>Não foi possível concluir a alteração e a restauração automática do mecanismo também falhou. Reinicie o HC Player antes de continuar.</value>
+  </data>
+  <data name="SettingsDyn_4A3310A9" xml:space="preserve">
+    <value>Não foi possível salvar as novas configurações no disco. A configuração anterior foi restaurada.</value>
+  </data>
+  <data name="SettingsDyn_A9A762B8" xml:space="preserve">
+    <value>Não foi possível concluir a alteração e a restauração automática também não foi concluída com segurança. Reinicie o HC Player antes de continuar.</value>
+  </data>
+  <data name="SettingsTransportStyleTitle.Text" xml:space="preserve">
+    <value>Estilo dos controles</value>
+  </data>
+  <data name="SettingsTransportStyleDescription.Text" xml:space="preserve">
+    <value>Alterna entre o modo Barra e o modo Mínimo compacto</value>
+  </data>
+  <data name="SettingsTransportStyleClassic.Content" xml:space="preserve">
+    <value>Barra</value>
+  </data>
+  <data name="SettingsTransportStyleMinimal.Content" xml:space="preserve">
+    <value>Mínimo</value>
+  </data>
+  <data name="SettingsBarLayoutTitle.Text" xml:space="preserve">
+    <value>Layout da barra</value>
+  </data>
+  <data name="SettingsBarLayoutDescription.Text" xml:space="preserve">
+    <value>Compacto usa duas linhas; Completo preserva a barra atual de três linhas</value>
+  </data>
+  <data name="SettingsBarLayoutCompact.Content" xml:space="preserve">
+    <value>Compacto</value>
+  </data>
+  <data name="SettingsBarLayoutFull.Content" xml:space="preserve">
+    <value>Completo</value>
+  </data>
+  <data name="MainPageMinimalPlayButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Reproduzir/Pausar</value>
+  </data>
+  <data name="MainPageMinimalSeekBackwardButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Voltar 10 segundos</value>
+  </data>
+  <data name="MainPageMinimalSeekForwardButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Avançar 10 segundos</value>
+  </data>
+  <data name="MainPageMinimalLoopButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Ativar repetição</value>
+  </data>
+  <data name="MainPageMinimalLoopButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Repetir vídeo</value>
+  </data>
+  <data name="MainPageMinimalTracksButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Áudio e legendas</value>
+  </data>
+  <data name="MainPageMinimalTracksButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Áudio e legendas</value>
+  </data>
+  <data name="MainPageMinimalSpeedButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Velocidade de reprodução</value>
+  </data>
+  <data name="MainPageMinimalMoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Mais controles</value>
+  </data>
+  <data name="MainPageDynMinimalOpenFile" xml:space="preserve">
+    <value>Abrir arquivo</value>
+  </data>
+  <data name="MainPageDynMinimalOpenFolder" xml:space="preserve">
+    <value>Abrir pasta</value>
+  </data>
+  <data name="MainPageDynMinimalPlaylist" xml:space="preserve">
+    <value>Playlist</value>
+  </data>
+  <data name="MainPageDynMinimalRepeat" xml:space="preserve">
+    <value>Repetir</value>
+  </data>
+  <data name="MainPageDynMinimalShuffle" xml:space="preserve">
+    <value>Reprodução aleatória</value>
+  </data>
+  <data name="MainPageMinimalSpeedButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Velocidade</value>
+  </data>
+  <data name="MainPageDynMinimalProfiles" xml:space="preserve">
+    <value>Perfis</value>
+  </data>
+  <data name="MainPageDynMinimalMediaInfo" xml:space="preserve">
+    <value>Informações de mídia</value>
+  </data>
+  <data name="MainPageDynMinimalStats" xml:space="preserve">
+    <value>Estatísticas de reprodução</value>
+  </data>
+  <data name="MainPageDynMinimalCapture" xml:space="preserve">
+    <value>Captura de tela</value>
+  </data>
+  <data name="MainPageDynMinimalCaptureNoSubtitles" xml:space="preserve">
+    <value>Capturar sem legendas</value>
+  </data>
+  <data name="MainPageDynMinimalCaptureWithSubtitles" xml:space="preserve">
+    <value>Capturar com legendas</value>
+  </data>
+  <data name="MainPageDynMinimalCaptureFolder" xml:space="preserve">
+    <value>Abrir pasta de capturas</value>
+  </data>
+  <data name="MainPageDynMinimalSettings" xml:space="preserve">
+    <value>Configurações</value>
+  </data>
+</root>

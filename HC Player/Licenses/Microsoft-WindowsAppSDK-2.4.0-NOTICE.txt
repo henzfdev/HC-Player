@@ -1,0 +1,18 @@
+Microsoft Windows App SDK 2.4.0 — redistribution notice
+
+HC Player's current unpackaged/framework-dependent build includes
+Microsoft.WindowsAppRuntime.Bootstrap.dll, binplaced by the Windows App SDK
+NuGet toolchain.
+
+This Microsoft component is NOT licensed under the HC Player GPL license. It
+remains subject to the Microsoft Windows App SDK software license terms.
+
+Official license for Microsoft.WindowsAppSDK 2.4.0:
+https://www.nuget.org/packages/Microsoft.WindowsAppSDK/2.4.0/License
+
+The official terms state that files binplaced with an application by the
+WindowsAppSDK NuGet package are permitted to be redistributed, subject to the
+Microsoft license's distribution requirements and restrictions.
+
+Do not remove or alter Microsoft or supplier notices from the redistributed
+Microsoft component.

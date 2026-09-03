@@ -1,0 +1,325 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="HCPlayer.ContextMenuPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Transparent">
+
+    <Page.Resources>
+        <Style x:Key="CompactMenuPresenterStyle"
+               TargetType="MenuFlyoutPresenter"
+               BasedOn="{StaticResource DefaultMenuFlyoutPresenterStyle}">
+            <Setter Property="Padding" Value="1,3" />
+        </Style>
+        <Style x:Key="SpeedMenuItemStyle"
+               TargetType="MenuFlyoutItem"
+               BasedOn="{StaticResource DefaultMenuFlyoutItemStyle}">
+            <Setter Property="Padding" Value="12,0,14,0" />
+            <Setter Property="MinWidth" Value="220" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style x:Key="SpeedToggleMenuItemStyle"
+               TargetType="ToggleMenuFlyoutItem"
+               BasedOn="{StaticResource DefaultToggleMenuFlyoutItemStyle}">
+            <Setter Property="Padding" Value="12,0,14,0" />
+            <Setter Property="MinWidth" Value="220" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <MenuFlyout x:Name="PlayerMenu"
+                    Closed="MenuClosed"
+                    MenuFlyoutPresenterStyle="{StaticResource CompactMenuPresenterStyle}"
+                    AreOpenCloseAnimationsEnabled="True">
+            <MenuFlyoutSubItem x:Uid="ContextMenuB001" x:Name="OpenMenu" Text="Abrir" Icon="OpenFile">
+                <MenuFlyoutItem x:Uid="ContextMenuB002" Text="Arquivo..." KeyboardAcceleratorTextOverride="Ctrl+O"
+                                Tag="action:open" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB003" Text="Pasta..."
+                                KeyboardAcceleratorTextOverride="Ctrl+Shift+O"
+                                Tag="action:open-folder" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB004" Text="URL ou caminho copiado"
+                                KeyboardAcceleratorTextOverride="Ctrl+V"
+                                Tag="action:open-clipboard" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB005" Text="DVD ISO..."
+                                Tag="action:open-dvd-iso" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB006" Text="Blu-ray ISO..."
+                                Tag="action:open-bluray-iso" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutSubItem x:Uid="ContextMenuB007" x:Name="RecentMenu"
+                                   Text="Reproduzidos recentemente"
+                                   Icon="Clock"
+                                   IsEnabled="False" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem x:Uid="ContextMenuB008" Text="Reproduzir / Pausar" Icon="Play"
+                            KeyboardAcceleratorTextOverride="Espaço"
+                            Tag="action:pause" Click="MenuItemClicked" />
+            <MenuFlyoutItem x:Uid="ContextMenuB009" Text="Parar" Icon="Stop"
+                            KeyboardAcceleratorTextOverride="Ctrl+S"
+                            Tag="key:Ctrl+s" Click="MenuItemClicked" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutSubItem x:Uid="ContextMenuB010" x:Name="NavigateMenu" Text="Navegar" Icon="Go">
+                <MenuFlyoutItem x:Uid="ContextMenuB011" Text="Próximo arquivo" KeyboardAcceleratorTextOverride="F12"
+                                Tag="key:F12" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB012" Text="Arquivo anterior" KeyboardAcceleratorTextOverride="F11"
+                                Tag="key:F11" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB013" Text="Próximo capítulo" KeyboardAcceleratorTextOverride="PgUp"
+                                Tag="key:PGUP" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB014" Text="Capítulo anterior" KeyboardAcceleratorTextOverride="PgDn"
+                                Tag="key:PGDWN" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB015" Text="Próximo quadro" KeyboardAcceleratorTextOverride="."
+                                Tag="key:." Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB016" Text="Quadro anterior" KeyboardAcceleratorTextOverride=","
+                                Tag="key:," Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB017" Text="Avançar 5 segundos" KeyboardAcceleratorTextOverride="→"
+                                Tag="key:RIGHT" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB018" Text="Voltar 5 segundos" KeyboardAcceleratorTextOverride="←"
+                                Tag="key:LEFT" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB019" Text="Avançar 30 segundos" KeyboardAcceleratorTextOverride="↑"
+                                Tag="key:UP" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB020" Text="Voltar 30 segundos" KeyboardAcceleratorTextOverride="↓"
+                                Tag="key:DOWN" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB021" Text="Avançar 5 minutos" KeyboardAcceleratorTextOverride="Ctrl+→"
+                                Tag="key:Ctrl+RIGHT" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB022" Text="Voltar 5 minutos" KeyboardAcceleratorTextOverride="Ctrl+←"
+                                Tag="key:Ctrl+LEFT" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB023" x:Name="ChaptersMenu" Text="Capítulos" Icon="List">
+                <MenuFlyoutItem x:Uid="ContextMenuB024" Text="Próximo" KeyboardAcceleratorTextOverride="PgUp"
+                                Tag="key:PGUP" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB025" Text="Anterior" KeyboardAcceleratorTextOverride="PgDn"
+                                Tag="key:PGDWN" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB026" x:Name="TracksMenu" Text="Faixas" Icon="Audio">
+                <MenuFlyoutSubItem x:Uid="ContextMenuB027" x:Name="TracksVideoMenu" Text="V&#xED;deo" Icon="Video" />
+                <MenuFlyoutSubItem x:Uid="ContextMenuB028" x:Name="TracksAudioMenu" Text="&#xC1;udio" Icon="Audio" />
+                <MenuFlyoutSubItem x:Uid="ContextMenuB029" x:Name="TracksSubtitleMenu" Text="Legenda principal" Icon="ClosedCaption" />
+                <MenuFlyoutSubItem x:Uid="ContextMenuB030" x:Name="TracksSecondarySubtitleMenu" Text="Legenda secund&#xE1;ria" Icon="ClosedCaption" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB031" Text="Próximo vídeo" KeyboardAcceleratorTextOverride="Num 8"
+                                Tag="key:KP8" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB032" Text="Próximo áudio" KeyboardAcceleratorTextOverride="Num 7"
+                                Tag="key:KP7" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB033" Text="Próxima legenda" KeyboardAcceleratorTextOverride="J"
+                                Tag="key:j" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB034" x:Name="EditionsMenu" Text="Edições" Icon="List"
+                               IsEnabled="False" />
+            <MenuFlyoutSubItem x:Uid="ContextMenuB035" x:Name="PlaylistMenu" Text="Playlist" Icon="List">
+                <MenuFlyoutItem x:Uid="ContextMenuB036" Text="Próximo arquivo" KeyboardAcceleratorTextOverride="F12"
+                                Tag="key:F12" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB037" Text="Arquivo anterior" KeyboardAcceleratorTextOverride="F11"
+                                Tag="key:F11" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB038" Text="Embaralhar ordem"
+                                Tag="cmd:no-osd playlist-shuffle; show-text &quot;Playlist: ordem embaralhada&quot;" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSeparator />
+            <MenuFlyoutSubItem x:Uid="ContextMenuB039" Text="Vídeo" Icon="Video">
+                <MenuFlyoutItem x:Uid="ContextMenuB040" Text="Próxima faixa" KeyboardAcceleratorTextOverride="Num 8"
+                                Tag="key:KP8" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB041" Text="Diminuir contraste" KeyboardAcceleratorTextOverride="Ctrl+1"
+                                Tag="key:Ctrl+1" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB042" Text="Aumentar contraste" KeyboardAcceleratorTextOverride="Ctrl+2"
+                                Tag="key:Ctrl+2" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB043" Text="Diminuir brilho" KeyboardAcceleratorTextOverride="Ctrl+3"
+                                Tag="key:Ctrl+3" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB044" Text="Aumentar brilho" KeyboardAcceleratorTextOverride="Ctrl+4"
+                                Tag="key:Ctrl+4" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB045" Text="Diminuir gama" KeyboardAcceleratorTextOverride="Ctrl+5"
+                                Tag="key:Ctrl+5" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB046" Text="Aumentar gama" KeyboardAcceleratorTextOverride="Ctrl+6"
+                                Tag="key:Ctrl+6" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB047" Text="Diminuir saturação" KeyboardAcceleratorTextOverride="Ctrl+7"
+                                Tag="key:Ctrl+7" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB048" Text="Aumentar saturação" KeyboardAcceleratorTextOverride="Ctrl+8"
+                                Tag="key:Ctrl+8" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB049" Text="Capturar tela" KeyboardAcceleratorTextOverride="S"
+                                Tag="action:capture-subtitles" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB050" Text="Capturar sem legendas" KeyboardAcceleratorTextOverride="Shift+S"
+                                Tag="action:capture-video" Click="MenuItemClicked" />
+                <MenuFlyoutSubItem x:Uid="ContextMenuB051" Text="Proporção" Icon="Crop">
+                    <MenuFlyoutItem x:Uid="ContextMenuB052" Text="Original" Tag="cmd:no-osd set video-aspect-override -1; show-text &quot;📐 Proporção: Original&quot;" Click="MenuItemClicked" />
+                    <MenuFlyoutItem x:Uid="ContextMenuB053" Text="16:9" Tag="cmd:no-osd set video-aspect-override 16:9; show-text &quot;📐 Proporção: 16:9&quot;" Click="MenuItemClicked" />
+                    <MenuFlyoutItem x:Uid="ContextMenuB054" Text="4:3" Tag="cmd:no-osd set video-aspect-override 4:3; show-text &quot;📐 Proporção: 4:3&quot;" Click="MenuItemClicked" />
+                    <MenuFlyoutItem x:Uid="ContextMenuB055" Text="2.35:1" Tag="cmd:no-osd set video-aspect-override 2.35:1; show-text &quot;📐 Proporção: 2,35:1&quot;" Click="MenuItemClicked" />
+                </MenuFlyoutSubItem>
+                <MenuFlyoutItem x:Uid="ContextMenuB056" Text="Girar vídeo" KeyboardAcceleratorTextOverride="Ctrl+R"
+                                Tag="key:Ctrl+r" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB057" Text="Alternar deband" KeyboardAcceleratorTextOverride="D"
+                                Tag="key:D" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB058" Text="Alternar desentrelaçamento" KeyboardAcceleratorTextOverride="d"
+                                Tag="key:d" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB060" Text="Áudio" Icon="Audio">
+                <MenuFlyoutSubItem x:Uid="ContextMenuB061" x:Name="AudioTracksMenu" Text="Faixa de &#xE1;udio" Icon="Audio" />
+                <MenuFlyoutItem x:Uid="ContextMenuB129" x:Name="AddExternalAudioItem" Text="Adicionar faixa externa..."
+                                Tag="action:add-external-audio" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB062" Text="Próxima faixa" KeyboardAcceleratorTextOverride="Num 7"
+                                Tag="key:KP7" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB063" Text="Atraso +0,1 s" KeyboardAcceleratorTextOverride="Ctrl+d"
+                                Tag="key:Ctrl+d" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB064" Text="Atraso −0,1 s" KeyboardAcceleratorTextOverride="Ctrl+Shift+d"
+                                Tag="key:Ctrl+D" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB065" Text="Legenda" Icon="ClosedCaption">
+                <MenuFlyoutSubItem x:Uid="ContextMenuB066" x:Name="SubtitlePrimaryTracksMenu" Text="Principal" Icon="ClosedCaption" />
+                <MenuFlyoutSubItem x:Uid="ContextMenuB067" x:Name="SubtitleSecondaryTracksMenu" Text="Secund&#xE1;ria" Icon="ClosedCaption" />
+                <MenuFlyoutItem x:Uid="ContextMenuB130" x:Name="AddExternalSubtitleItem" Text="Adicionar legenda externa..."
+                                Tag="action:add-external-subtitle" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB068" Text="Próxima legenda" KeyboardAcceleratorTextOverride="J"
+                                Tag="key:j" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB069" Text="Mostrar / ocultar" KeyboardAcceleratorTextOverride="V"
+                                Tag="key:v" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB070" Text="Atraso −0,1 s" KeyboardAcceleratorTextOverride="Z"
+                                Tag="key:z" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB071" Text="Atraso +0,1 s" KeyboardAcceleratorTextOverride="Shift+Z"
+                                Tag="key:Z" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB072" Text="Mover para cima" KeyboardAcceleratorTextOverride="R"
+                                Tag="key:r" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB073" Text="Mover para baixo" KeyboardAcceleratorTextOverride="Shift+R"
+                                Tag="key:R" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutSubItem x:Uid="ContextMenuB074" Text="Legenda secundária">
+                    <MenuFlyoutItem x:Uid="ContextMenuB075" Text="Próxima" KeyboardAcceleratorTextOverride="Alt+J"
+                                    Tag="key:Alt+j" Click="MenuItemClicked" />
+                    <MenuFlyoutItem x:Uid="ContextMenuB076" Text="Mostrar / ocultar" KeyboardAcceleratorTextOverride="Alt+V"
+                                    Tag="key:Alt+v" Click="MenuItemClicked" />
+                    <MenuFlyoutItem x:Uid="ContextMenuB077" Text="Atraso −0,1 s" KeyboardAcceleratorTextOverride="Alt+Z"
+                                    Tag="key:Alt+z" Click="MenuItemClicked" />
+                    <MenuFlyoutItem x:Uid="ContextMenuB078" Text="Atraso +0,1 s" KeyboardAcceleratorTextOverride="Alt+Shift+Z"
+                                    Tag="key:Alt+Z" Click="MenuItemClicked" />
+                    <MenuFlyoutItem x:Uid="ContextMenuB079" Text="Mover para cima" KeyboardAcceleratorTextOverride="Alt+R"
+                                    Tag="key:Alt+r" Click="MenuItemClicked" />
+                    <MenuFlyoutItem x:Uid="ContextMenuB080" Text="Mover para baixo" KeyboardAcceleratorTextOverride="Alt+Shift+R"
+                                    Tag="key:Alt+R" Click="MenuItemClicked" />
+                </MenuFlyoutSubItem>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB081" Text="Diminuir fonte" KeyboardAcceleratorTextOverride="F"
+                                Tag="key:F" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB082" Text="Aumentar fonte" KeyboardAcceleratorTextOverride="G"
+                                Tag="key:G" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB083" Text="Alternar estilo ASS" KeyboardAcceleratorTextOverride="U"
+                                Tag="key:u" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB084" Text="Alternar cor" KeyboardAcceleratorTextOverride="Y"
+                                Tag="key:y" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB085" x:Name="ProfilesMenu" Text="Perfis"
+                               Visibility="Collapsed">
+                <MenuFlyoutSubItem.Icon>
+                    <FontIcon Glyph="&#xE9E9;" FontSize="16"/>
+                </MenuFlyoutSubItem.Icon>
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB086" x:Name="PanScanMenu" Text="Pan &amp; Scan" Icon="Crop">
+                <MenuFlyoutItem x:Uid="ContextMenuB087" Text="Aumentar tamanho" KeyboardAcceleratorTextOverride="Ctrl++"
+                                Tag="key:Ctrl++" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB088" Text="Diminuir tamanho" KeyboardAcceleratorTextOverride="Ctrl+−"
+                                Tag="key:Ctrl+-" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB089" Text="Mover para esquerda" KeyboardAcceleratorTextOverride="Ctrl+Num 4"
+                                Tag="key:Ctrl+KP4" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB090" Text="Mover para direita" KeyboardAcceleratorTextOverride="Ctrl+Num 6"
+                                Tag="key:Ctrl+KP6" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB091" Text="Mover para cima" KeyboardAcceleratorTextOverride="Ctrl+Num 8"
+                                Tag="key:Ctrl+KP8" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB092" Text="Mover para baixo" KeyboardAcceleratorTextOverride="Ctrl+Num 2"
+                                Tag="key:Ctrl+KP2" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB093" Text="Diminuir altura" KeyboardAcceleratorTextOverride="W"
+                                Tag="key:w" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB094" Text="Aumentar altura" KeyboardAcceleratorTextOverride="Shift+W"
+                                Tag="key:W" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB095" Text="Resetar" KeyboardAcceleratorTextOverride="Ctrl+Backspace"
+                                Tag="key:Ctrl+BS" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB096" x:Name="SpeedMenu" Text="Velocidade" Icon="Clock">
+                <MenuFlyoutItem x:Uid="ContextMenuB097" Style="{StaticResource SpeedMenuItemStyle}" Text="Diminuir 10%"
+                                KeyboardAcceleratorTextOverride="[" Tag="key:[" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB098" Style="{StaticResource SpeedMenuItemStyle}" Text="Aumentar 10%"
+                                KeyboardAcceleratorTextOverride="]" Tag="key:]" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <ToggleMenuFlyoutItem x:Uid="ContextMenuB099" Style="{StaticResource SpeedToggleMenuItemStyle}"
+                                      Text="0,5×" Tag="speed:0.5" Click="MenuItemClicked" />
+                <ToggleMenuFlyoutItem x:Uid="ContextMenuB100" Style="{StaticResource SpeedToggleMenuItemStyle}"
+                                      Text="0,75×" Tag="speed:0.75" Click="MenuItemClicked" />
+                <ToggleMenuFlyoutItem x:Uid="ContextMenuB101" Style="{StaticResource SpeedToggleMenuItemStyle}" Text="Normal — 1×"
+                                      Tag="speed:1" Click="MenuItemClicked" />
+                <ToggleMenuFlyoutItem x:Uid="ContextMenuB102" Style="{StaticResource SpeedToggleMenuItemStyle}"
+                                      Text="1,25×" Tag="speed:1.25" Click="MenuItemClicked" />
+                <ToggleMenuFlyoutItem x:Uid="ContextMenuB103" Style="{StaticResource SpeedToggleMenuItemStyle}"
+                                      Text="1,5×" Tag="speed:1.5" Click="MenuItemClicked" />
+                <ToggleMenuFlyoutItem x:Uid="ContextMenuB104" Style="{StaticResource SpeedToggleMenuItemStyle}"
+                                      Text="2×" Tag="speed:2" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB105" Text="Volume" Icon="Volume">
+                <MenuFlyoutItem x:Uid="ContextMenuB106" Text="Aumentar" KeyboardAcceleratorTextOverride="+"
+                                Tag="key:+" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB107" Text="Diminuir" KeyboardAcceleratorTextOverride="−"
+                                Tag="key:-" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB108" Text="Mudo" KeyboardAcceleratorTextOverride="M"
+                                Tag="key:m" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSeparator />
+            <MenuFlyoutSubItem x:Uid="ContextMenuB109" Text="Tela" Icon="View">
+                <MenuFlyoutItem x:Uid="ContextMenuB110" Text="Alternar OSD de tempo" KeyboardAcceleratorTextOverride="O"
+                                Tag="key:O" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB111" Text="Mostrar progresso" KeyboardAcceleratorTextOverride="P"
+                                Tag="key:p" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB112" Text="Mostrar quadro atual" KeyboardAcceleratorTextOverride="Tab"
+                                Tag="key:TAB" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB113" Text="Informações de mídia"
+                                Tag="action:mediainfo" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB114" Text="Estatísticas de reprodução"
+                                KeyboardAcceleratorTextOverride="I"
+                                Tag="action:stats" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB115" Text="Janela" Icon="FullScreen">
+                <MenuFlyoutItem x:Uid="ContextMenuB116" Text="Tela inteira" KeyboardAcceleratorTextOverride="Enter"
+                                Tag="action:fullscreen" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB117" Text="Sem bordas" KeyboardAcceleratorTextOverride="b"
+                                Tag="action:borderless" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB118" Text="Sempre visível" KeyboardAcceleratorTextOverride="Ctrl+T"
+                                Tag="action:ontop" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB119" Text="Capturar conte&#xFA;do" KeyboardAcceleratorTextOverride="Ctrl+Shift+S"
+                                Tag="action:capture-subtitles" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSubItem x:Uid="ContextMenuB120" Text="Ferramentas" Icon="Repair">
+                <MenuFlyoutItem x:Uid="ContextMenuB121" Text="Console de reprodução" KeyboardAcceleratorTextOverride="`"
+                                Tag="action:console" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB122" Text="Definir / limpar loop A–B" KeyboardAcceleratorTextOverride="L"
+                                Tag="key:l" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB123" Text="Alternar loop do arquivo" KeyboardAcceleratorTextOverride="Shift+L"
+                                Tag="key:L" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB124" Text="Alternar decodificação" KeyboardAcceleratorTextOverride="Ctrl+H"
+                                Tag="key:Ctrl+h" Click="MenuItemClicked" />
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Uid="ContextMenuB125" Text="Alternar pico HDR" KeyboardAcceleratorTextOverride="Shift+B"
+                                Tag="key:B" Click="MenuItemClicked" />
+                <MenuFlyoutItem x:Uid="ContextMenuB126" Text="Alternar redução de escala" KeyboardAcceleratorTextOverride="Alt+D"
+                                Tag="key:Alt+d" Click="MenuItemClicked" />
+            </MenuFlyoutSubItem>
+            <MenuFlyoutSeparator x:Name="CompactSettingsSeparator" />
+            <MenuFlyoutItem x:Uid="ContextMenuB127" x:Name="SettingsMenuItem" Text="Configurações" Icon="Setting"
+                            KeyboardAcceleratorTextOverride="Ctrl+,"
+                            Tag="action:settings" Click="MenuItemClicked" />
+            <MenuFlyoutItem x:Uid="ContextMenuB128" Text="Sair" Icon="Cancel"
+                            KeyboardAcceleratorTextOverride="Q"
+                            Tag="action:quit" Click="MenuItemClicked" />
+        </MenuFlyout>
+    </Page.Resources>
+
+    <Grid x:Name="MenuAnchor" Background="#01000000" />
+</Page>

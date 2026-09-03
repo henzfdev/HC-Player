@@ -1,0 +1,8 @@
+namespace HCPlayer
+{
+    [default_interface]
+    runtimeclass MediaInfoPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        MediaInfoPage();
+    }
+}

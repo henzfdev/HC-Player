@@ -1,0 +1,8 @@
+namespace HCPlayer
+{
+    [default_interface]
+    runtimeclass PlaylistPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        PlaylistPage();
+    }
+}

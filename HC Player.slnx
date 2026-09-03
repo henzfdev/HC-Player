@@ -1,0 +1,9 @@
+﻿<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <BuildType Name="Portable" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="HC Player\HC Player.vcxproj" Id="3c12b19f-b4db-4855-916d-eb328fe7d8b8" />
+</Solution>

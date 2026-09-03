@@ -1,0 +1,201 @@
+﻿//Script de recursos gerados pelo Microsoft Visual C++.
+//
+#include "Resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Gerado com base no recurso TEXTINCLUDE.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "windows.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PTB)
+LANGUAGE 22, 1
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Ícone
+//
+
+// Ícone com o menor valor de ID colocado primeiro para assegurar que o ícone do aplicativo
+// mantenha-se consistente em todos os sistemas.
+
+IDI_HCPLAYER       ICON         "HC Player.ico"
+IDI_SMALL               ICON         "small.ico"
+IDI_FILETYPE_MKV        ICON         "Assets\\FileTypes\\HCPlayer.MKV.ico"
+IDI_FILETYPE_AAC        ICON         "Assets\\FileTypes\\HCPlayer.AAC.ico"
+IDI_FILETYPE_AVI        ICON         "Assets\\FileTypes\\HCPlayer.AVI.ico"
+IDI_FILETYPE_FLAC       ICON         "Assets\\FileTypes\\HCPlayer.FLAC.ico"
+IDI_FILETYPE_M3U8       ICON         "Assets\\FileTypes\\HCPlayer.M3U8.ico"
+IDI_FILETYPE_M4A        ICON         "Assets\\FileTypes\\HCPlayer.M4A.ico"
+IDI_FILETYPE_MKA        ICON         "Assets\\FileTypes\\HCPlayer.MKA.ico"
+IDI_FILETYPE_MOV        ICON         "Assets\\FileTypes\\HCPlayer.MOV.ico"
+IDI_FILETYPE_MP3        ICON         "Assets\\FileTypes\\HCPlayer.MP3.ico"
+IDI_FILETYPE_MP4        ICON         "Assets\\FileTypes\\HCPlayer.MP4.ico"
+IDI_FILETYPE_MPEG       ICON         "Assets\\FileTypes\\HCPlayer.MPEG.ico"
+IDI_FILETYPE_OGG        ICON         "Assets\\FileTypes\\HCPlayer.OGG.ico"
+IDI_FILETYPE_OPUS       ICON         "Assets\\FileTypes\\HCPlayer.OPUS.ico"
+IDI_FILETYPE_WAV        ICON         "Assets\\FileTypes\\HCPlayer.WAV.ico"
+IDI_FILETYPE_WEBM       ICON         "Assets\\FileTypes\\HCPlayer.WEBM.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041604B0"
+        BEGIN
+            VALUE "FileDescription", "HC Player"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "HC Player"
+            VALUE "LegalCopyright", "Copyright (c) 2026 HC Player"
+            VALUE "OriginalFilename", "HC Player.exe"
+            VALUE "ProductName", "HC Player"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0416, 1200
+    END
+END
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDC_HCPLAYER MENU
+BEGIN
+    POPUP "&Arquivo"
+    BEGIN
+        MENUITEM "&Saída",                IDM_EXIT
+    END
+    POPUP "&Ajuda"
+    BEGIN
+        MENUITEM "&Sobre...",           IDM_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Acelerador
+//
+
+IDC_HCPLAYER ACCELERATORS
+BEGIN
+    "?",            IDM_ABOUT,              ASCII,  ALT
+    "/",            IDM_ABOUT,              ASCII,  ALT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Caixa de Diálogo
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Sobre o HC Player"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    ICON            IDI_HCPLAYER,IDC_STATIC,14,14,21,20
+    LTEXT           "HC Player, Versão 1.0",IDC_STATIC,42,14,114,8,SS_NOPREFIX
+    LTEXT           "Copyright (c) 2026 HC Player",IDC_STATIC,42,26,114,8
+    DEFPUSHBUTTON   "OK",IDOK,113,41,50,14,WS_GROUP
+END
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 163
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+1 TEXTINCLUDE
+BEGIN
+    "Resource.h\0"
+END
+
+2 TEXTINCLUDE
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""windows.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Tabela de Cadeias de Caracteres
+//
+
+STRINGTABLE
+BEGIN
+   IDC_HCPLAYER   "HCPLAYER"
+   IDS_APP_TITLE       "HC Player"
+END
+
+#endif
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Gerado com base no recurso TEXTINCLUDE.
+//
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
