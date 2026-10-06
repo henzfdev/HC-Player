@@ -124,7 +124,7 @@ HC Player integrates advanced playback controls directly into a native Windows i
 </p>
 
 <p align="center">
-  <sub>Native menus in light and dark themes.</sub>
+  <sub>Native menus in light and dark themes</sub>
 </p>
 
 ### Media information
