@@ -8,6 +8,10 @@
   <strong>A modern Windows media player that combines the power of mpv with a native WinUI experience</strong>
 </p>
 
+
+
+
+
 HC Player was created for users who want the playback quality and flexibility of **mpv**, without giving up a polished, native and easy-to-use Windows interface.
 
 Instead of simply wrapping mpv in another generic frontend, HC Player integrates advanced playback features directly into a modern Windows experience.
