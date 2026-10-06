@@ -12,6 +12,12 @@ HC Player was created for users who want the playback quality and flexibility of
 
 Instead of simply wrapping mpv in another generic frontend, HC Player integrates advanced playback features directly into a modern Windows experience.
 
+<p align="center">
+  <img src="HC%20Player/Assets/Screenshots/player-light.png"
+       width="100%"
+       alt="HC Player main interface">
+</p>
+
 ## Why HC Player?
 
 ### Native Windows experience
@@ -102,9 +108,48 @@ while normal users can control the most important features directly from the nat
 
 **yt-dlp and Deno are optional integrations and are not bundled with the HC Player installer.**
 
+## Screenshots
+
+### Native interface
+
+HC Player integrates advanced playback controls directly into a native Windows interface.
+
+<p align="center">
+  <img src="HC%20Player/Assets/Screenshots/menu-light.png"
+       width="49%"
+       alt="HC Player navigation menu in light theme">
+  <img src="HC%20Player/Assets/Screenshots/menu-dark.png"
+       width="49%"
+       alt="HC Player navigation menu in dark theme">
+</p>
+
+<p align="center">
+  <sub>Native menus in light and dark themes.</sub>
+</p>
+
+### Media information
+
+Detailed technical information is available directly inside the player through MediaInfo.
+
+<p align="center">
+  <img src="HC%20Player/Assets/Screenshots/media-information.png"
+       width="100%"
+       alt="HC Player Media Information panel">
+</p>
+
+### Settings
+
+Advanced mpv features can be configured through HC Player's native Settings interface.
+
+<p align="center">
+  <img src="HC%20Player/Assets/Screenshots/settings.png"
+       width="100%"
+       alt="HC Player Settings interface">
+</p>
+
 ## Installation
 
-HC Player 1.0 is distributed as a native **x64 Windows application** through the official installer.
+HC Player is distributed as a native **x64 Windows application** through the official installer.
 
 The installer provides:
 
@@ -140,4 +185,4 @@ Source and compliance materials for each public release are available alongside 
 
 ---
 
-**HC Player 1.0 — native Windows design, serious mpv playback.**
+**HC Player — native Windows design, serious mpv playback.**
