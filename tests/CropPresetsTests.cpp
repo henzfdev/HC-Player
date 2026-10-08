@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <limits>
+#include <string_view>
 
 int main()
 {
@@ -13,6 +14,19 @@ int main()
     assert(NextPreset(-1, true) == 0);
     for (int index = 0; index < PresetCount; ++index)
         assert(NextPreset(NextPreset(index, false), true) == index);
+    for (int index = 1; index < PresetCount; ++index)
+        assert(Presets[index].aspect > Presets[index - 1].aspect);
+
+    for (auto [label, expectedHeight] : { std::pair{L"1.8:1", 1067},
+                                        std::pair{L"2:1", 960},
+                                        std::pair{L"2.2:1", 873} })
+    {
+        auto preset = std::find_if(std::begin(Presets), std::end(Presets),
+            [label](Preset const& value) { return std::wstring_view(value.label) == label; });
+        assert(preset != std::end(Presets));
+        assert(Dimensions(1920, 1080, 1.0, 0, preset->aspect) ==
+               std::pair(1920, expectedHeight));
+    }
 
     auto size = Dimensions(1920, 1080, 1.0, 0, 2.39);
     assert(size.first == 1920 && size.second == 803);
