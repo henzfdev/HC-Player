@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <climits>
 #include <cstdint>
 #include <cwctype>
 #include <cmath>
@@ -256,6 +257,9 @@ namespace
     bool g_themeLoaded{};
     bool g_suppressAutoload{};
     bool g_videoClickCandidate{};
+    int g_cropPresetIndex{};
+    bool g_cropPresetActive{};
+    std::wstring g_appliedCrop;
     bool g_suppressNextVideoClickUp{};
     POINT g_videoClickStart{};
     int g_autofitAttemptsRemaining{};
@@ -4942,6 +4946,13 @@ bool HandlePlayerKeyMessage(MSG const& message)
         return false;
     }
 
+    if (message.wParam == 'C' && !ctrl && !alt && !PlayerIsConsoleOpen())
+    {
+        if (!(message.lParam & (1LL << 30)))
+            PlayerSelectCropPreset(hc::crop::NextPreset(PlayerGetCropPresetIndex(), shift));
+        return true;
+    }
+
     if (message.wParam == VK_ESCAPE && g_fullscreen)
     {
         // Keyboard fullscreen exit is immersive too: keep the transport hidden
@@ -7864,6 +7875,7 @@ void PlayerApplyAudioCoverScalingPolicy()
     setLocal("video-zoom", "0");
     setLocal("video-pan-x", "0");
     setLocal("video-pan-y", "0");
+    setLocal("video-crop", "");
     setLocal("video-scale-x", "1");
     setLocal("video-scale-y", "1");
     setLocal("panscan", "0");
@@ -9269,6 +9281,69 @@ void PlayerExecuteMpvCommand(std::wstring const& command)
     if (!g_mpv.commandString) return;
     std::string utf8 = winrt::to_string(command);
     g_mpv.commandString(g_mpv.handle, utf8.c_str());
+}
+
+namespace
+{
+    bool ApplyCropPreset(int index)
+    {
+        if (!g_mpv.handle || !g_mpv.setProperty || !g_mpv.getProperty) return false;
+        std::wstring crop;
+        if (index != 0)
+        {
+            int64_t width{}, height{}, rotation{};
+            double pixelAspect{};
+            if (g_mpv.getProperty(g_mpv.handle, "video-out-params/w", MpvFormatInt64, &width) < 0 ||
+                g_mpv.getProperty(g_mpv.handle, "video-out-params/h", MpvFormatInt64, &height) < 0 ||
+                g_mpv.getProperty(g_mpv.handle, "video-out-params/par", MpvFormatDouble, &pixelAspect) < 0 ||
+                width <= 0 || height <= 0 || width > INT_MAX || height > INT_MAX)
+                return false;
+            g_mpv.getProperty(g_mpv.handle, "video-out-params/rotate", MpvFormatInt64, &rotation);
+            auto const [cropWidth, cropHeight] = hc::crop::Dimensions(
+                static_cast<int>(width), static_cast<int>(height), pixelAspect,
+                static_cast<int>(rotation), hc::crop::Presets[index].aspect);
+            if (!cropWidth || !cropHeight) return false;
+            crop = std::to_wstring(cropWidth) + L"x" + std::to_wstring(cropHeight);
+        }
+
+        std::wstring current;
+        if (!PlayerTryGetMpvRuntimeOption(L"video-crop", current) || current != crop)
+        {
+            std::string value = winrt::to_string(crop);
+            if (g_mpv.setProperty(g_mpv.handle, "video-crop", value.c_str()) < 0) return false;
+        }
+        g_appliedCrop = crop;
+        return true;
+    }
+}
+
+int PlayerGetCropPresetIndex()
+{
+    std::wstring current;
+    if (!PlayerTryGetMpvRuntimeOption(L"video-crop", current)) return -1;
+    if (current.empty()) return 0;
+    return g_cropPresetActive && current == g_appliedCrop ? g_cropPresetIndex : -1;
+}
+
+bool PlayerSelectCropPreset(int index)
+{
+    if (index < 0 || index >= hc::crop::PresetCount ||
+        !PlayerIsMediaPresentationReady() || PlayerIsCurrentMediaAudio() ||
+        !ApplyCropPreset(index)) return false;
+    g_cropPresetIndex = index;
+    g_cropPresetActive = index != 0;
+    std::wstring label = index == 0
+        ? PlayerUiString(L"CropOriginal", L"Original") : hc::crop::Presets[index].label;
+    PlayerExecuteMpvCommand(L"show-text \"" +
+        PlayerUiString(L"CropOsdPrefix", L"Recorte: ") + label + L"\" 1500");
+    return true;
+}
+
+void PlayerUpdateCropPreset()
+{
+    // The same ratio needs a new source rectangle after playlist/track changes.
+    if (g_cropPresetActive && PlayerIsMediaPresentationReady() && !PlayerIsCurrentMediaAudio())
+        ApplyCropPreset(g_cropPresetIndex);
 }
 
 void PlayerCaptureScreenshot(bool withSubtitles)
@@ -11618,6 +11693,12 @@ bool PlayerResetAllSettingsToDefaults(std::wstring& error)
     // never resurrect a pre-reset position. Recent-media history and the chosen
     // light/dark appearance are personal shell state and are deliberately kept.
     ClearResumePoints();
+
+    g_cropPresetActive = false;
+    g_cropPresetIndex = 0;
+    g_appliedCrop.clear();
+    if (g_mpv.handle && g_mpv.setProperty)
+        g_mpv.setProperty(g_mpv.handle, "video-crop", "");
 
     return true;
 }

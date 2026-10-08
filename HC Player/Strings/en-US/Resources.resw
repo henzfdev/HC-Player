@@ -3502,4 +3502,25 @@
   <data name="MainPageDynMinimalSettings" xml:space="preserve">
     <value>Settings</value>
   </data>
+  <data name="CropMenuTitle" xml:space="preserve">
+    <value>Crop</value>
+  </data>
+  <data name="CropTitle.Text" xml:space="preserve">
+    <value>Crop</value>
+  </data>
+  <data name="CropOriginal" xml:space="preserve">
+    <value>Original</value>
+  </data>
+  <data name="CropOsdPrefix" xml:space="preserve">
+    <value>Crop: </value>
+  </data>
+  <data name="MainPageCropButton.AutomationProperties.Name" xml:space="preserve">
+    <value>Video crop</value>
+  </data>
+  <data name="MainPageCropButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Video crop (C / Shift+C)</value>
+  </data>
+  <data name="ShortcutCropCycle.Text" xml:space="preserve">
+    <value>Cycle crop / reverse order</value>
+  </data>
 </root>

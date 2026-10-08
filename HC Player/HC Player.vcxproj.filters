@@ -33,6 +33,9 @@
     <ClInclude Include="PlayerBridge.h">
       <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>
+      <ClInclude Include="CropPresets.h">
+        <Filter>Arquivos de Cabeçalho</Filter>
+      </ClInclude>
     <ClInclude Include="ThumbnailBridge.h">
       <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>

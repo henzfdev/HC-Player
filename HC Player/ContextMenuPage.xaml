@@ -222,6 +222,8 @@
                 </MenuFlyoutSubItem.Icon>
             </MenuFlyoutSubItem>
             <MenuFlyoutSubItem x:Uid="ContextMenuB086" x:Name="PanScanMenu" Text="Pan &amp; Scan" Icon="Crop">
+                <MenuFlyoutSubItem x:Uid="CropTitle" x:Name="CropMenu" Text="Recorte" Icon="Crop" />
+                <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Uid="ContextMenuB087" Text="Aumentar tamanho" KeyboardAcceleratorTextOverride="Ctrl++"
                                 Tag="key:Ctrl++" Click="MenuItemClicked" />
                 <MenuFlyoutItem x:Uid="ContextMenuB088" Text="Diminuir tamanho" KeyboardAcceleratorTextOverride="Ctrl+−"

@@ -884,6 +884,16 @@
                                                                         <ColumnDefinition Width="*"/>
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
+                                                                    <TextBlock x:Uid="ShortcutCropCycle" Text="Alternar recorte / ordem inversa" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"/>
+                                                                    <Border Grid.Column="1" Style="{StaticResource ShortcutKeyBadge}">
+                                                                        <TextBlock Text="C / Shift + C" FontFamily="Consolas" FontSize="11" TextAlignment="Center"/>
+                                                                    </Border>
+                                                                </Grid>
+                                                                <Grid ColumnSpacing="18">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
                                                                     <TextBlock x:Uid="ShortcutAction043" Text="Aumentar / diminuir zoom" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"/>
                                                                     <Border Grid.Column="1" Style="{StaticResource ShortcutKeyBadge}">
                                                                         <TextBlock Text="Ctrl + + / Ctrl + −" FontFamily="Consolas" FontSize="11" TextAlignment="Center"/>

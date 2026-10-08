@@ -427,6 +427,25 @@ namespace winrt::HCPlayer::implementation
         }
     }
 
+    void ContextMenuPage::RefreshCropMenu()
+    {
+        using namespace Microsoft::UI::Xaml::Controls;
+        auto menu = CropMenu();
+        menu.Items().Clear();
+        menu.IsEnabled(PlayerIsMediaPresentationReady() && !PlayerIsCurrentMediaAudio());
+        int const active = PlayerGetCropPresetIndex();
+        for (int index = 0; index < hc::crop::PresetCount; ++index)
+        {
+            MenuFlyoutItem item;
+            item.Text(index == 0 ? ContextMenuString(L"CropOriginal", L"Original")
+                : hc::crop::Presets[index].label);
+            if (index == active) item.Icon(SymbolIcon{ Symbol::Accept });
+            item.Tag(winrt::box_value(L"crop:" + std::to_wstring(index)));
+            item.Click({ this, &ContextMenuPage::MenuItemClicked });
+            menu.Items().Append(item);
+        }
+    }
+
     void ContextMenuPage::RefreshSpeedMenu()
     {
         double current = PlayerGetPlaybackSpeed();
@@ -497,6 +516,7 @@ namespace winrt::HCPlayer::implementation
         RefreshEditionsMenu();
         RefreshPlaylistMenu();
         RefreshSpeedMenu();
+        RefreshCropMenu();
         ApplyCompactMenuVisibility(UseCompactContextMenu());
         // The complete menu is intentionally tall. Keep its horizontal origin
         // at the cursor, but anchor it near the top so Settings/Exit never fall
@@ -550,6 +570,10 @@ namespace winrt::HCPlayer::implementation
             try { PlayerPlayPlaylistItem(std::stoll(tag.substr(9))); } catch (...) {}
         }
         else if (tag.starts_with(L"recent:")) PlayerOpenRecentFile(tag.substr(7));
+        else if (tag.starts_with(L"crop:"))
+        {
+            try { PlayerSelectCropPreset(std::stoi(tag.substr(5))); } catch (...) {}
+        }
         else if (tag.starts_with(L"speed:"))
         {
             try { PlayerSetPlaybackSpeed(std::stod(tag.substr(6))); } catch (...) {}

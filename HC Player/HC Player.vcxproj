@@ -152,6 +152,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CropPresets.h" />
     <ClInclude Include="FileAssociationManager.h" />
     <ClInclude Include="StoragePaths.h" />
     <ClInclude Include="PortableRegistrationManager.h" />

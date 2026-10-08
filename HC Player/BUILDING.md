@@ -37,6 +37,22 @@ Before a release build, verify their hashes against `SOURCE-MANIFEST.md`.
 5. Rebuild Solution.
 6. Launch the resulting `HC Player.exe` and perform the release smoke tests.
 
+## Crop preset checks
+
+From the repository root in an x64 Native Tools Command Prompt, run the
+standalone crop geometry and cycling checks (no NuGet or libmpv required):
+
+```bat
+mkdir out\crop-tests
+cl /nologo /std:c++20 /EHsc /W4 /Fo"out\crop-tests\CropPresetsTests.obj" /Fe"out\crop-tests\CropPresetsTests.exe" tests\CropPresetsTests.cpp
+out\crop-tests\CropPresetsTests.exe
+```
+
+After building the application, check each crop from the toolbar and context
+menu, including the minimal toolbar. Check C/Shift+C wraparound, Original,
+paused playback, playlist items with different dimensions, and audio cover art.
+The crop presets support 0/90/180/270-degree rotation.
+
 ## Release output cleanup
 
 Do not ship linker/debug artifacts in the public binary archive:
