@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ShaderManager.h"
+#include "CropPresets.h"
 
 namespace MediaInfoBridge
 {
@@ -228,6 +229,9 @@ std::vector<RecentMediaItem> PlayerGetRecentFiles();
 void PlayerClearRecentFiles();
 void PlayerSendMpvKey(std::wstring const& key);
 void PlayerExecuteMpvCommand(std::wstring const& command);
+int PlayerGetCropPresetIndex();
+bool PlayerSelectCropPreset(int index);
+void PlayerUpdateCropPreset();
 void PlayerCaptureScreenshot(bool withSubtitles);
 void PlayerOpenScreenshotDirectory();
 bool PlayerDeactivateImportedProfile();

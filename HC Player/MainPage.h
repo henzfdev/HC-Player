@@ -77,6 +77,9 @@ namespace winrt::HCPlayer::implementation
         void ProfilesFlyoutOpening(
             Windows::Foundation::IInspectable const&,
             Windows::Foundation::IInspectable const&);
+        void CropFlyoutOpening(
+            Windows::Foundation::IInspectable const&,
+            Windows::Foundation::IInspectable const&);
         void MinimalMoreFlyoutOpening(
             Windows::Foundation::IInspectable const&,
             Windows::Foundation::IInspectable const&);

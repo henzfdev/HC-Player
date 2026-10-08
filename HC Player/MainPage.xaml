@@ -734,6 +734,20 @@
                         </Button.Flyout>
                     </Button>
 
+                    <Button x:Uid="MainPageCropButton" x:Name="CropButton"
+                            Style="{StaticResource TransportBottomIconButton}"
+                            Visibility="Collapsed"
+                            AutomationProperties.Name="Recorte do vídeo"
+                            ToolTipService.ToolTip="Recorte do vídeo (C / Shift+C)">
+                        <SymbolIcon Symbol="Crop" />
+                        <Button.Flyout>
+                            <MenuFlyout Placement="Top"
+                                        Opening="CropFlyoutOpening"
+                                        Opened="TransportFlyoutOpened"
+                                        Closed="TransportFlyoutClosed" />
+                        </Button.Flyout>
+                    </Button>
+
                     <Button x:Uid="MainPageProfilesButton" x:Name="ProfilesButton"
                             Style="{StaticResource TransportBottomIconButton}"
                             Visibility="Collapsed"

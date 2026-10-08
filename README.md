@@ -26,6 +26,13 @@ HC Player is built with **Win32 and WinUI**, with native light/dark themes, Wind
 
 ### High-quality mpv playback
 
+Choose a centered crop directly from the toolbar's **Video crop** dropdown or
+**Pan & Scan → Crop** in the context menu: Original, 16:9, 4:3, 2.35:1, or 2.39:1.
+Press **C** to cycle forward and **Shift+C** to cycle backward. In the minimal
+toolbar, the selector is under **More controls → Crop**. Original restores the
+source framing. The chosen crop ratio stays active across playlist items for
+the current session.
+
 Under the interface is a full multimedia stack based on:
 
 - **libmpv**

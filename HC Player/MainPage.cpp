@@ -40,6 +40,24 @@ namespace
             MainPageString(resourceId, fallback) });
     }
 
+    void FillCropMenu(
+        winrt::Windows::Foundation::Collections::IVector<
+            winrt::Microsoft::UI::Xaml::Controls::MenuFlyoutItemBase> const& items)
+    {
+        using namespace winrt::Microsoft::UI::Xaml::Controls;
+        items.Clear();
+        int const active = PlayerGetCropPresetIndex();
+        for (int index = 0; index < hc::crop::PresetCount; ++index)
+        {
+            MenuFlyoutItem item;
+            item.Text(index == 0 ? MainPageString(L"CropOriginal", L"Original")
+                : hc::crop::Presets[index].label);
+            if (index == active) item.Icon(SymbolIcon{ Symbol::Accept });
+            item.Click([index](auto const&, auto const&) { PlayerSelectCropPreset(index); });
+            items.Append(item);
+        }
+    }
+
 
 }
 
@@ -168,6 +186,9 @@ namespace winrt::HCPlayer::implementation
                 ? Microsoft::UI::Xaml::Visibility::Collapsed
                 : Microsoft::UI::Xaml::Visibility::Visible);
         TracksButton().Visibility(visibility);
+        CropButton().Visibility(enabled || !m_videoOnlyActionsAllowed
+            ? Microsoft::UI::Xaml::Visibility::Collapsed
+            : Microsoft::UI::Xaml::Visibility::Visible);
         StatsButton().Visibility(enabled || !m_showStatsButton
             ? Microsoft::UI::Xaml::Visibility::Collapsed
             : Microsoft::UI::Xaml::Visibility::Visible);
@@ -616,6 +637,8 @@ namespace winrt::HCPlayer::implementation
         // approved 780-DIP threshold, but never expose them for audio/images.
         constexpr double ProfilesButtonThreshold = 780.0;
         double const width = PlaybackControlsRow().ActualWidth();
+        CropButton().Visibility(normalVideoActions && width >= 780.0
+            ? Visibility::Visible : Visibility::Collapsed);
         ProfilesButton().Visibility(
             normalVideoActions &&
                 m_showProfilesButton &&
@@ -964,6 +987,8 @@ namespace winrt::HCPlayer::implementation
 
         StatsButton().Visibility(visibility(
             m_showStatsButton && width >= 780.0));
+        CropButton().Visibility(visibility(
+            m_videoOnlyActionsAllowed && width >= 780.0));
 
         // Secondary transport actions yield before the compact time readout.
         // Their saved preferences remain untouched; they automatically return
@@ -2558,6 +2583,14 @@ namespace winrt::HCPlayer::implementation
         }
     }
 
+    void MainPage::CropFlyoutOpening(
+        Windows::Foundation::IInspectable const& sender,
+        Windows::Foundation::IInspectable const&)
+    {
+        auto menu = sender.try_as<Microsoft::UI::Xaml::Controls::MenuFlyout>();
+        if (menu) FillCropMenu(menu.Items());
+    }
+
     void MainPage::ProfilesFlyoutOpening(
         Windows::Foundation::IInspectable const&,
         Windows::Foundation::IInspectable const&)
@@ -2759,6 +2792,14 @@ namespace winrt::HCPlayer::implementation
             L"\uE893",
             [](auto const&, auto const&) { PlayerChangeChapter(1); });
 
+        if (m_videoOnlyActionsAllowed)
+        {
+            MenuFlyoutSubItem cropMenu;
+            cropMenu.Text(MainPageString(L"CropMenuTitle", L"Recorte"));
+            cropMenu.Icon(SymbolIcon{ Symbol::Crop });
+            FillCropMenu(cropMenu.Items());
+            menu.Items().Append(cropMenu);
+        }
         // Repeat already has a dedicated button in the Minimal pill. Put Profiles in
         // its former menu slot so the flyout does not duplicate the same command.
         auto profiles = PlayerGetImportedProfileNames();
@@ -5064,6 +5105,8 @@ namespace winrt::HCPlayer::implementation
                 RefreshVideoOnlyActionEligibility();
             }
         }
+
+        PlayerUpdateCropPreset();
 
         // This dispatcher-backed fallback remains reliable even when the MPV
         // video surface consumes native mouse messages during presentation.

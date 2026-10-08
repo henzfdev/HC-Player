@@ -25,6 +25,7 @@ namespace winrt::HCPlayer::implementation
         void RefreshEditionsMenu();
         void RefreshPlaylistMenu();
         void RefreshSpeedMenu();
+        void RefreshCropMenu();
         void ResetTopLevelMenuVisibility();
         void ApplyCompactMenuVisibility(bool compact);
         void FillTrackMenu(
