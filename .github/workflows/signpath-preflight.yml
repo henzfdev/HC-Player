@@ -1,0 +1,67 @@
+name: HC Player SignPath preflight (unsigned)
+
+on:
+  push:
+    branches:
+      - signpath-prep
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Verify source and installer prerequisites (no build, no signing)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $project = 'HC Player/HC Player.vcxproj'
+          if (-not (Test-Path -LiteralPath $project -PathType Leaf)) {
+            throw 'HC Player.vcxproj is missing.'
+          }
+          $xml = Get-Content -LiteralPath $project -Raw
+          if ($xml -notmatch '<PlatformToolset>v145</PlatformToolset>') {
+            throw 'Unexpected C++ toolset. Expected v145.'
+          }
+          foreach ($ext in @('h', 'cpp', 'idl', 'xaml')) {
+            $name = "YouTubeCommentsPage.$ext"
+            if (-not (Test-Path -LiteralPath (Join-Path 'HC Player' $name) -PathType Leaf)) {
+              throw "Missing: $name"
+            }
+            if (-not $xml.Contains($name)) { throw "Missing .vcxproj reference: $name" }
+          }
+          foreach ($name in @('CODE_SIGNING_POLICY.md', 'PRIVACY.md', 'SIGNPATH-PREPARATION.md')) {
+            if (-not (Test-Path -LiteralPath $name -PathType Leaf)) {
+              throw "Missing documentation: $name"
+            }
+          }
+          $tracked = @(git ls-files)
+          $invalid = @($tracked | Where-Object { $_ -match '\.(exe|pdb|pfx|p12|key)$' })
+          if ($invalid.Count -gt 0) {
+            throw "Potentially unsuitable tracked files: $($invalid -join ', ')"
+          }
+          $installer = 'Installer/HC_Player_1.5.0_x64.iss'
+          if (Test-Path -LiteralPath $installer -PathType Leaf) {
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant()
+            $expected = 'f36067a3f2922857f95dfb53a3780fee55aa8e6d6cf28f2c431f436310c3bac3'
+            if ($hash -ne $expected) {
+              throw "Original Inno Setup script hash changed: $hash"
+            }
+            Write-Host 'Inno Setup source hash verified.'
+          } else {
+            Write-Warning 'Original Inno Setup source is not in this branch yet; build/signature readiness is NOT verified.'
+          }
+          $summary = @'
+          ## SignPath preflight only
+          - Branch: `signpath-prep`
+          - Source project and YouTube comments page checked
+          - No build performed and no artifact signed
+          - Inno Setup and libmpv must be verified before a release workflow can be enabled
+          '@
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $summary
+          Write-Host 'Static preflight finished. This is NOT a release certification.'

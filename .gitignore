@@ -51,7 +51,26 @@
 *.log
 
 # Installer working files
-/Installer/
+# Inno Setup *source* may be committed for SignPath preparation.
+# Only the unsigned template/scripts/docs/assets, never generated setup binaries.
+# The original user-provided .iss file remains SHA-256 pinned by its checker.
+/Installer/Payload/*
+!/Installer/Payload/README.txt
+/Installer/Prerequisites/*
+!/Installer/Prerequisites/README.txt
+/Installer/Output/*
+!/Installer/Output/README.txt
+/Installer/**/*.exe
+/Installer/**/*.dll
+/Installer/**/*.msi
+/Installer/**/*.pdb
+/Installer/**/*.pfx
+/Installer/**/*.p12
+/Installer/**/*.pem
+/Installer/**/*.key
+/Installer/**/*.zip
+/Installer/**/*.7z
+/Installer/**/*.log
 /HC Player/Installer/
 
 # Portable user data
