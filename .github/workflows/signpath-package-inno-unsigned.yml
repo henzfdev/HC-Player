@@ -186,6 +186,11 @@ jobs:
           $declared = (Get-Content -LiteralPath $shaFile -Raw).Trim().Split(' ')[0].ToLowerInvariant()
           if ($actual -ne $declared) { throw "Final Inno Setup checksum mismatch: actual=$actual, declared=$declared" }
           $v = [Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path -LiteralPath $exe).Path)
-          if ($v.FileVersion -ne '1.5.1.0') { throw "Expected 1.5.1.0 Inno Setup version; got $($v.FileVersion)" }
+          # Inno Setup 7 may pad the FileVersion *string* with whitespace.
+          # Compare the numeric fixed-file version fields instead, without weakening version validation.
+          $quad = @($v.FileMajorPart, $v.FileMinorPart, $v.FileBuildPart, $v.FilePrivatePart)
+          if (($quad -join '.') -ne '1.5.1.0') {
+            throw "Expected numeric Inno Setup version 1.5.1.0; got $($quad -join '.') (text: $($v.FileVersion))"
+          }
           Write-Host "PASS: UNSIGNED HC Player 1.5.1 Inno Setup SAFE verifier, build, version and SHA-256."
           Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "PASS: HC Player 1.5.1 UNSIGNED Inno Setup 7 SAFE staging, original signatures, version metadata and final SHA-256 checks. This is a build test only. No installer is published, stored as artifact, executed or signed."
