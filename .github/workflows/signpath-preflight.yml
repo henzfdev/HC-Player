@@ -76,7 +76,7 @@ jobs:
             Write-Host "All $($files.Count) original Inno Setup files are byte-for-byte verified."
           } else {
             $trackedInstaller = @(git ls-files 'Installer/**' | Where-Object {
-              $_ -ne 'Installer/CI-PREPARATION.md'
+              $_ -notin @('Installer/CI-PREPARATION.md', 'Installer/SYNC-ORIGINAL-SOURCES.md')
             })
             if ($trackedInstaller.Count -gt 0) {
               throw "Partial Inno source upload detected: $($trackedInstaller -join ', ')"
