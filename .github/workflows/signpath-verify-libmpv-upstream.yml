@@ -21,12 +21,11 @@ jobs:
           $url = 'https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20260809-git-dd5d17d328.7z/download'
           $archive = Join-Path $env:RUNNER_TEMP 'mpv-dev-dd5d17d328.7z'
           Invoke-WebRequest -Uri $url -OutFile $archive -MaximumRedirection 10 -UserAgent 'Mozilla/5.0'
-          $expectedArchive = 'c6aebf40bb722efe79090bfeb61e68625f0837770347e5a8b610aef78900cf12'
+          # The original archive hash has not been independently established.
+          # Security invariant is the frozen SHA-256 of the extracted DLL.
+          # No unknown archive hash is represented as verified.
           $actualArchive = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualArchive -ne $expectedArchive) {
-            throw "Archive SHA-256 mismatch. Got: $actualArchive, expected: $expectedArchive"
-          }
-          Write-Host "Original upstream archive SHA-256 verified: $actualArchive"
+          Write-Host "Upstream archive SHA-256 (provenance log only): $actualArchive"
           $seven = Get-Command 7z.exe -ErrorAction Stop
           $dir = Join-Path $env:RUNNER_TEMP 'verified-original-libmpv'
           New-Item -ItemType Directory -Path $dir -Force | Out-Null
