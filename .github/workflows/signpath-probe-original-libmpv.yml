@@ -1,0 +1,65 @@
+name: HC Player 1.5.1 exact libmpv upstream probe (unsigned)
+
+on:
+  push:
+    branches: [signpath-prep]
+    paths:
+      - .github/workflows/signpath-probe-original-libmpv.yml
+
+permissions:
+  contents: read
+
+jobs:
+  upstream-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download and independently verify original archive and exact DLL
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y p7zip-full > /dev/null
+          base='mpv-dev-x86_64-20260809-git-dd5d17d328.7z'
+          want_archive='c6aebf40bb722efe79090bfeb61e68625f0837770347e5a8b610aef78900cf12'
+          want_dll='965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c'
+          mkdir -p "$RUNNER_TEMP/libmpv-origin"
+          cd "$RUNNER_TEMP/libmpv-origin"
+          urls=(
+            "https://cfhcable.dl.sourceforge.net/project/mpv-player-windows/libmpv/$base"
+            "https://netix.dl.sourceforge.net/project/mpv-player-windows/libmpv/$base"
+            "https://downloads.sourceforge.net/project/mpv-player-windows/libmpv/$base"
+            "https://sourceforge.net/projects/mpv-player-windows/files/libmpv/$base/download"
+          )
+          found=0
+          for url in "${urls[@]}"; do
+            printf 'Trying official SourceForge mirror: %s\n' "$url"
+            rm -f "$base"
+            if curl --fail --location --silent --show-error --retry 1 --connect-timeout 12 --max-time 115 --user-agent 'Mozilla/5.0' "$url" --output "$base"; then
+              actual=$(sha256sum "$base" | awk '{print $1}')
+              if [ "$actual" = "$want_archive" ]; then
+                echo "Official SourceForge archive SHA-256 matched."
+                found=1
+                break
+              fi
+              echo "Rejected downloaded file: archive SHA-256 mismatch ($actual)."
+            fi
+          done
+          if [ "$found" -ne 1 ]; then
+            echo 'No official SourceForge mirror delivered the verified original archive.' >&2
+            exit 1
+          fi
+          mkdir unpack
+          7z e -y "$base" "libmpv-2.dll" -o./unpack >/dev/null
+          test -f unpack/libmpv-2.dll
+          actual_dll=$(sha256sum unpack/libmpv-2.dll | awk '{print $1}')
+          if [ "$actual_dll" != "$want_dll" ]; then
+            echo "Upstream libmpv-2.dll does not match the frozen HC Player 1.5.1 DLL ($actual_dll)" >&2
+            exit 1
+          fi
+          echo 'PASS: Original archive AND libmpv-2.dll match both expected SHA-256 digests.'
+          {
+            echo '### HC Player 1.5.1 — Exact libmpv origin'
+            echo 'Archive SHA-256 and libmpv-2.dll SHA-256 both verified.'
+            echo 'No application was compiled, signed, or published.'
+          } >> "$GITHUB_STEP_SUMMARY"
