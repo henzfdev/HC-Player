@@ -1,0 +1,9 @@
+# Preserve original Inno Setup 7 source bytes and frozen SHA-256 checks.
+# The maintainer's original archive stores its text files with LF.
+# Do not convert LF to CRLF during Git checkout on Windows.
+Installer/*.iss text eol=lf
+Installer/*.ps1 text eol=lf
+Installer/*.md text eol=lf
+Installer/*/*.md text eol=lf
+Installer/*/*.txt text eol=lf
+Installer/InstallerAssets/*.ico -text

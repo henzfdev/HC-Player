@@ -45,16 +45,43 @@ jobs:
           if ($invalid.Count -gt 0) {
             throw "Potentially unsuitable tracked files: $($invalid -join ', ')"
           }
+          # Installer inputs remain byte-for-byte identical to the maintainer's
+          # original 1.5.0 SEM TORRENT archive. We never weaken frozen hashes.
+          $files = [ordered]@{
+            'Installer/HC_Player_1.5.0_x64.iss'              = 'f36067a3f2922857f95dfb53a3780fee55aa8e6d6cf28f2c431f436310c3bac3'
+            'Installer/BUILD-INSTALLER.ps1'                   = 'b9c0da0979c707a89e09ba076808a863f985b983b33fa3d67afa48c43e09dac0'
+            'Installer/GERAR-INSTALADOR-V1.ps1'               = '538a8df291bc2116f242da98e4fa09540c4060e1521cc7175635b5bc7da8d8f9'
+            'Installer/InstallerDocs/THIRD-PARTY-NOTICES.md'  = '4b4de7ff7a7fc4159747d42dfb9be6bd578d9e5821799e759ed80267f90383c6'
+            'Installer/InstallerDocs/SOURCE-MANIFEST.md'     = '1cd5caf5c698c3b13fd4ed308e7b4e14430905cfa30aad08765f607b870a6320'
+            'Installer/README.md'                             = 'c5fa016ec0eeeb013caba6d33e2a154ef60ec3abe16e90547c6107623d3bf3e6'
+            'Installer/InstallerAssets/HCPlayer_Setup.ico'   = 'f540bb0f98165dc1a90684bd4d1cbed29adaacff708b5364435b5307dcace773'
+            'Installer/Prerequisites/README.txt'              = 'abe43139c7f9eac8bbe3133920f0eb5057c9d42776b0e8e370cffc2ab90427cf'
+            'Installer/Payload/README.txt'                    = 'ab063e0edff485cc1a2041b68b1e512b06181b20a467ce7a4ff5e7d4e48f7a80'
+            'Installer/CHECK-PAYLOAD.ps1'                      = '5ec70ebcdc3443183275c34ec36b2d1abb2f25f31e3c6f71939dedcc8ab352cd'
+            'Installer/Output/README.txt'                     = 'f37e2d504a12cb2e1a9b85f587868b5283cde9b8e1ed626949767b4c8f8e4196'
+            'Installer/STAGE-PAYLOAD.ps1'                      = '42eb7652a4a59adbe76bd21a5e10bf874df8750f3b84cbdbda14e052b47418e6'
+            'Installer/DOWNLOAD-PREREQUISITES.ps1'            = '64f11f1299bdb3f30ff1a3d25ec040894a9a65fdac8cf4c243c388491ff56368'
+          }
           $installer = 'Installer/HC_Player_1.5.0_x64.iss'
           if (Test-Path -LiteralPath $installer -PathType Leaf) {
-            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant()
-            $expected = 'f36067a3f2922857f95dfb53a3780fee55aa8e6d6cf28f2c431f436310c3bac3'
-            if ($hash -ne $expected) {
-              throw "Original Inno Setup script hash changed: $hash"
+            foreach ($entry in $files.GetEnumerator()) {
+              if (-not (Test-Path -LiteralPath $entry.Key -PathType Leaf)) {
+                throw "Installer source is incomplete: $($entry.Key)"
+              }
+              $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Key).Hash.ToLowerInvariant()
+              if ($actual -ne $entry.Value) {
+                throw "Frozen installer input hash mismatch: $($entry.Key); expected $($entry.Value); actual $actual"
+              }
             }
-            Write-Host 'Inno Setup source hash verified.'
+            Write-Host "All $($files.Count) original Inno Setup files are byte-for-byte verified."
           } else {
-            Write-Warning 'Original Inno Setup source is not in this branch yet; build/signature readiness is NOT verified.'
+            $trackedInstaller = @(git ls-files 'Installer/**' | Where-Object {
+              $_ -ne 'Installer/CI-PREPARATION.md'
+            })
+            if ($trackedInstaller.Count -gt 0) {
+              throw "Partial Inno source upload detected: $($trackedInstaller -join ', ')"
+            }
+            Write-Warning 'Original Inno Setup source has not been uploaded yet; this is a preparation-only pass, NOT release readiness.'
           }
           $summary = @'
           ## SignPath preflight only
