@@ -29,6 +29,38 @@ jobs:
         with:
           vs-version: '[18.0,19.0)'
 
+      - name: Restore byte-exact stats.lua from tracked Git blob
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'HC Player/scripts/stats.lua'
+          $blobId = (git rev-parse 'HEAD:HC Player/scripts/stats.lua').Trim()
+          if ($LASTEXITCODE -ne 0 -or $blobId -ne '5034eed850f1bf578427f186d4d3327269e230b0') {
+            throw 'Original verified stats.lua Git blob has changed.'
+          }
+          $temp = Join-Path $env:RUNNER_TEMP 'stats-from-git-blob.lua'
+          $gitCmd = [Diagnostics.ProcessStartInfo]::new('git')
+          $gitCmd.ArgumentList.Add('cat-file')
+          $gitCmd.ArgumentList.Add('blob')
+          $gitCmd.ArgumentList.Add($blobId)
+          $gitCmd.UseShellExecute = $false
+          $gitCmd.RedirectStandardOutput = $true
+          $proc = [Diagnostics.Process]::Start($gitCmd)
+          try {
+            $out = [IO.File]::Create($temp)
+            try { $proc.StandardOutput.BaseStream.CopyTo($out) } finally { $out.Dispose() }
+            $proc.WaitForExit()
+            if ($proc.ExitCode -ne 0) { throw 'Git blob export failed.' }
+          } finally { $proc.Dispose() }
+          $want = '7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247'
+          $got = (Get-FileHash -LiteralPath $temp -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($got -ne $want) { throw "Git blob differs from original ZIP: $got" }
+          Copy-Item -LiteralPath $temp -Destination $path -Force
+          if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $want) {
+            throw 'Could not restore exact original stats.lua bytes on Windows.'
+          }
+          Write-Host 'Verified original stats.lua bytes restored from immutable Git blob.'
+
       - name: Get exact original libmpv from UNPUBLISHED GitHub draft (fail closed)
         shell: pwsh
         env:
