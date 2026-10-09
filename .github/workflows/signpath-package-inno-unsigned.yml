@@ -1,0 +1,188 @@
+name: HC Player 1.5.1 Inno Setup 7 SAFE packaging verification (UNSIGNED)
+
+on:
+  push:
+    branches:
+      - signpath-prep
+    paths:
+      - '.github/workflows/signpath-package-inno-unsigned.yml'
+
+
+permissions:
+  contents: read
+
+jobs:
+  build-unsigned:
+    if: github.ref == 'refs/heads/signpath-prep'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 80
+    permissions:
+      # The draft-release asset requires this job-scoped access; no write operation is invoked.
+      contents: write
+    steps:
+      - name: Check out source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Use Visual Studio 2026 MSBuild
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '[18.0,19.0)'
+
+      - name: Restore byte-exact stats.lua from tracked Git blob
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'HC Player/scripts/stats.lua'
+          $blobId = (git rev-parse 'HEAD:HC Player/scripts/stats.lua').Trim()
+          if ($LASTEXITCODE -ne 0 -or $blobId -ne '5034eed850f1bf578427f186d4d3327269e230b0') {
+            throw 'Original verified stats.lua Git blob has changed.'
+          }
+          $temp = Join-Path $env:RUNNER_TEMP 'stats-from-git-blob.lua'
+          $gitCmd = [Diagnostics.ProcessStartInfo]::new('git')
+          $gitCmd.ArgumentList.Add('cat-file')
+          $gitCmd.ArgumentList.Add('blob')
+          $gitCmd.ArgumentList.Add($blobId)
+          $gitCmd.UseShellExecute = $false
+          $gitCmd.RedirectStandardOutput = $true
+          $proc = [Diagnostics.Process]::Start($gitCmd)
+          try {
+            $out = [IO.File]::Create($temp)
+            try { $proc.StandardOutput.BaseStream.CopyTo($out) } finally { $out.Dispose() }
+            $proc.WaitForExit()
+            if ($proc.ExitCode -ne 0) { throw 'Git blob export failed.' }
+          } finally { $proc.Dispose() }
+          $want = '7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247'
+          $got = (Get-FileHash -LiteralPath $temp -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($got -ne $want) { throw "Git blob differs from original ZIP: $got" }
+          Copy-Item -LiteralPath $temp -Destination $path -Force
+          if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $want) {
+            throw 'Could not restore exact original stats.lua bytes on Windows.'
+          }
+          Write-Host 'Verified original stats.lua bytes restored from immutable Git blob.'
+
+      - name: Get exact original libmpv from UNPUBLISHED GitHub draft (fail closed)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/henzfdev/HC-Player/releases/407551892' -Headers $headers
+          if ($release.draft -ne $true -or $release.prerelease -ne $true -or $release.target_commitish -ne 'signpath-prep') {
+            throw 'CI libmpv dependency release must remain a draft prerelease targeting signpath-prep.'
+          }
+          $name = 'HC_Player_1.5.1_LIBMPV_ORIGINAL_PARA_CI.zip'
+          $assets = @($release.assets | Where-Object { $_.name -eq $name })
+          if ($assets.Count -ne 1) { throw "Expected one original ZIP asset, got $($assets.Count)" }
+          $zipPath = Join-Path $env:RUNNER_TEMP $name
+          $headers.Accept = 'application/octet-stream'
+          Invoke-WebRequest -Uri "https://api.github.com/repos/henzfdev/HC-Player/releases/assets/$($assets[0].id)" -Headers $headers -OutFile $zipPath -MaximumRedirection 5
+          $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($zipHash -ne 'dab6f6a85b6fd0964d4a01dc9b2d439369403f6056245afabd6bb0499083c327') {
+            throw "Original libmpv ZIP checksum mismatch: $zipHash"
+          }
+          Add-Type -AssemblyName System.IO.Compression
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+          $dll = 'HC Player/third_party/libmpv/x64/libmpv-2.dll'
+          New-Item -Force -ItemType Directory -Path (Split-Path -Parent $dll) | Out-Null
+          try {
+            $entries = @($zip.Entries | Where-Object { $_.Name -ieq 'libmpv-2.dll' -and $_.Length -gt 0 })
+            if ($entries.Count -ne 1) { throw "Expected exactly one libmpv-2.dll in ZIP, found $($entries.Count)" }
+            if ($entries[0].Length -ne 119725568) { throw "Unexpected original DLL size: $($entries[0].Length)" }
+            $stream = $entries[0].Open()
+            try {
+              $output = [IO.File]::Create((Join-Path (Get-Location).Path $dll))
+              try { $stream.CopyTo($output) } finally { $output.Dispose() }
+            } finally { $stream.Dispose() }
+          } finally { $zip.Dispose() }
+          $dllHash = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($dllHash -ne '965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c') {
+            throw "Original libmpv DLL checksum mismatch: $dllHash"
+          }
+          $expected = @{
+            'HC Player/third_party/mediainfo/x64/MediaInfo.dll' = 'a2612fa8bf639349aee9747d8a555d361f5db95b049b3af9b0c3851a21a4308d'
+            'HC Player/scripts/stats.lua' = '7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247'
+            'HC Player/HC Player.ico' = 'ec75352a2abc90fe265079e0f7bc567ddb154eb4aa28f59a73707f8bb25a613f'
+            'Installer/HC_Player_1.5.1_x64.iss' = '0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251'
+          }
+          foreach ($pair in $expected.GetEnumerator()) {
+            if (-not (Test-Path -LiteralPath $pair.Key -PathType Leaf)) { throw "Missing pinned source: $($pair.Key)" }
+            if ((Get-FileHash -LiteralPath $pair.Key -Algorithm SHA256).Hash.ToLowerInvariant() -ne $pair.Value) {
+              throw "Source checksum mismatch: $($pair.Key)"
+            }
+          }
+          Write-Host 'PASS: exact private original ZIP, DLL and pinned build inputs verified.'
+
+      - name: Restore pinned NuGet packages.config
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nuget install 'HC Player/packages.config' -OutputDirectory packages -NonInteractive -Verbosity normal
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed: $LASTEXITCODE" }
+
+      - name: Compile HC Player 1.5.1 Release x64 (UNSIGNED)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          msbuild 'HC Player/HC Player.vcxproj' /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m:2 /verbosity:minimal
+          if ($LASTEXITCODE -ne 0) { throw "HC Player Release x64 compilation failed: $LASTEXITCODE" }
+
+      - name: Validate Release binary metadata
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $found = @(Get-ChildItem 'HC Player' -Recurse -File -Filter 'HC Player.exe' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '[\\/]Release[\\/]' })
+          if ($found.Count -ne 1) { throw "Expected one Release HC Player.exe, found $($found.Count)" }
+          $v = [Diagnostics.FileVersionInfo]::GetVersionInfo($found[0].FullName)
+          if ($v.FileVersion -ne '1.5.1.0' -or $v.ProductVersion -ne '1.5.1.0') { throw "Incorrect 1.5.1 metadata: $($v.FileVersion) / $($v.ProductVersion)" }
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "HC Player 1.5.1 Release x64 compiled successfully (UNSIGNED); continuing to SAFE installer verification."
+
+      - name: Install OFFICIAL Inno Setup 7.1.0 x64 after verifying publisher signature
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $uri = 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe'
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'
+          Invoke-WebRequest -Uri $uri -OutFile $setup -MaximumRedirection 5
+          $sign = Get-AuthenticodeSignature -LiteralPath $setup
+          if ($sign.Status -ne 'Valid' -or -not $sign.SignerCertificate -or $sign.SignerCertificate.Subject -notmatch 'Pyrsys B\.V\.') {
+            throw "Official Inno Setup 7 installer Authenticode signature invalid or unexpected publisher. Status=$($sign.Status) Subject=$($sign.SignerCertificate.Subject)"
+          }
+          Write-Host 'PASS: Inno Setup 7.1.0 verified publisher signature (Pyrsys B.V.).'
+          & $setup /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup 7.1.0 installation failed: $LASTEXITCODE" }
+          $isccCandidates = @(
+            "${env:ProgramFiles}\Inno Setup 7\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe"
+          )
+          $iscc = $isccCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $iscc) { throw 'Verified Inno 7.1.0 installed, but ISCC.exe not found in expected paths.' }
+          $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($iscc)
+          Write-Host "Inno ISCC: $iscc ($($info.FileVersion))"
+
+      - name: Run original Inno Setup 7 staging and SAFE validation on HC Player 1.5.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = Join-Path (Get-Location).Path 'Installer/GERAR-INSTALADOR-V1.ps1'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script
+          if ($LASTEXITCODE -ne 0) { throw "SAFE Inno Setup stage/check/build failed: $LASTEXITCODE" }
+          $exe = 'Installer/Output/HC_Player_1.5.1_x64_Setup.exe'
+          $shaFile = "$exe.sha256.txt"
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf) -or -not (Test-Path -LiteralPath $shaFile -PathType Leaf)) {
+            throw 'Expected HC Player 1.5.1 Inno Setup or its checksum file missing.'
+          }
+          $actual = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $declared = (Get-Content -LiteralPath $shaFile -Raw).Trim().Split(' ')[0].ToLowerInvariant()
+          if ($actual -ne $declared) { throw "Final Inno Setup checksum mismatch: actual=$actual, declared=$declared" }
+          $v = [Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path -LiteralPath $exe).Path)
+          if ($v.FileVersion -ne '1.5.1.0') { throw "Expected 1.5.1.0 Inno Setup version; got $($v.FileVersion)" }
+          Write-Host "PASS: UNSIGNED HC Player 1.5.1 Inno Setup SAFE verifier, build, version and SHA-256."
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "PASS: HC Player 1.5.1 UNSIGNED Inno Setup 7 SAFE staging, original signatures, version metadata and final SHA-256 checks. This is a build test only. No installer is published, stored as artifact, executed or signed."
