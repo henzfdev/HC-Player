@@ -26,3 +26,13 @@
 - `yt-dlp` and Deno are optional externally imported tools and are **not bundled**.
 - Windows App SDK/WinUI, libmpv and MediaInfo remain under their third-party licenses.
 - No workflow in this branch changes `main` or creates public releases.
+
+## Running the isolated build without touching main
+
+A `workflow_dispatch` button is not available to workflows that exist only on non-default branches (GitHub restriction). To avoid any change to `main`, the unsigned build workflow also responds to pushes on `signpath-prep`, but **only** after this repository Actions variable is set:
+
+- `HC_LIBMPV_URL` = a versioned release-asset URL in `https://github.com/henzfdev/HC-Player/releases/download/<version>/...` returning the exact original `libmpv-2.dll`.
+- Its SHA256 is hard-coded and checked in the build workflow. A wrong or repackaged DLL always fails the job.
+- Optional `HC_SIGNPATH_BUILD_INSTALLER=true` requests packaging. It fails closed unless original Installer source files, matching hashes, and Inno Setup 7 are present.
+
+No public artifact is uploaded as a release. CI artifacts, if built, are labeled UNSIGNED and expire after three days. SignPath signature activation remains a separate, later operation requiring the user's account and foundation approval.

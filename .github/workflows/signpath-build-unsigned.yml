@@ -1,6 +1,9 @@
 name: HC Player 1.5 build verification (UNSIGNED)
 
 on:
+  push:
+    branches:
+      - signpath-prep
   workflow_dispatch:
     inputs:
       libmpv_url:
@@ -18,7 +21,7 @@ permissions:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/signpath-prep'
+    if: github.ref == 'refs/heads/signpath-prep' && (inputs.libmpv_url != '' || vars.HC_LIBMPV_URL != '')
     runs-on: windows-2025-vs2026
     timeout-minutes: 60
     steps:
@@ -35,8 +38,8 @@ jobs:
       - name: Verify original dependency provenance (fail closed)
         shell: pwsh
         env:
-          HC_LIBMPV_URL: ${{ inputs.libmpv_url }}
-          HC_BUILD_INSTALLER: ${{ inputs.build_installer }}
+          HC_LIBMPV_URL: ${{ inputs.libmpv_url || vars.HC_LIBMPV_URL }}
+          HC_BUILD_INSTALLER: ${{ inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true' }}
         run: |
           $ErrorActionPreference = 'Stop'
           function Assert-FileHash([string] $Path, [string] $Expected) {
@@ -98,7 +101,7 @@ jobs:
           "release_output=$out" >> $env:GITHUB_OUTPUT
 
       - name: Generate unsigned Inno Setup installer (optional, original SAFE scripts only)
-        if: inputs.build_installer
+        if: inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -119,7 +122,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload UNSIGNED installer for private QA (optional)
-        if: inputs.build_installer
+        if: inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: HC-Player-1.5-unsigned-installer-QA
