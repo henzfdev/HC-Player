@@ -7,3 +7,5 @@ Installer/*.md text eol=lf
 Installer/*/*.md text eol=lf
 Installer/*/*.txt text eol=lf
 Installer/InstallerAssets/*.ico -text
+# Preserve the verified byte-exact stats.lua from the original 1.5.1 source archive.
+HC Player/scripts/stats.lua text eol=lf
