@@ -46,23 +46,23 @@ jobs:
             throw "Potentially unsuitable tracked files: $($invalid -join ', ')"
           }
           # Installer inputs remain byte-for-byte identical to the maintainer's
-          # original 1.5.0 SEM TORRENT archive. We never weaken frozen hashes.
+          # original 1.5.1 SEM TORRENT archive. We never weaken frozen hashes.
           $files = [ordered]@{
-            'Installer/HC_Player_1.5.0_x64.iss'              = 'f36067a3f2922857f95dfb53a3780fee55aa8e6d6cf28f2c431f436310c3bac3'
-            'Installer/BUILD-INSTALLER.ps1'                   = 'b9c0da0979c707a89e09ba076808a863f985b983b33fa3d67afa48c43e09dac0'
-            'Installer/GERAR-INSTALADOR-V1.ps1'               = '538a8df291bc2116f242da98e4fa09540c4060e1521cc7175635b5bc7da8d8f9'
+            'Installer/HC_Player_1.5.1_x64.iss'              = '0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251'
+            'Installer/BUILD-INSTALLER.ps1'                   = '5a0ed9eb86210779dd915fa289a65b7f93b4fedca4097ed620fc89b9df8a0b20'
+            'Installer/GERAR-INSTALADOR-V1.ps1'               = '5902f6aea84f31d868577d69497adadea1419116904065e185d57422cc5e80d6'
             'Installer/InstallerDocs/THIRD-PARTY-NOTICES.md'  = '4b4de7ff7a7fc4159747d42dfb9be6bd578d9e5821799e759ed80267f90383c6'
-            'Installer/InstallerDocs/SOURCE-MANIFEST.md'     = '1cd5caf5c698c3b13fd4ed308e7b4e14430905cfa30aad08765f607b870a6320'
-            'Installer/README.md'                             = 'c5fa016ec0eeeb013caba6d33e2a154ef60ec3abe16e90547c6107623d3bf3e6'
+            'Installer/InstallerDocs/SOURCE-MANIFEST.md'     = 'ad452723a12b126933dda79184077ccc42b7d2e74fb4f24213438b5de4296510'
+            'Installer/README.md'                             = '7fdf173b6874ee87d7ab31e810accacf30b625783c4c7435d51bab9a8584eb88'
             'Installer/InstallerAssets/HCPlayer_Setup.ico'   = 'f540bb0f98165dc1a90684bd4d1cbed29adaacff708b5364435b5307dcace773'
             'Installer/Prerequisites/README.txt'              = 'abe43139c7f9eac8bbe3133920f0eb5057c9d42776b0e8e370cffc2ab90427cf'
             'Installer/Payload/README.txt'                    = 'ab063e0edff485cc1a2041b68b1e512b06181b20a467ce7a4ff5e7d4e48f7a80'
-            'Installer/CHECK-PAYLOAD.ps1'                      = '5ec70ebcdc3443183275c34ec36b2d1abb2f25f31e3c6f71939dedcc8ab352cd'
-            'Installer/Output/README.txt'                     = 'f37e2d504a12cb2e1a9b85f587868b5283cde9b8e1ed626949767b4c8f8e4196'
-            'Installer/STAGE-PAYLOAD.ps1'                      = '42eb7652a4a59adbe76bd21a5e10bf874df8750f3b84cbdbda14e052b47418e6'
+            'Installer/CHECK-PAYLOAD.ps1'                      = '092c580305ce3f284368af8b5756ca17782ad567d460959b23d36acb20ef3b12'
+            'Installer/Output/README.txt'                     = 'bda93c11848d2309ec61090a54865fb11bcaef07b7798d5afe0a6ec85c43e3c3'
+            'Installer/STAGE-PAYLOAD.ps1'                      = '4810057ac5258830337bb8022a667f3a047b2940c9b1bb541b64ff1dc8f0541e6'
             'Installer/DOWNLOAD-PREREQUISITES.ps1'            = '64f11f1299bdb3f30ff1a3d25ec040894a9a65fdac8cf4c243c388491ff56368'
           }
-          $installer = 'Installer/HC_Player_1.5.0_x64.iss'
+          $installer = 'Installer/HC_Player_1.5.1_x64.iss'
           if (Test-Path -LiteralPath $installer -PathType Leaf) {
             foreach ($entry in $files.GetEnumerator()) {
               if (-not (Test-Path -LiteralPath $entry.Key -PathType Leaf)) {
@@ -82,6 +82,22 @@ jobs:
               throw "Partial Inno source upload detected: $($trackedInstaller -join ', ')"
             }
             Write-Warning 'Original Inno Setup source has not been uploaded yet; this is a preparation-only pass, NOT release readiness.'
+          }
+          # Check HC Player 1.5.1 application and Inno version declarations.
+          $resource = Get-Content -LiteralPath 'HC Player/HCPlayer.rc' -Raw
+          if ($resource -notmatch 'FILEVERSION 1,5,1,0' -or $resource -notmatch 'PRODUCTVERSION 1,5,1,0') { throw 'Invalid version resource' }
+          $localizations = @{
+            'HC Player/SettingsPage.cpp' = 'L"1.5.1"'
+            'HC Player/Strings/pt-BR/Resources.resw' = 'Versão 1.5.1'
+            'HC Player/Strings/en-US/Resources.resw' = 'Version 1.5.1'
+          }
+          foreach ($item in $localizations.GetEnumerator()) {
+            if (-not (Get-Content -LiteralPath $item.Key -Raw).Contains($item.Value)) {
+              throw "Version/localization mismatch: $($item.Key)"
+            }
+          }
+          if (-not (Get-Content -LiteralPath 'Installer/HC_Player_1.5.1_x64.iss' -Raw).Contains('#define MyAppId "{{805B14D6-30AC-45A2-BE42-CE0EB9F68408}"')) {
+            throw 'Permanent Inno AppId changed.'
           }
           $summary = @'
           ## SignPath preflight only

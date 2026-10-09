@@ -2,13 +2,13 @@
 
 **Status: source upload pending. No code signing or Microsoft Store readiness is claimed.**
 
-This branch is configured to track the original Inno Setup 7 *source* directory `Installer/`. The source was supplied as part of the HC Player 1.5.0 SEM TORRENT source ZIP but has **not** yet been committed to GitHub. Only copy source templates, PowerShell scripts, documentation, and `InstallerAssets/HCPlayer_Setup.ico`.
+This branch is configured to track the original Inno Setup 7 *source* directory `Installer/`. The source was supplied as part of the HC Player 1.5.1 SEM TORRENT source ZIP but has **not** yet been committed to GitHub. Only copy source templates, PowerShell scripts, documentation, and `InstallerAssets/HCPlayer_Setup.ico`.
 
 **Original unmodified SHA-256 hashes:**
 
 | Input | SHA-256 |
 | --- | --- |
-| `Installer/HC_Player_1.5.0_x64.iss` | `f36067a3f2922857f95dfb53a3780fee55aa8e6d6cf28f2c431f436310c3bac3` |
+| `Installer/HC_Player_1.5.1_x64.iss` | `0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251` |
 | `Installer/InstallerAssets/HCPlayer_Setup.ico` | `f540bb0f98165dc1a90684bd4d1cbed29adaacff708b5364435b5307dcace773` |
 | Required `libmpv-2.dll` | `965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c` |
 | Required `MediaInfo.dll` | `a2612fa8bf639349aee9747d8a555d361f5db95b049b3af9b0c3851a21a4308d` |

@@ -62,7 +62,7 @@ jobs:
           Assert-FileHash 'HC Player/scripts/stats.lua' '7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247'
           Assert-FileHash 'HC Player/HC Player.ico' 'ec75352a2abc90fe265079e0f7bc567ddb154eb4aa28f59a73707f8bb25a613f'
           if ($env:HC_BUILD_INSTALLER -eq 'true') {
-            Assert-FileHash 'Installer/HC_Player_1.5.0_x64.iss' 'f36067a3f2922857f95dfb53a3780fee55aa8e6d6cf28f2c431f436310c3bac3'
+            Assert-FileHash 'Installer/HC_Player_1.5.1_x64.iss' '0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251'
             Assert-FileHash 'Installer/InstallerAssets/HCPlayer_Setup.ico' 'f540bb0f98165dc1a90684bd4d1cbed29adaacff708b5364435b5307dcace773'
             foreach ($script in @('GERAR-INSTALADOR-V1.ps1', 'CHECK-PAYLOAD.ps1', 'STAGE-PAYLOAD.ps1','DOWNLOAD-PREREQUISITES.ps1','BUILD-INSTALLER.ps1')) {
               if (-not (Test-Path -LiteralPath "Installer/$script" -PathType Leaf)) {
@@ -95,7 +95,7 @@ jobs:
           if ($found.Count -ne 1) { throw "Expected one Release HC Player.exe, found $($found.Count)." }
           $exe = $found[0].FullName
           $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
-          if ($version -ne '1.5.0.0') { throw "Unexpected application version: $version" }
+          if ($version -ne '1.5.1.0') { throw "Unexpected application version: $version" }
           $out = $found[0].Directory.FullName
           Write-Host "Release output: $out"
           "release_output=$out" >> $env:GITHUB_OUTPUT
@@ -127,7 +127,7 @@ jobs:
         with:
           name: HC-Player-1.5-unsigned-installer-QA
           path: |
-            Installer/Output/HC_Player_1.5.0_x64_Setup.exe
-            Installer/Output/HC_Player_1.5.0_x64_Setup.exe.sha256.txt
+            Installer/Output/HC_Player_1.5.1_x64_Setup.exe
+            Installer/Output/HC_Player_1.5.1_x64_Setup.exe.sha256.txt
           retention-days: 3
           if-no-files-found: error

@@ -2,7 +2,7 @@
 
 Work **only on `signpath-prep`**. Never switch to or commit on `main`.
 
-The 13 Installer inputs from the original HC Player 1.5.0 SEM TORRENT ZIP must be copied to the repository's top-level `Installer/` folder, preserving filenames and directory structure. Copy the original content; do not edit or regenerate the `.iss`, PowerShell scripts or `.ico`.
+The 13 Installer inputs from the original HC Player 1.5.1 SEM TORRENT ZIP must be copied to the repository's top-level `Installer/` folder, preserving filenames and directory structure. Copy the original content; do not edit or regenerate the `.iss`, PowerShell scripts or `.ico`.
 
 The root `.gitignore` already excludes generated binaries under `Installer/Output/`, `Installer/Payload/` and `Installer/Prerequisites/`. The root `.gitattributes` pins LF text line endings, preserving the original raw SHA-256.
 

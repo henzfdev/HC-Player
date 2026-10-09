@@ -11,7 +11,7 @@
 
 ## Remaining mandatory steps
 
-1. Commit the original **13 files** from the provided HC Player 1.5.0 SEM TORRENT `Installer/` directory to this preparation branch; the only pre-existing tracked file in `Installer/` is `CI-PREPARATION.md`. Do not change `main`.
+1. Commit the original **13 files** from the provided HC Player 1.5.1 SEM TORRENT `Installer/` directory to this preparation branch; the only pre-existing tracked file in `Installer/` is `CI-PREPARATION.md`. Do not change `main`.
 2. Provide an immutable URL to **the exact** `libmpv-2.dll` (SHA-256 `965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c`), e.g. publish as a versioned GitHub release asset, together with the source/compliance materials.
 3. Verify the original Inno Setup 7 compiler binary on GitHub runners for the optional installer stage. No unsigned or older substitute should silently be used.
 4. Run the unsigned manual build after 1–3 and test it on Windows. A passing static check does not mean the executable compiles.
@@ -21,7 +21,7 @@
 
 ## Important upstream and installer invariants
 
-- Inno `.iss` unchanged SHA256 `f36067a3f2922857f95dfb53a3780fee55aa8e6d6cf28f2c431f436310c3bac3`.
+- Inno `.iss` unchanged SHA256 `0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251`.
 - SignPath's free OSS program signs binaries of the maintainers' own project, with upstream rules.
 - `yt-dlp` and Deno are optional externally imported tools and are **not bundled**.
 - Windows App SDK/WinUI, libmpv and MediaInfo remain under their third-party licenses.
@@ -36,3 +36,5 @@ A `workflow_dispatch` button is not available to workflows that exist only on no
 - Optional `HC_SIGNPATH_BUILD_INSTALLER=true` requests packaging. It fails closed unless original Installer source files, matching hashes, and Inno Setup 7 are present.
 
 No public artifact is uploaded as a release. CI artifacts, if built, are labeled UNSIGNED and expire after three days. SignPath signature activation remains a separate, later operation requiring the user's account and foundation approval.
+
+**Release correction:** The actual Store/SignPath candidate is 1.5.1 SEM TORRENT, incorporating the later YouTube comments text fix. Application and installer version declarations are synchronized; Inno AppId is unchanged. No signing is claimed.
