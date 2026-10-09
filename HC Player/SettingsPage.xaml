@@ -3090,7 +3090,7 @@
                                             <Border Style="{StaticResource TechnicalBadge}"
                                             VerticalAlignment="Center">
                                                 <TextBlock x:Name="AboutVersionBadgeText" x:Uid="SettingsB149"
-                                                   Text="Versão 1.5.0"
+                                                   Text="Versão 1.5.1"
                                                    FontSize="10"
                                                    Opacity="0.78"/>
                                             </Border>

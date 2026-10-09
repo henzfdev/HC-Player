@@ -25,7 +25,7 @@
 
 namespace
 {
-    constexpr wchar_t AppVersion[] = L"1.5.0";
+    constexpr wchar_t AppVersion[] = L"1.5.1";
 
     std::wstring NormalizeVersionString(std::wstring_view value)
     {

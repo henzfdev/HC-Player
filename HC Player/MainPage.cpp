@@ -413,7 +413,7 @@ namespace
     {
         request.Headers().TryAppendWithoutValidation(
             L"Api-Key", winrt::hstring{ apiKey });
-        request.Headers().UserAgent().ParseAdd(L"HCPlayer/1.5.0");
+        request.Headers().UserAgent().ParseAdd(L"HCPlayer/1.5.1");
         request.Headers().Accept().ParseAdd(L"application/json");
         if (!bearer.empty())
         {

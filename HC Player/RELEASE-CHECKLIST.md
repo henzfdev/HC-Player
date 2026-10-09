@@ -1,4 +1,4 @@
-# HC Player 1.5.0 — GPL release checklist
+# HC Player 1.5.1 — GPL release checklist
 
 This checklist is intentionally conservative. A checked application build is
 not automatically a legally complete public release.

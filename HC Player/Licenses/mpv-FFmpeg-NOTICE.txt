@@ -1,6 +1,6 @@
 HC Player multimedia stack — release notice
 
-The HC Player 1.5.0 release uses the following multimedia
+The HC Player 1.5.1 release uses the following multimedia
 binary:
 
   libmpv-2.dll SHA-256
