@@ -24,9 +24,11 @@
                     <!-- Empty slider/progress track: lighter neutral gray in dark mode. -->
                     <SolidColorBrush x:Key="SliderTrackFill" Color="#FF5A5D63" />
 
-                    <!-- In dark mode WinUI normally uses lighter accent variants for
-                         Slider value/Thumb resources. Keep every playback accent on the
-                         user's exact SystemAccentColor instead, matching the timeline. -->
+                    <!-- Keep the HC Player filled style untouched, but let the native
+                         Windows 11 slider thumb use the same dark-theme accent ramp as
+                         Windows/WinUI. AccentFillColorDefaultBrush resolves to
+                         SystemAccentColorLight2 in dark mode; hover/pressed follow the
+                         standard 0.9/0.8 Fluent states. -->
                     <SolidColorBrush x:Key="SliderTrackValueFill"
                                      Color="{ThemeResource SystemAccentColor}" />
                     <SolidColorBrush x:Key="SliderTrackValueFillPointerOver"
@@ -34,11 +36,13 @@
                     <SolidColorBrush x:Key="SliderTrackValueFillPressed"
                                      Color="{ThemeResource SystemAccentColor}" />
                     <SolidColorBrush x:Key="SliderThumbBackground"
-                                     Color="{ThemeResource SystemAccentColor}" />
+                                     Color="{ThemeResource SystemAccentColorLight2}" />
                     <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver"
-                                     Color="{ThemeResource SystemAccentColor}" />
+                                     Color="{ThemeResource SystemAccentColorLight2}"
+                                     Opacity="0.9" />
                     <SolidColorBrush x:Key="SliderThumbBackgroundPressed"
-                                     Color="{ThemeResource SystemAccentColor}" />
+                                     Color="{ThemeResource SystemAccentColorLight2}"
+                                     Opacity="0.8" />
 
                     <SolidColorBrush x:Key="TimelineTrackBrush" Color="#28FFFFFF" />
                     <SolidColorBrush x:Key="TimelineCacheBrush"
@@ -68,7 +72,7 @@
                     <AcrylicBrush x:Key="PlayerAcrylicBrush" TintColor="#FFFDF9"
                   TintOpacity="0.82" FallbackColor="#F4F7F7F7" />
 
-                    <SolidColorBrush x:Key="TransportButtonBorderBrush" Color="#24000000" />
+                    <SolidColorBrush x:Key="TransportButtonBorderBrush" Color="#28000000" />
                     <SolidColorBrush x:Key="TransportButtonBackgroundBrush" Color="Transparent" />
 
                     <SolidColorBrush x:Key="TimeDisplayBackgroundBrush" Color="#0A000000" />
@@ -124,6 +128,14 @@
                 <Setter Property="Width" Value="40" />
                 <Setter Property="Height" Value="38" />
             </Style>
+            <Style x:Key="InlineHoverGlyphHost" TargetType="Border">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
             <Style x:Key="MinimalTransportButton" TargetType="Button"
                    BasedOn="{StaticResource TransportIconButton}">
                 <Setter Property="Width" Value="34" />
@@ -152,7 +164,7 @@
               Background="{ThemeResource TransportMicaToneBrush}"
               BorderBrush="{ThemeResource TransportTopEdgeBrush}"
               BorderThickness="0,0.5,0,0"
-              Padding="10,8,10,8">
+              Padding="10,6,10,6">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -304,6 +316,14 @@
                 </Grid>
 
                 <StackPanel x:Name="InformationActions" Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                    <Button x:Uid="MainPageYouTubeCommentsButton" x:Name="YouTubeCommentsButton"
+                            Style="{StaticResource TransportIconButton}"
+                            Visibility="Collapsed"
+                            Click="YouTubeCommentsClicked"
+                            AutomationProperties.Name="Comentários do YouTube"
+                            ToolTipService.ToolTip="Comentários do YouTube">
+                        <FontIcon Glyph="&#xE8BD;" FontSize="15" />
+                    </Button>
                     <Button x:Uid="MainPageCaptureButton" x:Name="CaptureButton"
                             Style="{StaticResource TransportIconButton}"
                             Visibility="Collapsed"
@@ -380,6 +400,12 @@
                             Height="8" Margin="9,0"
                             IsHitTestVisible="False"
                             VerticalAlignment="Center" />
+                    <!-- SponsorBlock is a presentation-only overlay. It shares
+                         the exact track geometry but never participates in input. -->
+                    <Canvas x:Name="SponsorBlockMarkers"
+                            Height="8" Margin="9,0"
+                            IsHitTestVisible="False"
+                            VerticalAlignment="Center" />
                     <!-- The optional filled style uses a Windows 10-like
                          vertical thumb positioned from the playback clock. -->
                     <Canvas x:Name="FilledTimelineOverlay"
@@ -434,7 +460,7 @@
                             IsHitTestVisible="False">
                         <!-- The chapter/time tooltip is a Popup rather than a
                              negative-Y Canvas child. This lets Bar Compact keep
-                             its approved 94-DIP height without clipping the
+                             its approved 92-DIP height without clipping the
                              tooltip above the transport. -->
                         <Popup x:Name="ChapterHoverPopup"
                                IsLightDismissEnabled="False"
@@ -570,7 +596,9 @@
 
                     <Grid.ContextFlyout>
                         <MenuFlyout x:Name="TimeDisplayFlyout"
-                    Opening="TimeDisplayFlyoutOpening">
+                    Opening="TimeDisplayFlyoutOpening"
+                    Opened="TransportFlyoutOpened"
+                    Closed="TransportFlyoutClosed">
 
                             <ToggleMenuFlyoutItem x:Uid="MainPageRemainingTimeItem" x:Name="RemainingTimeItem"
                                   Text="Tempo restante"
@@ -623,9 +651,25 @@
 
                 <StackPanel x:Name="RightControls" Grid.Column="2"
                             Orientation="Horizontal" Spacing="6">
-                    <FontIcon x:Name="VolumeIcon" Glyph="&#xE995;"
-                              FontSize="19" VerticalAlignment="Center"
-                              Tapped="VolumeIconTapped" />
+                    <Grid x:Name="VolumeIconHitTarget"
+                          Width="30"
+                          Height="30"
+                          Background="Transparent"
+                          VerticalAlignment="Center"
+                          Tapped="VolumeIconTapped"
+                          PointerEntered="VolumeIconPointerEntered"
+                          PointerExited="VolumeIconPointerExited">
+                        <Border x:Name="VolumeIconHoverBackground"
+                                CornerRadius="6"
+                                Background="{ThemeResource ButtonBackgroundPointerOver}"
+                                Opacity="0"
+                                IsHitTestVisible="False" />
+                        <FontIcon x:Name="VolumeIcon" Glyph="&#xE995;"
+                                  FontSize="19"
+                                  VerticalAlignment="Center"
+                                  HorizontalAlignment="Center"
+                                  IsHitTestVisible="False" />
+                    </Grid>
                     <Grid x:Name="VolumeSliderHost"
                           Width="92" Margin="0,0,10,0"
                           SizeChanged="VolumeSliderSizeChanged">
@@ -642,7 +686,7 @@
                             <Border x:Name="StandardVolumeValueTrack"
                                     Width="0" CornerRadius="2"
                                     HorizontalAlignment="Left"
-                                    Background="{ThemeResource SliderTrackValueFill}" />
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}" />
                         </Grid>
                         <Slider x:Name="StandardVolumeSlider" Width="92"
                                 Minimum="0" Maximum="100" Value="100"
@@ -675,7 +719,7 @@
                             <Border x:Name="FilledVolumeValueTrack"
                                     Width="0" CornerRadius="2"
                                     HorizontalAlignment="Left"
-                                    Background="{ThemeResource SliderTrackValueFill}" />
+                                    Background="{ThemeResource TimelineProgressBrush}" />
                         </Grid>
                         <Slider x:Name="VolumeSlider" Width="92"
                                 Minimum="0" Maximum="100" Value="100"
@@ -757,6 +801,7 @@
                         </Viewbox>
                         <Button.Flyout>
                             <MenuFlyout x:Name="TracksFlyout" Placement="Top"
+                                        MenuFlyoutPresenterStyle="{StaticResource MinimalCompactMenuPresenterStyle}"
                                         Opening="TracksFlyoutOpening"
                                         Opened="TransportFlyoutOpened"
                                         Closed="TransportFlyoutClosed" />
@@ -871,6 +916,10 @@
                                 Height="8" Margin="14,0"
                                 IsHitTestVisible="False"
                                 VerticalAlignment="Center" />
+                        <Canvas x:Name="MinimalSponsorBlockMarkers"
+                                Height="8" Margin="14,0"
+                                IsHitTestVisible="False"
+                                VerticalAlignment="Center" />
                         <Canvas x:Name="MinimalFilledTimelineOverlay"
                                 Height="24" Margin="14,0"
                                 IsHitTestVisible="False"
@@ -965,6 +1014,7 @@
                         <Button.Flyout>
                             <MenuFlyout x:Name="MinimalTracksFlyout"
                                         Placement="Top"
+                                        MenuFlyoutPresenterStyle="{StaticResource MinimalCompactMenuPresenterStyle}"
                                         Opening="TracksFlyoutOpening"
                                         Opened="TransportFlyoutOpened"
                                         Closed="TransportFlyoutClosed" />

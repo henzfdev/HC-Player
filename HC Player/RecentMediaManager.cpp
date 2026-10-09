@@ -24,8 +24,7 @@ namespace
 
     bool IsProtocolPath(std::wstring const& path)
     {
-        return path.find(L"://") != std::wstring::npos ||
-            path.starts_with(L"magnet:");
+        return path.find(L"://") != std::wstring::npos;
     }
 
     bool EqualsInsensitive(

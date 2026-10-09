@@ -70,11 +70,31 @@ namespace winrt::HCPlayer::implementation
             Windows::Foundation::IInspectable const& sender,
             Microsoft::UI::Xaml::RoutedEventArgs const&);
 
+        void OnlineSubtitlesToggled(
+            Windows::Foundation::IInspectable const& sender,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+
+        void ConfigureOpenSubtitlesSettingsClicked(
+            Windows::Foundation::IInspectable const&,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+
+        void SponsorBlockToggled(
+            Windows::Foundation::IInspectable const& sender,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+
+        void YouTubeCommentsToggled(
+            Windows::Foundation::IInspectable const& sender,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+
+        void YouTubeApiKeyLostFocus(
+            Windows::Foundation::IInspectable const& sender,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+
         void ImportFontFolderClicked(
             Windows::Foundation::IInspectable const&,
             Microsoft::UI::Xaml::RoutedEventArgs const&);
 
-        void ImportMediaBadgeSetClicked(
+        winrt::fire_and_forget ImportMediaBadgeSetClicked(
             Windows::Foundation::IInspectable const&,
             Microsoft::UI::Xaml::RoutedEventArgs const&);
 
@@ -264,6 +284,10 @@ namespace winrt::HCPlayer::implementation
             Windows::Foundation::IInspectable const&,
             Microsoft::UI::Xaml::RoutedEventArgs const&);
 
+        void CheckForUpdatesClicked(
+            Windows::Foundation::IInspectable const&,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+
     private:
         bool m_ready{};
         bool m_closing{};
@@ -271,6 +295,7 @@ namespace winrt::HCPlayer::implementation
         bool m_refreshingShaders{};
         bool m_refreshingAnime4K{};
         bool m_importedConfigRendered{};
+        bool m_badgeSetImportInProgress{};
         // m_fontNames stores the technical name sent to mpv/libass; the
         // parallel display/alias vectors keep imported faces distinct in UI.
         std::vector<std::wstring> m_fontNames;
@@ -297,10 +322,13 @@ namespace winrt::HCPlayer::implementation
             std::wstring const& title,
             std::wstring const& message);
         void UpdateYtdlpStatus();
+        void UpdateOnlineSubtitlesCardState();
+        void UpdateYouTubeCommentsCardState();
         void RestoreSavedControls(Microsoft::UI::Xaml::DependencyObject const& root);
         void UpdateBuiltInOptionVisibility(ImportedMpvConfig const* config);
         void UpdateThemeButton();
         void RefreshAboutInfo();
+        winrt::fire_and_forget CheckForUpdatesAsync();
         bool UpdateImportedValue(
             std::wstring const& section,
             std::wstring const& name,

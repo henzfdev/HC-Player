@@ -367,7 +367,49 @@
                                         <TextBlock x:Uid="SettingsRememberWindowSizeTitle" Text="Lembrar tamanho da janela" FontWeight="SemiBold"/>
                                         <TextBlock x:Uid="SettingsRememberWindowSizeDescription" Text="Restaura o último tamanho normal usado ao abrir o HC Player" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
                                     </StackPanel>
-                                    <ToggleSwitch x:Name="RememberWindowSizeToggle" Grid.Column="1" Tag="ui-window-remember-size" IsOn="False" Toggled="InterfaceVisibilityToggled" VerticalAlignment="Center"/>
+                                    <ToggleSwitch x:Name="RememberWindowSizeToggle" Grid.Column="1" Tag="ui-window-remember-size" IsOn="True" Toggled="InterfaceVisibilityToggled" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border x:Name="RememberWindowPositionCard" Style="{StaticResource SettingsCard}">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Uid="SettingsRememberWindowPositionTitle" Text="Lembrar posição da janela" FontWeight="SemiBold"/>
+                                        <TextBlock x:Uid="SettingsRememberWindowPositionDescription" Text="Restaura a última posição da janela usada ao abrir o HC Player" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" Tag="ui-window-remember-position" IsOn="False" Toggled="InterfaceVisibilityToggled" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border x:Name="StartBorderlessCard" Style="{StaticResource SettingsCard}">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Uid="SettingsStartBorderlessTitle" Text="Iniciar sem bordas" FontWeight="SemiBold"/>
+                                        <TextBlock x:Uid="SettingsStartBorderlessDescription" Text="Abre o HC Player já sem bordas nas próximas inicializações; o atalho B continua alternando durante a sessão" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" Tag="ui-start-borderless" IsOn="False" Toggled="InterfaceVisibilityToggled" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsCard}">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Uid="SettingsShowMediaTitleTitle" Text="Mostrar título da mídia na barra de título" FontWeight="SemiBold"/>
+                                        <TextBlock x:Uid="SettingsShowMediaTitleDescription" Text="Exibe o título da mídia quando disponível ou usa o nome do arquivo" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" Tag="ui-show-media-title" IsOn="False" Toggled="InterfaceVisibilityToggled" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
 
@@ -505,6 +547,16 @@
                                                                     <TextBlock x:Uid="ShortcutAction073" Text="Abrir fila de reprodução" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"/>
                                                                     <Border Grid.Column="1" Style="{StaticResource ShortcutKeyBadge}">
                                                                         <TextBlock Text="Ctrl + Shift + P" FontFamily="Consolas" FontSize="11" TextAlignment="Center"/>
+                                                                    </Border>
+                                                                </Grid>
+                                                                <Grid ColumnSpacing="18">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock x:Uid="ShortcutAction074" Text="Abrir / fechar painel do YouTube" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"/>
+                                                                    <Border Grid.Column="1" Style="{StaticResource ShortcutKeyBadge}">
+                                                                        <TextBlock Text="Ctrl + Y" FontFamily="Consolas" FontSize="11" TextAlignment="Center"/>
                                                                     </Border>
                                                                 </Grid>
                                                                 <Grid ColumnSpacing="18">
@@ -1225,7 +1277,7 @@
                                         <TextBlock x:Uid="SettingsB006" Text="Reprodução contínua" FontWeight="SemiBold"/>
                                         <TextBlock x:Uid="SettingsB007" Text="Reproduz automaticamente o próximo arquivo local ao terminar" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
                                     </StackPanel>
-                                    <ToggleSwitch Grid.Column="1" Tag="ui-continuous-playback" IsOn="False" Toggled="InterfaceVisibilityToggled" VerticalAlignment="Center"/>
+                                    <ToggleSwitch Grid.Column="1" Tag="ui-continuous-playback" IsOn="True" Toggled="InterfaceVisibilityToggled" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
 
@@ -1403,6 +1455,99 @@
                                         <TextBlock x:Uid="SettingsB030" Text="Mantém o tom natural quando a velocidade muda" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
                                     </StackPanel>
                                     <ToggleSwitch Grid.Column="1" Tag="audio-pitch-correction" IsOn="True" Toggled="NativeSubtitleToggleToggled" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsCard}">
+                                <Grid ColumnSpacing="18">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="170"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <TextBlock x:Uid="SettingsAudioChannelsTitle"
+                                                       Text="Canais de áudio"
+                                                       FontWeight="SemiBold"/>
+                                            <Border Style="{StaticResource TechnicalBadge}">
+                                                <TextBlock Text="audio-channels"
+                                                           FontSize="10"
+                                                           Opacity="0.72"
+                                                           MaxWidth="118"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock x:Uid="SettingsAudioChannelsDescription"
+                                                   Text="Define os layouts permitidos na saída"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   Opacity="0.62"/>
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1"
+                                              Tag="audio-channels"
+                                              SelectedIndex="0"
+                                              SelectionChanged="NativeSubtitleChoiceChanged"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBoxItem x:Uid="SettingsAudioChannelsAuto"
+                                                      Content="Automático"
+                                                      Tag="auto-safe"/>
+                                        <ComboBoxItem x:Uid="SettingsAudioChannelsStereo"
+                                                      Content="Estéreo"
+                                                      Tag="stereo"/>
+                                        <ComboBoxItem x:Uid="SettingsAudioChannels51"
+                                                      Content="Surround até 5.1"
+                                                      Tag="5.1,stereo"/>
+                                        <ComboBoxItem x:Uid="SettingsAudioChannels71"
+                                                      Content="Surround até 7.1"
+                                                      Tag="7.1,5.1,stereo"/>
+                                    </ComboBox>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource SettingsCard}">
+                                <Grid ColumnSpacing="18">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="170"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <TextBlock x:Uid="SettingsAudioSpdifTitle"
+                                                       Text="Passthrough Dolby &amp; DTS"
+                                                       FontWeight="SemiBold"/>
+                                            <Border Style="{StaticResource TechnicalBadge}">
+                                                <TextBlock Text="audio-spdif"
+                                                           FontSize="10"
+                                                           Opacity="0.72"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock x:Uid="SettingsAudioSpdifDescription"
+                                                   Text="Envia o áudio diretamente ao equipamento conectado"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   Opacity="0.62"/>
+                                        <TextBlock x:Uid="SettingsAudioSpdifRequirement"
+                                                   Text="Requer receiver ou soundbar compatível"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="11"
+                                                   Opacity="0.48"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1"
+                                              Tag="audio-spdif"
+                                              SelectedIndex="0"
+                                              SelectionChanged="NativeSubtitleChoiceChanged"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBoxItem x:Uid="SettingsAudioSpdifOff"
+                                                      Content="Desativado"
+                                                      Tag=""/>
+                                        <ComboBoxItem x:Uid="SettingsAudioSpdifClassic"
+                                                      Content="Dolby Digital / DTS"
+                                                      Tag="ac3,dts"/>
+                                        <ComboBoxItem x:Uid="SettingsAudioSpdifHomeTheater"
+                                                      Content="Home Theater (HD)"
+                                                      Tag="ac3,eac3,dts-hd,truehd"/>
+                                    </ComboBox>
                                 </Grid>
                             </Border>
 
@@ -2010,6 +2155,53 @@
                                 </Grid>
                             </Border>
 
+                            <Border x:Name="OnlineSubtitlesCard" Style="{StaticResource SettingsCard}">
+                                <Grid ColumnSpacing="12" RowSpacing="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock x:Uid="SettingsOnlineSubtitlesTitle" Text="Legendas online" FontWeight="SemiBold"/>
+                                        <TextBlock x:Uid="SettingsOnlineSubtitlesDescription" Text="Permite buscar e baixar legendas pelo OpenSubtitles" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="OnlineSubtitlesToggle"
+                                                  Grid.Column="1"
+                                                  Tag="ui-online-subtitles"
+                                                  IsOn="False"
+                                                  Toggled="OnlineSubtitlesToggled"
+                                                  VerticalAlignment="Center"/>
+
+                                    <Grid x:Name="OnlineSubtitlesDetailsPanel"
+                                          Grid.Row="1"
+                                          Grid.ColumnSpan="2"
+                                          Margin="0,12,0,0"
+                                          ColumnSpacing="12"
+                                          Visibility="Collapsed">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="OpenSubtitles"
+                                                   FontSize="12"
+                                                   Opacity="0.62"
+                                                   VerticalAlignment="Center"/>
+                                        <Button x:Name="ConfigureOpenSubtitlesSettingsButton"
+                                                x:Uid="SettingsOnlineSubtitlesConfigure"
+                                                Grid.Column="1"
+                                                Content="Configurar OpenSubtitles…"
+                                                Click="ConfigureOpenSubtitlesSettingsClicked"
+                                                Padding="12,7"
+                                                CornerRadius="8"
+                                                VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
                             <Border Style="{StaticResource SettingsCard}">
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions>
@@ -2190,6 +2382,72 @@
 
                         </StackPanel>
                         <StackPanel x:Name="InterfaceSettingsPanel" Spacing="12" Visibility="Collapsed">
+                            <TextBlock x:Uid="SettingsYouTubeSection" Text="YOUTUBE" Margin="4,10,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.65"/>
+
+                            <Border x:Name="SponsorBlockCard" Style="{StaticResource SettingsCard}">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock x:Uid="SettingsSponsorBlockTitle" Text="SponsorBlock" FontWeight="SemiBold"/>
+                                        <TextBlock x:Uid="SettingsSponsorBlockDescription" Text="Pula automaticamente patrocínios e mostra segmentos coloridos na barra de progresso do YouTube" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SponsorBlockToggle"
+                                                  Grid.Column="1"
+                                                  Tag="ui-sponsorblock"
+                                                  IsOn="False"
+                                                  Toggled="SponsorBlockToggled"
+                                                  VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border x:Name="YouTubeCommentsCard" Style="{StaticResource SettingsCard}">
+                                <Grid ColumnSpacing="12" RowSpacing="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock x:Uid="SettingsYouTubeCommentsTitle" Text="Comentários do YouTube" FontWeight="SemiBold"/>
+                                        <TextBlock x:Uid="SettingsYouTubeCommentsDescription" Text="Exibe comentários do vídeo atual em um painel nativo" TextWrapping="Wrap" FontSize="12" Opacity="0.62"/>
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="YouTubeCommentsToggle"
+                                                  Grid.Column="1"
+                                                  Tag="ui-youtube-comments"
+                                                  IsOn="False"
+                                                  Toggled="YouTubeCommentsToggled"
+                                                  VerticalAlignment="Center"/>
+
+                                    <StackPanel x:Name="YouTubeCommentsDetailsPanel"
+                                                Grid.Row="1"
+                                                Grid.ColumnSpan="2"
+                                                Margin="0,12,0,0"
+                                                Spacing="6"
+                                                Visibility="Collapsed">
+                                        <TextBlock x:Uid="SettingsYouTubeApiKeyLabel"
+                                                   Text="API key da YouTube Data API"
+                                                   FontSize="11"
+                                                   Opacity="0.62"/>
+                                        <TextBox x:Name="YouTubeApiKeyTextBox"
+                                                 Tag="ui-youtube-api-key"
+                                                 PlaceholderText="AIza…"
+                                                 LostFocus="YouTubeApiKeyLostFocus"
+                                                 HorizontalAlignment="Stretch"/>
+                                        <TextBlock x:Uid="SettingsYouTubeApiKeyHint"
+                                                   Text="A chave é usada somente para consultar comentários públicos e fica salva localmente nas configurações do HC Player"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="10.5"
+                                                   Opacity="0.52"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
                             <TextBlock x:Uid="SettingsInterfaceSection" Text="INTERFACE" Margin="4,10,0,0" FontSize="13" FontWeight="SemiBold" Opacity="0.65"/>
 
 
@@ -2832,7 +3090,7 @@
                                             <Border Style="{StaticResource TechnicalBadge}"
                                             VerticalAlignment="Center">
                                                 <TextBlock x:Name="AboutVersionBadgeText" x:Uid="SettingsB149"
-                                                   Text="Versão 1.0"
+                                                   Text="Versão 1.5.0"
                                                    FontSize="10"
                                                    Opacity="0.78"/>
                                             </Border>
@@ -2916,14 +3174,48 @@
                                         <TextBlock x:Name="AboutBuildText" Grid.Row="7" Grid.Column="1" Text="Release"/>
                                     </Grid>
 
-                                    <Button Click="CopyAboutInfoClicked" HorizontalAlignment="Right" Padding="11,7" CornerRadius="8">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <FontIcon Glyph="" FontSize="14"/>
-                                            <TextBlock x:Uid="SettingsB162" Text="Copiar informações"/>
-                                        </StackPanel>
-                                    </Button>
+                                    <StackPanel Margin="0,16,0,0">
+                                        <Grid ColumnSpacing="8" HorizontalAlignment="Right">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
 
-                                    <InfoBar x:Name="AboutCopyStatus" IsOpen="False" IsClosable="True"/>
+                                            <Button x:Name="AboutCheckUpdatesButton"
+                                                    Click="CheckForUpdatesClicked"
+                                                    HorizontalAlignment="Right"
+                                                    Padding="11,7"
+                                                    CornerRadius="8">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <ProgressRing x:Name="AboutUpdateProgressRing"
+                                                                  Width="14"
+                                                                  Height="14"
+                                                                  IsActive="False"
+                                                                  Visibility="Collapsed"/>
+                                                    <FontIcon x:Name="AboutUpdateButtonIcon" Glyph="" FontSize="14"/>
+                                                    <TextBlock x:Name="AboutUpdateButtonText"
+                                                               x:Uid="SettingsCheckUpdatesButtonText"
+                                                               Text="Verificar atualizações"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Grid.Column="1" Click="CopyAboutInfoClicked" HorizontalAlignment="Right" Padding="11,7" CornerRadius="8">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <FontIcon Glyph="" FontSize="14"/>
+                                                    <TextBlock x:Uid="SettingsB162" Text="Copiar informações"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <InfoBar x:Name="AboutUpdateStatus"
+                                                 IsOpen="False"
+                                                 IsClosable="True"
+                                                 Margin="0,12,0,0"/>
+                                        <InfoBar x:Name="AboutCopyStatus"
+                                                 IsOpen="False"
+                                                 IsClosable="True"
+                                                 Margin="0,12,0,0"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
 
@@ -2939,7 +3231,7 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="© 2026 HC Player" VerticalAlignment="Center" FontSize="11" Opacity="0.48"/>
+                                        <TextBlock Text="© 2026 Heinz" VerticalAlignment="Center" FontSize="11" Opacity="0.48"/>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
                                             <Button x:Uid="SettingsGitHubButton"
                                                     Click="OpenGitHubClicked"

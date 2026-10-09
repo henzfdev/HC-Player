@@ -1,6 +1,6 @@
-# HC Player 1.0 — Source and binary manifest
+﻿# HC Player 1.5.0 — Source and binary manifest
 
-Status: release-candidate manifest. Freeze this file with the final public
+Status: HC Player 1.5.0 release manifest. Retain this file with the public
 binary and corresponding-source archive.
 
 ## HC Player
@@ -16,16 +16,25 @@ binary and corresponding-source archive.
 
 `libmpv-2.dll`
 
-- SHA-256: `38acd030006062830d792a958c5f2adc293fa965996797980ec73d9610c309f4`
-- mpv: `v0.41.0-85-g468d34c9b`
-- mpv source revision: `468d34c9b`
-- FFmpeg: `N-122476-g685ceebd4`
-- FFmpeg source revision: `685ceebd4`
-- mpv-winbuild-cmake recipe revision:
-  `d4e9628f2d67410ed1b93c8237a37b3c3368d9e0`
-- mpv feature list in the DLL includes `gpl`.
-- Audited FFmpeg recipe uses `--enable-gpl --enable-version3` and does not use
-  `--enable-nonfree`.
+- SHA-256: `965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c`
+- mpv: `v0.41.0-920-gdd5d17d32`
+- mpv source revision: `dd5d17d328`
+- FFmpeg: `N-125998-g2a20737f6`
+- FFmpeg source revision: `2a20737f6`
+- Source package: `mpv-dev-x86_64-20260809-git-dd5d17d328.7z`
+- Builder: `zhongfly/mpv-winbuild` x86_64 libmpv build
+- mpv feature list in the DLL includes `gpl`, `amf`, `d3d11`, `libplacebo`, `libcurl` and `vulkan`.
+- The package must retain the exact corresponding source/build provenance required by the bundled GPL/LGPL components before public redistribution.
+
+## Packaged stats overlay
+
+`scripts/stats.lua`
+
+- SHA-256: `7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247`
+- Base: `stats.lua` from the bundled 09/08/2026 mpv/libmpv build.
+- HC customization is presentation-only: automatic `target-peak=auto` output luminance (for example the recurring SDR `80 cd/m²`) is omitted from Stats.
+- When `target-peak` is explicitly numeric through a profile, `mpv.conf`, or the HC `Shift+B` cycle, Stats reports the display pair as `target-peak / 1000` and `target-peak`, using the existing mpv-style formatting (for example `0.12 / 120`, `0.15 / 150`, `0.17 / 165`).
+- This script does not change HDR decoding, tone mapping, target peak, target contrast or video output settings.
 
 ## Shipped MediaInfo binary
 
@@ -56,7 +65,7 @@ Before publishing the public binary, create and retain a source archive that
 contains, at minimum:
 
 1. the exact HC Player source tree used to build the release;
-2. the exact mpv-winbuild-cmake recipe revision above;
+2. the exact build recipe/source package used for the libmpv binary above;
 3. the source trees/revisions actually used for mpv, FFmpeg and every GPL/LGPL
    dependency incorporated into `libmpv-2.dll`;
 4. all local patches and configuration/build scripts;

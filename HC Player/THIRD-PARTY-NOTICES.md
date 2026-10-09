@@ -58,7 +58,7 @@ Foundation 2.3.9.
 
 `yt-dlp` and Deno can be selected/imported by the user for online-media
 features. They are not included in the current HC Player binary package and are
-therefore not being redistributed by this release candidate.
+therefore not being redistributed by the HC Player 1.4 release.
 
 ## Trademarks
 

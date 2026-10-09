@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Loaded="PlaylistLoaded"
+    KeyDown="PlaylistKeyDown"
     Background="Transparent">
 
     <Page.Resources>
@@ -59,10 +60,15 @@
             <Grid Padding="22,18,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <Grid x:Name="PlaylistHeader" Margin="0,0,22,18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -105,10 +111,17 @@
                             ToolTipService.ToolTip="Mais opções da fila">
                         <Button.Flyout>
                             <MenuFlyout>
+                                <MenuFlyoutItem x:Uid="PlaylistAddUrlMenuItem"
+                                                Text="Adicionar URL à fila"
+                                                Click="AddUrlClicked" />
                                 <MenuFlyoutItem x:Uid="PlaylistAddFolderMenuItem"
                                                 Text="Adicionar pasta à fila"
                                                 Click="AddFolderClicked" />
                                 <MenuFlyoutSeparator />
+                                <MenuFlyoutItem x:Name="RemoveSelectedMenuItem"
+                                                Text="Remover selecionados"
+                                                Visibility="Collapsed"
+                                                Click="RemoveSelectedClicked" />
                                 <MenuFlyoutItem x:Uid="PlaylistClearQueueMenuItem"
                                                 x:Name="ClearQueueMenuItem"
                                                 Text="Limpar fila"
@@ -128,10 +141,63 @@
                             ToolTipService.ToolTip="Fechar">
                         <FontIcon Glyph="&#xE8BB;" FontSize="14" />
                     </Button>
+
+                    <Border x:Name="WebLimitNoticeBanner"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="4"
+                            Margin="0,12,0,0"
+                            Padding="10,7"
+                            Background="{ThemeResource PlaylistExternalDropBrush}"
+                            CornerRadius="7"
+                            Visibility="Collapsed">
+                        <TextBlock x:Name="WebLimitNoticeText"
+                                   Text="Playlists do YouTube são limitadas a 30 vídeos por vez"
+                                   FontFamily="Segoe UI Variable Text"
+                                   FontSize="12.5"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.88" />
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="PlaylistWindowPager"
+                      Grid.Row="1"
+                      Margin="0,0,22,10"
+                      Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Uid="PlaylistPreviousWindowButton" x:Name="PreviousWindowButton"
+                            Grid.Column="0"
+                            Style="{StaticResource PlaylistHeaderButton}"
+                            Click="PreviousWindowClicked"
+                            Width="34" Height="30" Padding="0"
+                            ToolTipService.ToolTip="Página anterior da fila">
+                        <FontIcon Glyph="&#xE76B;" FontSize="12" />
+                    </Button>
+
+                    <TextBlock x:Name="PlaylistWindowRangeText"
+                               Grid.Column="1"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontFamily="Segoe UI Variable Text"
+                               FontSize="12.5"
+                               Opacity="0.66" />
+
+                    <Button x:Uid="PlaylistNextWindowButton" x:Name="NextWindowButton"
+                            Grid.Column="2"
+                            Style="{StaticResource PlaylistHeaderButton}"
+                            Click="NextWindowClicked"
+                            Width="34" Height="30" Padding="0"
+                            ToolTipService.ToolTip="Próxima página da fila">
+                        <FontIcon Glyph="&#xE76C;" FontSize="12" />
+                    </Button>
                 </Grid>
 
                 <ScrollViewer x:Name="PlaylistScrollViewer"
-                              Grid.Row="1"
+                              Grid.Row="2"
                               HorizontalScrollMode="Disabled"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">

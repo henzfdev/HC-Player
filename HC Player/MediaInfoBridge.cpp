@@ -284,6 +284,32 @@ namespace
             { L"OverallBitRate/String", L"OverallBitRate" });
         AddFirst(handle, section, L"Frame rate",
             { L"FrameRate/String", L"FrameRate" });
+        AddFirst(handle, section, L"Title",
+            { L"Title" });
+        AddFirst(handle, section, L"Album",
+            { L"Album" });
+        AddFirst(handle, section, L"Album performer",
+            { L"Album/Performer", L"Album_Performer" });
+        AddFirst(handle, section, L"Part position",
+            { L"Part/Position", L"Part_Position" });
+        AddFirst(handle, section, L"Part total",
+            { L"Part/Position_Total", L"Part_Position_Total" });
+        AddFirst(handle, section, L"Track position",
+            { L"Track/Position", L"Track_Position" });
+        AddFirst(handle, section, L"Track total",
+            { L"Track/Position_Total", L"Track_Position_Total" });
+        AddFirst(handle, section, L"Performer",
+            { L"Performer" });
+        AddFirst(handle, section, L"Genre",
+            { L"Genre" });
+        AddFirst(handle, section, L"Content type",
+            { L"ContentType" });
+        AddFirst(handle, section, L"Recorded date",
+            { L"Recorded_Date" });
+        AddFirst(handle, section, L"Copyright",
+            { L"Copyright" });
+        AddFirst(handle, section, L"Cover",
+            { L"Cover" });
         AddFirst(handle, section, L"Encoded date",
             { L"Encoded_Date" });
         AddFirst(handle, section, L"Tagged date",
@@ -382,8 +408,6 @@ namespace
 
         AddFirst(handle, section, L"ID",
             { L"ID/String", L"ID" });
-        AddFirst(handle, section, L"Title",
-            { L"Title" });
         AddFirst(handle, section, L"Format",
             { L"Format" });
         AddFirst(handle, section, L"Format information",
@@ -438,10 +462,26 @@ namespace
             { L"transfer_characteristics", L"transfer_characteristics/String" });
         AddFirst(handle, section, L"Matrix coefficients",
             { L"matrix_coefficients", L"matrix_coefficients/String" });
-        AddFirst(handle, section, L"HDR format",
-            { L"HDR_Format" });
-        AddFirst(handle, section, L"HDR compatibility",
-            { L"HDR_Format_Compatibility" });
+        // Prefer MediaInfo's fully formatted HDR description. It combines
+        // format, version, profile, level/layers, settings and compatibility
+        // (e.g. full Dolby Vision Profile 7 information) in the same form
+        // MediaInfo itself shows. Older MediaInfo builds may not expose the
+        // formatted field, so keep the previous raw fields as a safe fallback.
+        std::wstring const hdrFormatDetailed = FirstValue(
+            handle, section.kind, section.streamIndex,
+            { L"HDR_Format/String", L"HDR_Format_String" });
+
+        if (!hdrFormatDetailed.empty())
+        {
+            Add(section, L"HDR format", hdrFormatDetailed);
+        }
+        else
+        {
+            AddFirst(handle, section, L"HDR format",
+                { L"HDR_Format" });
+            AddFirst(handle, section, L"HDR compatibility",
+                { L"HDR_Format_Compatibility" });
+        }
         AddFirst(handle, section, L"Mastering display color primaries",
             { L"MasteringDisplay_ColorPrimaries" });
         AddFirst(handle, section, L"Mastering display luminance",
@@ -452,6 +492,12 @@ namespace
             { L"MaxFALL/String", L"MaxFALL" });
         AddFirst(handle, section, L"Stream size",
             { L"StreamSize/String", L"StreamSize" });
+        // MediaInfo normally maps the MP4 hdlr component name (for example
+        // "Core Media Video") to Title. Keep Title as the authoritative value,
+        // but accept Handler as a narrow fallback for files/builds where that
+        // component name is exposed separately.
+        AddFirst(handle, section, L"Title",
+            { L"Title", L"Handler" });
         AddFirst(handle, section, L"Writing library",
             { L"Encoded_Library/String", L"Encoded_Library" });
         AddFirst(handle, section, L"Encoding settings",
@@ -480,8 +526,6 @@ namespace
 
         AddFirst(handle, section, L"ID",
             { L"ID/String", L"ID" });
-        AddFirst(handle, section, L"Title",
-            { L"Title" });
         std::wstring const baseFormat =
             FirstValue(
                 handle,
@@ -586,6 +630,10 @@ namespace
         }
         AddFirst(handle, section, L"Stream size",
             { L"StreamSize/String", L"StreamSize" });
+        // Same MP4 handler-name fallback used by the video stream.
+        // A real track Title always wins when present.
+        AddFirst(handle, section, L"Title",
+            { L"Title", L"Handler" });
         AddFirst(handle, section, L"Service kind",
             { L"ServiceKind/String", L"ServiceKind" });
         AddFirst(handle, section, L"Language",
@@ -733,11 +781,8 @@ namespace
             { L"BitDepth/String", L"BitDepth" });
         AddFirst(handle, section, L"Compression mode",
             { L"Compression_Mode" });
-        if (audioOnly)
-        {
-            AddFirst(handle, section, L"Size",
-                { L"StreamSize/String", L"StreamSize" });
-        }
+        AddFirst(handle, section, L"Size",
+            { L"StreamSize/String", L"StreamSize" });
 
         return section;
     }

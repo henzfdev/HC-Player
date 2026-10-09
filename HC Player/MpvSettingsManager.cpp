@@ -122,8 +122,8 @@ namespace hc::settings
             L"sub-outline-color", L"sub-border-size", L"sub-outline-size",
             L"sub-shadow-offset", L"sub-spacing", L"sub-blur", L"sub-gauss",
             L"volume", L"audio-file-auto", L"volume-max",
-            L"audio-pitch-correction", L"audio-device", L"audio-exclusive",
-            L"deinterlace"
+            L"audio-pitch-correction", L"audio-channels", L"audio-spdif",
+            L"audio-device", L"audio-exclusive", L"deinterlace"
         };
 
         const std::set<std::wstring> IgnoredImportedOptions = {

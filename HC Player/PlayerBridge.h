@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <winrt/Microsoft.UI.Xaml.h>
 
 #include "ShaderManager.h"
 
@@ -179,6 +180,10 @@ bool PlayerGetWebCacheEnd(double& cacheEndSeconds);
 void PlayerUpdateWebBufferingIndicator();
 bool PlayerGetCurrentAudioArtist(std::wstring& artist);
 std::wstring PlayerGetMediaTitle();
+void PlayerRefreshWindowTitle(std::wstring const& resolvedMediaTitle);
+bool PlayerGetMediaInfoSourcePath(
+    std::wstring& path,
+    std::wstring& error);
 bool PlayerGetMediaInfoReport(std::wstring& report, std::wstring& error);
 bool PlayerGetMediaInfoAnalysis(
     MediaInfoBridge::Analysis& analysis,
@@ -187,11 +192,15 @@ std::vector<MediaChapterOption> PlayerGetMediaChapters();
 std::vector<MediaEditionOption> PlayerGetMediaEditions();
 bool PlayerSelectMediaEdition(bool discTitle, int64_t id);
 std::vector<MediaPlaylistItem> PlayerGetPlaylistItems();
+bool PlayerTakePlaylistWebLimitNotice();
+bool PlayerTakePlaylistMaximumNotice();
+void PlayerMaintainPlaylistLimits();
 bool PlayerPlayPlaylistItem(int64_t index);
 bool PlayerRemovePlaylistItem(int64_t index);
 bool PlayerClearPlaylistExceptCurrent();
 bool PlayerMovePlaylistItem(int64_t fromIndex, int64_t finalIndex);
 bool PlayerAddPlaylistFiles(std::vector<std::wstring> const& paths);
+bool PlayerAddPlaylistUrl(std::wstring const& url);
 bool PlayerAddPlaylistFilesFromDialog();
 bool PlayerAddPlaylistFolderFromDialog();
 double PlayerGetPlaybackSpeed();
@@ -213,12 +222,19 @@ void PlayerShowMediaInfo();
 void PlayerCloseMediaInfo();
 void PlayerShowPlaylist();
 void PlayerClosePlaylist();
+void PlayerShowYouTubeComments();
+void PlayerCloseYouTubeComments();
 void* PlayerGetMainWindowHandle();
+winrt::Microsoft::UI::Xaml::XamlRoot PlayerBeginModalDialogHost();
+void PlayerEndModalDialogHost();
+void PlayerConfigureOpenSubtitles();
 void PlayerShowOpenDialog();
 void PlayerShowOpenFolderDialog();
 void PlayerShowOpenDiscImageDialog(bool bluray);
 void PlayerShowAddExternalAudioDialog();
 void PlayerShowAddExternalSubtitleDialog();
+std::wstring PlayerGetCurrentMediaPath();
+bool PlayerLoadExternalSubtitle(std::wstring const& path);
 bool PlayerOpenClipboardMedia();
 bool PlayerOpenDroppedMedia(std::vector<std::wstring> const& items);
 void PlayerCloseContextMenu();
@@ -236,6 +252,7 @@ std::wstring PlayerGetActiveImportedProfile();
 ImportedMpvConfig PlayerGetImportedConfig();
 void PlayerSetTransportVisible(bool visible);
 void PlayerSetTransportHostVisible(bool visible);
+void PlayerSetPipMediaKindVisualTransition(bool active);
 void PlayerRefreshTransportLayout();
 void PlayerSetTransportFlyoutOpen(bool open);
 void PlayerSetTransportCompact(bool compact);
@@ -254,6 +271,7 @@ bool PlayerImportCustomBadgeSet(
     std::wstring const& sourceFolder,
     int& importedCount,
     std::wstring& error);
+void PlayerRefreshCustomBadgeVisuals();
 bool PlayerResetCustomBadgeSet(std::wstring& error);
 bool PlayerImportCustomBadgeFile(
     std::wstring const& sourceFile,
@@ -315,4 +333,3 @@ bool PlayerUpdateImportedOption(
     std::wstring const& name,
     std::wstring const& value,
     bool profile);
-

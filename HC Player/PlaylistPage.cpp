@@ -13,6 +13,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cwctype>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -21,12 +23,51 @@ using namespace winrt;
 
 namespace
 {
+    constexpr size_t PlaylistVisualWindowSize = 40;
+
     std::wstring PlaylistString(
         std::wstring_view resourceId,
         std::wstring_view fallback)
     {
         return hc::localization::GetString(resourceId, fallback);
     }
+
+    std::wstring TrimPlaylistUrl(std::wstring value)
+    {
+        auto const first = std::find_if_not(
+            value.begin(), value.end(),
+            [](wchar_t ch) { return iswspace(ch) != 0; });
+        auto const last = std::find_if_not(
+            value.rbegin(), value.rend(),
+            [](wchar_t ch) { return iswspace(ch) != 0; }).base();
+        if (first >= last) return {};
+        return std::wstring(first, last);
+    }
+
+    bool IsPlaylistHttpUrl(std::wstring const& value)
+    {
+        if (value.find_first_of(L"\r\n") != std::wstring::npos) return false;
+        std::wstring lower = value;
+        std::transform(lower.begin(), lower.end(), lower.begin(), towlower);
+        if (lower.starts_with(L"http://")) return lower.size() > 7;
+        if (lower.starts_with(L"https://")) return lower.size() > 8;
+        return false;
+    }
+
+    struct PlaylistModalHostGuard
+    {
+        winrt::Microsoft::UI::Xaml::XamlRoot root{ nullptr };
+
+        PlaylistModalHostGuard()
+            : root(PlayerBeginModalDialogHost())
+        {
+        }
+
+        ~PlaylistModalHostGuard()
+        {
+            if (root) PlayerEndModalDialogHost();
+        }
+    };
 }
 
 namespace winrt::HCPlayer::implementation
@@ -42,6 +83,18 @@ namespace winrt::HCPlayer::implementation
         m_refreshTimer = Microsoft::UI::Xaml::DispatcherTimer{};
         m_refreshTimer.Interval(std::chrono::milliseconds(700));
         m_refreshTimer.Tick({ this, &PlaylistPage::RefreshTimerTick });
+
+        // One shared context flyout for the whole page. Do not attach/create a
+        // separate MenuFlyout per row: even very large local queues keep only
+        // this single lightweight menu object alive.
+        m_selectionContextMenu = Microsoft::UI::Xaml::Controls::MenuFlyout{};
+        m_selectionContextRemoveItem =
+            Microsoft::UI::Xaml::Controls::MenuFlyoutItem{};
+        m_selectionContextRemoveItem.Click([this](auto const&, auto const&)
+        {
+            RemoveSelectedItems();
+        });
+        m_selectionContextMenu.Items().Append(m_selectionContextRemoveItem);
     }
 
     void PlaylistPage::PlaylistLoaded(
@@ -53,6 +106,7 @@ namespace winrt::HCPlayer::implementation
     void PlaylistPage::PrepareForOpen()
     {
         m_closing = false;
+        ClearItemSelection();
 
         RequestedTheme(PlayerIsLightTheme()
             ? Microsoft::UI::Xaml::ElementTheme::Light
@@ -61,6 +115,9 @@ namespace winrt::HCPlayer::implementation
         PlaylistRoot().IsHitTestVisible(true);
         PlaylistTranslate().X(0.0);
         PlaylistRoot().Opacity(1.0);
+        WebLimitNoticeBanner().Visibility(
+            Microsoft::UI::Xaml::Visibility::Collapsed);
+        m_webLimitNoticeTicksRemaining = 0;
         SetExternalDropActive(false);
 
         auto visual =
@@ -81,6 +138,9 @@ namespace winrt::HCPlayer::implementation
         contentVisual.StopAnimation(L"Opacity");
         contentVisual.Opacity(0.88f);
 
+        m_visualWindowStart = 0;
+        m_lastCurrentIndex = -1;
+        m_showLastWindowOnNextRefresh = false;
         m_hasSnapshot = false;
         m_lastSignature.clear();
         RefreshList();
@@ -90,6 +150,9 @@ namespace winrt::HCPlayer::implementation
     void PlaylistPage::PrepareForClose()
     {
         m_refreshTimer.Stop();
+        m_webLimitNoticeTicksRemaining = 0;
+        WebLimitNoticeBanner().Visibility(
+            Microsoft::UI::Xaml::Visibility::Collapsed);
         SetExternalDropActive(false);
         CancelReorderDrag();
     }
@@ -116,6 +179,7 @@ namespace winrt::HCPlayer::implementation
         // mpv has already mutated its native playlist. Invalidate the cached
         // visual signature so the newly appended rows appear immediately rather
         // than waiting for the periodic read-only refresh tick.
+        m_showLastWindowOnNextRefresh = true;
         m_hasSnapshot = false;
         RefreshList();
     }
@@ -322,10 +386,11 @@ namespace winrt::HCPlayer::implementation
             return false;
         }
 
-        // m_dragDropSlot is a boundary in the original list: 0 is before the
-        // first row and count is after the last. Removing a source above that
-        // boundary shifts the desired final index one position to the left.
-        int64_t finalIndex = static_cast<int64_t>(m_dragDropSlot);
+        // m_dragDropSlot is a boundary in the visible window. Translate it
+        // back to the real mpv playlist boundary before applying the existing
+        // remove-shift correction.
+        int64_t finalIndex = static_cast<int64_t>(m_visualWindowStart) +
+            static_cast<int64_t>(m_dragDropSlot);
         if (m_dragSourceIndex < finalIndex) --finalIndex;
         finalIndex = (std::max)(int64_t{ 0 },
             (std::min)(finalIndex,
@@ -333,6 +398,63 @@ namespace winrt::HCPlayer::implementation
 
         if (finalIndex == m_dragSourceIndex) return true;
         return PlayerMovePlaylistItem(m_dragSourceIndex, finalIndex);
+    }
+
+    bool PlaylistPage::IsItemSelected(
+        int64_t index,
+        std::wstring const& filename) const
+    {
+        return std::any_of(
+            m_selectedItems.begin(), m_selectedItems.end(),
+            [index, &filename](SelectedItem const& selected)
+            {
+                return selected.index == index && selected.filename == filename;
+            });
+    }
+
+    void PlaylistPage::ToggleItemSelection(
+        int64_t index,
+        std::wstring const& filename)
+    {
+        auto const selected = std::find_if(
+            m_selectedItems.begin(), m_selectedItems.end(),
+            [index, &filename](SelectedItem const& candidate)
+            {
+                return candidate.index == index && candidate.filename == filename;
+            });
+
+        if (selected != m_selectedItems.end())
+        {
+            m_selectedItems.erase(selected);
+        }
+        else
+        {
+            m_selectedItems.push_back(SelectedItem{ index, filename });
+        }
+    }
+
+    void PlaylistPage::ClearItemSelection()
+    {
+        m_selectedItems.clear();
+    }
+
+    void PlaylistPage::PruneItemSelection(
+        std::vector<MediaPlaylistItem> const& playlist)
+    {
+        m_selectedItems.erase(
+            std::remove_if(
+                m_selectedItems.begin(), m_selectedItems.end(),
+                [&playlist](SelectedItem const& selected)
+                {
+                    return std::none_of(
+                        playlist.begin(), playlist.end(),
+                        [&selected](MediaPlaylistItem const& item)
+                        {
+                            return item.index == selected.index &&
+                                item.filename == selected.filename;
+                        });
+                }),
+            m_selectedItems.end());
     }
 
     Microsoft::UI::Xaml::Controls::Grid PlaylistPage::CreateItemButton(
@@ -366,6 +488,9 @@ namespace winrt::HCPlayer::implementation
         button.Resources().Insert(
             box_value(L"ButtonBorderBrushPressed"), transparentButtonBrush);
 
+        bool const selected =
+            IsItemSelected(item.index, item.filename);
+
         auto card = Border{};
         card.CornerRadius(Microsoft::UI::Xaml::CornerRadius{ 10.0 });
 
@@ -373,7 +498,7 @@ namespace winrt::HCPlayer::implementation
             box_value(PlayerIsLightTheme() ? L"Light" : L"Dark"))
             .as<ResourceDictionary>();
         card.Background(
-            item.current
+            item.current || selected
                 ? Resources().Lookup(box_value(L"PlaylistCurrentBrush")).as<Brush>()
                 : theme.Lookup(box_value(L"PlaylistCardBrush")).as<Brush>());
 
@@ -400,8 +525,9 @@ namespace winrt::HCPlayer::implementation
         grid.ColumnDefinitions().GetAt(2).Width(GridLengthHelper::Auto());
 
         auto indexText = TextBlock{};
-        std::wstring indexLabel =
-            item.current ? L"\u25B6" : std::to_wstring(displayIndex);
+        std::wstring indexLabel = selected
+            ? L"\u2713"
+            : (item.current ? L"\u25B6" : std::to_wstring(displayIndex));
         indexText.Text(indexLabel);
         indexText.FontFamily(Microsoft::UI::Xaml::Media::FontFamily{ L"Segoe UI Variable Text" });
         indexText.FontSize(item.current ? 12.0 : 12.5);
@@ -604,6 +730,7 @@ namespace winrt::HCPlayer::implementation
             }
 
             CancelReorderDrag();
+            ClearItemSelection();
             m_reorderDragging = true;
             m_dragSourceIndex = index;
             m_dragSourceFilename = expectedFilename;
@@ -795,8 +922,26 @@ namespace winrt::HCPlayer::implementation
             removeGlyph.Opacity(0.72);
         });
 
-        button.Click([this, index, current](auto const&, auto const&)
+        button.Click([this, index, current, expectedFilename](
+            auto const&, auto const&)
         {
+            // Ctrl+click is an additive/removal selection gesture only. It never
+            // changes playback.
+            bool const ctrlPressed = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+            if (ctrlPressed)
+            {
+                ToggleItemSelection(index, expectedFilename);
+                m_hasSnapshot = false;
+                RefreshList();
+                return;
+            }
+
+            // A normal click keeps the established Play/Pause/switch behavior.
+            // If a batch selection was active, dismiss it first so an old
+            // destructive selection can never linger behind normal navigation.
+            bool const clearedSelection = !m_selectedItems.empty();
+            if (clearedSelection) ClearItemSelection();
+
             if (current)
             {
                 // Reuse HC Player's established playback controls instead of
@@ -820,6 +965,11 @@ namespace winrt::HCPlayer::implementation
                     m_hasSnapshot = false;
                     RefreshList();
                 }
+                else if (clearedSelection)
+                {
+                    m_hasSnapshot = false;
+                    RefreshList();
+                }
                 return;
             }
 
@@ -828,6 +978,35 @@ namespace winrt::HCPlayer::implementation
                 m_hasSnapshot = false;
                 RefreshList();
             }
+            else if (clearedSelection)
+            {
+                m_hasSnapshot = false;
+                RefreshList();
+            }
+        });
+
+        rowHost.RightTapped(
+            [this, index, expectedFilename, rowHost](
+                auto const&,
+                Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& args)
+        {
+            // Context removal is intentionally selection-only. Right-clicking
+            // an unselected row never changes playback or selection. The flyout
+            // itself is shared by every row.
+            if (m_closing || m_reorderDragging ||
+                !IsItemSelected(index, expectedFilename) ||
+                m_selectedItems.empty())
+            {
+                return;
+            }
+
+            std::wstring label = PlaylistString(
+                L"PlaylistRemoveSelectedLabel", L"Remover selecionados");
+            label += L" (" + std::to_wstring(m_selectedItems.size()) + L")";
+            m_selectionContextRemoveItem.Text(label);
+            m_selectionContextRemoveItem.IsEnabled(true);
+            m_selectionContextMenu.ShowAt(rowHost);
+            args.Handled(true);
         });
 
         removeButton.Click([this, index, expectedFilename](auto const&, auto const&)
@@ -855,6 +1034,8 @@ namespace winrt::HCPlayer::implementation
             {
                 // mpv owns the post-remove behavior, including advancing when
                 // the current item is removed. Re-read its playlist immediately.
+                // Any batch selection is cleared because later indexes may shift.
+                ClearItemSelection();
                 m_hasSnapshot = false;
                 RefreshList();
             }
@@ -871,6 +1052,104 @@ namespace winrt::HCPlayer::implementation
         if (m_reorderDragging) return;
 
         auto playlist = PlayerGetPlaylistItems();
+
+        // Playlist guards run before the snapshot is materialized. Surface any
+        // one-shot YouTube-window or universal-queue-limit notice through the
+        // existing single header banner, without adding work to the card tree.
+        bool const maximumNotice = PlayerTakePlaylistMaximumNotice();
+        bool const webLimitNotice = PlayerTakePlaylistWebLimitNotice();
+        if (maximumNotice || webLimitNotice)
+        {
+            WebLimitNoticeText().Text(maximumNotice
+                ? PlaylistString(
+                    L"PlaylistMaximumNotice",
+                    L"A fila atingiu o limite de 1000 itens. Alguns itens não puderam ser adicionados")
+                : PlaylistString(
+                    L"PlaylistWebLimitNotice",
+                    L"Playlists do YouTube são limitadas a 30 vídeos por vez"));
+            WebLimitNoticeBanner().Visibility(
+                Microsoft::UI::Xaml::Visibility::Visible);
+            m_webLimitNoticeTicksRemaining = 15;
+        }
+
+        // Normal mpv playlists retain every item logically, but only a
+        // 40-row visual window is materialized in XAML.
+        size_t windowStart = 0;
+        size_t windowEnd = playlist.size();
+
+        auto const currentIt = std::find_if(
+            playlist.begin(), playlist.end(),
+            [](MediaPlaylistItem const& item) { return item.current; });
+        int64_t const currentIndex = currentIt != playlist.end()
+            ? currentIt->index
+            : -1;
+
+        if (m_showLastWindowOnNextRefresh && !playlist.empty())
+        {
+            m_visualWindowStart =
+                ((playlist.size() - 1) / PlaylistVisualWindowSize) *
+                PlaylistVisualWindowSize;
+            m_showLastWindowOnNextRefresh = false;
+        }
+        else if (currentIt != playlist.end() &&
+            currentIndex != m_lastCurrentIndex)
+        {
+            size_t const currentPosition = static_cast<size_t>(
+                std::distance(playlist.begin(), currentIt));
+            m_visualWindowStart =
+                (currentPosition / PlaylistVisualWindowSize) *
+                PlaylistVisualWindowSize;
+        }
+
+        m_lastCurrentIndex = currentIndex;
+
+        if (playlist.empty())
+        {
+            m_visualWindowStart = 0;
+        }
+        else
+        {
+            size_t const lastWindowStart =
+                ((playlist.size() - 1) / PlaylistVisualWindowSize) *
+                PlaylistVisualWindowSize;
+            m_visualWindowStart =
+                (std::min)(m_visualWindowStart, lastWindowStart);
+        }
+
+        windowStart = m_visualWindowStart;
+        windowEnd = (std::min)(
+            playlist.size(), windowStart + PlaylistVisualWindowSize);
+
+        bool const windowed = playlist.size() > PlaylistVisualWindowSize;
+        PlaylistWindowPager().Visibility(windowed
+            ? Microsoft::UI::Xaml::Visibility::Visible
+            : Microsoft::UI::Xaml::Visibility::Collapsed);
+        PreviousWindowButton().IsEnabled(windowStart > 0);
+        NextWindowButton().IsEnabled(windowEnd < playlist.size());
+        if (windowed)
+        {
+            PlaylistWindowRangeText().Text(
+                std::to_wstring(windowStart + 1) + L"–" +
+                std::to_wstring(windowEnd) + L" / " +
+                std::to_wstring(playlist.size()));
+        }
+
+        PruneItemSelection(playlist);
+
+        auto const selectedCount = m_selectedItems.size();
+        RemoveSelectedMenuItem().Visibility(selectedCount > 0
+            ? Microsoft::UI::Xaml::Visibility::Visible
+            : Microsoft::UI::Xaml::Visibility::Collapsed);
+        RemoveSelectedMenuItem().IsEnabled(selectedCount > 0);
+        m_selectionContextRemoveItem.IsEnabled(selectedCount > 0);
+        if (selectedCount > 0)
+        {
+            std::wstring removeSelectedText = PlaylistString(
+                L"PlaylistRemoveSelectedLabel", L"Remover selecionados");
+            removeSelectedText += L" (" + std::to_wstring(selectedCount) + L")";
+            RemoveSelectedMenuItem().Text(removeSelectedText);
+            m_selectionContextRemoveItem.Text(removeSelectedText);
+        }
 
         // The overflow now contains both a non-destructive folder append and the
         // queue-clear action. Keep the menu itself available at all times, but
@@ -897,6 +1176,8 @@ namespace winrt::HCPlayer::implementation
         // This keeps hover/scroll stable while still reflecting Next/Previous,
         // shell launches and other playlist changes made outside this panel.
         std::wstring signature;
+        signature += L"window=" + std::to_wstring(windowStart) + L"|" +
+            std::to_wstring(windowEnd) + L"\n";
         signature += paused ? L"pause=1|" : L"pause=0|";
         signature += eofReached ? L"eof=1\n" : L"eof=0\n";
         for (auto const& item : playlist)
@@ -934,11 +1215,12 @@ namespace winrt::HCPlayer::implementation
             return;
         }
 
-        int displayIndex = 1;
-        for (auto const& item : playlist)
+        for (size_t position = windowStart; position < windowEnd; ++position)
         {
             host.Children().Append(CreateItemButton(
-                item, displayIndex++, paused, eofReached));
+                playlist[position],
+                static_cast<int>(position + 1),
+                paused, eofReached));
         }
     }
 
@@ -946,6 +1228,16 @@ namespace winrt::HCPlayer::implementation
         Windows::Foundation::IInspectable const&,
         Windows::Foundation::IInspectable const&)
     {
+        if (m_webLimitNoticeTicksRemaining > 0)
+        {
+            --m_webLimitNoticeTicksRemaining;
+            if (m_webLimitNoticeTicksRemaining == 0)
+            {
+                WebLimitNoticeBanner().Visibility(
+                    Microsoft::UI::Xaml::Visibility::Collapsed);
+            }
+        }
+
         if (!m_closing && !m_reorderDragging)
         {
             RefreshList();
@@ -961,6 +1253,97 @@ namespace winrt::HCPlayer::implementation
         // afterwards, keeping queue UI state separate from playback ownership.
         if (PlayerAddPlaylistFilesFromDialog())
         {
+            m_showLastWindowOnNextRefresh = true;
+            m_hasSnapshot = false;
+            RefreshList();
+        }
+    }
+
+    winrt::fire_and_forget PlaylistPage::AddUrlClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        auto lifetime = get_strong();
+        if (m_closing || m_reorderDragging)
+            co_return;
+
+        using namespace Microsoft::UI::Xaml;
+        using namespace Microsoft::UI::Xaml::Controls;
+
+        PlaylistModalHostGuard modalHost;
+        auto const root = modalHost.root
+            ? modalHost.root
+            : PlaylistSurfaceHost().XamlRoot();
+        if (!root) co_return;
+
+        ContentDialog dialog{};
+        dialog.XamlRoot(root);
+        dialog.RequestedTheme(PlayerIsLightTheme()
+            ? ElementTheme::Light
+            : ElementTheme::Dark);
+        dialog.Title(winrt::box_value(winrt::hstring{ PlaylistString(
+            L"PlaylistAddUrlDialogTitle",
+            L"Adicionar URL à fila") }));
+        dialog.PrimaryButtonText(winrt::hstring{ PlaylistString(
+            L"PlaylistAddUrlPrimaryButton",
+            L"Adicionar") });
+        dialog.CloseButtonText(winrt::hstring{ PlaylistString(
+            L"PlaylistAddUrlCancelButton",
+            L"Cancelar") });
+        dialog.DefaultButton(ContentDialogButton::Primary);
+
+        StackPanel content{};
+        content.Spacing(8.0);
+
+        TextBlock hint{};
+        hint.Text(PlaylistString(
+            L"PlaylistAddUrlHint",
+            L"Cole uma URL HTTP/HTTPS do YouTube, HLS (.m3u8) ou mídia web."));
+        hint.TextWrapping(TextWrapping::Wrap);
+        hint.Opacity(0.72);
+
+        TextBox input{};
+        input.PlaceholderText(L"https://");
+        input.AcceptsReturn(false);
+
+        TextBlock validation{};
+        validation.Text(PlaylistString(
+            L"PlaylistAddUrlInvalid",
+            L"Informe uma URL válida iniciando com http:// ou https://."));
+        validation.TextWrapping(TextWrapping::Wrap);
+        validation.Visibility(Visibility::Collapsed);
+
+        content.Children().Append(hint);
+        content.Children().Append(input);
+        content.Children().Append(validation);
+        dialog.Content(content);
+
+        dialog.PrimaryButtonClick(
+            [input, validation](ContentDialog const&,
+                ContentDialogButtonClickEventArgs const& args)
+            {
+                auto const value = TrimPlaylistUrl(input.Text().c_str());
+                if (!IsPlaylistHttpUrl(value))
+                {
+                    args.Cancel(true);
+                    validation.Visibility(Visibility::Visible);
+                    input.Focus(FocusState::Programmatic);
+                }
+            });
+
+        dialog.Opened(
+            [input](ContentDialog const&, ContentDialogOpenedEventArgs const&)
+            {
+                input.Focus(FocusState::Programmatic);
+            });
+
+        auto const result = co_await dialog.ShowAsync();
+        if (result != ContentDialogResult::Primary) co_return;
+
+        auto const url = TrimPlaylistUrl(input.Text().c_str());
+        if (PlayerAddPlaylistUrl(url))
+        {
+            m_showLastWindowOnNextRefresh = true;
             m_hasSnapshot = false;
             RefreshList();
         }
@@ -976,6 +1359,7 @@ namespace winrt::HCPlayer::implementation
         // only requests the append and refreshes its read-only mpv snapshot.
         if (PlayerAddPlaylistFolderFromDialog())
         {
+            m_showLastWindowOnNextRefresh = true;
             m_hasSnapshot = false;
             RefreshList();
         }
@@ -992,9 +1376,172 @@ namespace winrt::HCPlayer::implementation
         // stale indexes or risks removing/reloading the file that is playing.
         if (PlayerClearPlaylistExceptCurrent())
         {
+            ClearItemSelection();
             m_hasSnapshot = false;
             RefreshList();
         }
+    }
+
+    bool PlaylistPage::RemoveSelectedItems()
+    {
+        if (m_closing || m_reorderDragging || m_selectedItems.empty())
+        {
+            return false;
+        }
+
+        // Validate the captured identities against mpv immediately before the
+        // destructive operation. Duplicate filenames are safe because selection
+        // identity is the exact index+filename pair from the visible snapshot.
+        auto const livePlaylist = PlayerGetPlaylistItems();
+        std::vector<SelectedItem> removable;
+        removable.reserve(m_selectedItems.size());
+        for (auto const& selected : m_selectedItems)
+        {
+            auto const liveItem = std::find_if(
+                livePlaylist.begin(), livePlaylist.end(),
+                [&selected](MediaPlaylistItem const& item)
+                {
+                    return item.index == selected.index &&
+                        item.filename == selected.filename;
+                });
+            if (liveItem != livePlaylist.end())
+                removable.push_back(selected);
+        }
+
+        // Removing from the highest index down prevents every earlier target
+        // from shifting underneath us, including when the current item is among
+        // the selected rows and mpv advances playback after its removal.
+        std::sort(
+            removable.begin(), removable.end(),
+            [](SelectedItem const& left, SelectedItem const& right)
+            {
+                return left.index > right.index;
+            });
+
+        for (auto const& selected : removable)
+        {
+            // Re-check the exact row before each command. This costs little for
+            // HC Player's small visible queue and avoids deleting the wrong item
+            // if an external mpv action changed the playlist between commands.
+            auto const currentPlaylist = PlayerGetPlaylistItems();
+            auto const currentItem = std::find_if(
+                currentPlaylist.begin(), currentPlaylist.end(),
+                [&selected](MediaPlaylistItem const& item)
+                {
+                    return item.index == selected.index &&
+                        item.filename == selected.filename;
+                });
+            if (currentItem == currentPlaylist.end()) continue;
+
+            PlayerRemovePlaylistItem(selected.index);
+        }
+
+        ClearItemSelection();
+        m_hasSnapshot = false;
+        RefreshList();
+        return true;
+    }
+
+    void PlaylistPage::RemoveSelectedClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        RemoveSelectedItems();
+    }
+
+    void PlaylistPage::PreviousWindowClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        if (m_closing || m_reorderDragging || m_visualWindowStart == 0)
+        {
+            return;
+        }
+
+        m_visualWindowStart = m_visualWindowStart > PlaylistVisualWindowSize
+            ? m_visualWindowStart - PlaylistVisualWindowSize
+            : 0;
+        m_hasSnapshot = false;
+        RefreshList();
+        PlaylistScrollViewer().ChangeView(nullptr, 0.0, nullptr, true);
+    }
+
+    void PlaylistPage::NextWindowClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        if (m_closing || m_reorderDragging) return;
+
+        auto const playlist = PlayerGetPlaylistItems();
+        size_t const nextStart = m_visualWindowStart + PlaylistVisualWindowSize;
+        if (nextStart >= playlist.size()) return;
+
+        m_visualWindowStart = nextStart;
+        m_hasSnapshot = false;
+        RefreshList();
+        PlaylistScrollViewer().ChangeView(nullptr, 0.0, nullptr, true);
+    }
+
+    void PlaylistPage::PlaylistKeyDown(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::Input::KeyRoutedEventArgs const& args)
+    {
+        // Never steal editing shortcuts from a text editor. The playlist panel
+        // itself has no editor, but the URL dialog (and any future inline field)
+        // must keep native Ctrl+A/Delete text behavior while it owns focus.
+        auto const focused = Microsoft::UI::Xaml::Input::FocusManager::
+            GetFocusedElement(XamlRoot());
+        if (focused &&
+            (focused.try_as<Microsoft::UI::Xaml::Controls::TextBox>() ||
+             focused.try_as<Microsoft::UI::Xaml::Controls::PasswordBox>() ||
+             focused.try_as<Microsoft::UI::Xaml::Controls::RichEditBox>()))
+        {
+            return;
+        }
+
+        bool const ctrlPressed = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+        bool const altPressed = (GetKeyState(VK_MENU) & 0x8000) != 0;
+        if (args.Key() == Windows::System::VirtualKey::A &&
+            ctrlPressed && !altPressed)
+        {
+            // Ctrl+A is deliberately scoped to the currently materialized
+            // 40-row window. Replace any prior cross-window selection so a
+            // second Ctrl+A can never silently accumulate another page. The
+            // existing batch-delete path remains the only destructive action.
+            if (m_closing || m_reorderDragging) return;
+
+            auto const playlist = PlayerGetPlaylistItems();
+            if (playlist.empty()) return;
+
+            size_t const windowStart = (std::min)(
+                m_visualWindowStart, playlist.size());
+            size_t const windowEnd = (std::min)(
+                playlist.size(), windowStart + PlaylistVisualWindowSize);
+            if (windowStart >= windowEnd) return;
+
+            ClearItemSelection();
+            m_selectedItems.reserve(windowEnd - windowStart);
+            for (size_t position = windowStart;
+                position < windowEnd; ++position)
+            {
+                auto const& item = playlist[position];
+                m_selectedItems.push_back(SelectedItem{
+                    item.index, item.filename });
+            }
+
+            m_hasSnapshot = false;
+            RefreshList();
+            args.Handled(true);
+            return;
+        }
+
+        if (args.Key() != Windows::System::VirtualKey::Delete ||
+            m_selectedItems.empty())
+        {
+            return;
+        }
+
+        if (RemoveSelectedItems()) args.Handled(true);
     }
 
     void PlaylistPage::CloseClicked(

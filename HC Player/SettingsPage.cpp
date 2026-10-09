@@ -6,6 +6,8 @@
 
 #include <shobjidl.h>
 #include <dwrite_3.h>
+#include <array>
+#include <cwctype>
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -14,12 +16,93 @@
 #include <set>
 #include <sstream>
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
+#include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.System.h>
+#include <winrt/Windows.Web.Http.h>
+#include <winrt/Windows.Web.Http.Headers.h>
 
 #pragma comment(lib, "dwrite.lib")
 
 namespace
 {
+    constexpr wchar_t AppVersion[] = L"1.5.0";
+
+    std::wstring NormalizeVersionString(std::wstring_view value)
+    {
+        std::wstring normalized;
+        bool started = false;
+        for (wchar_t ch : value)
+        {
+            if (!started && (ch == L'v' || ch == L'V' || iswspace(ch)))
+            {
+                continue;
+            }
+
+            if (iswdigit(ch))
+            {
+                normalized.push_back(ch);
+                started = true;
+                continue;
+            }
+
+            if (started && ch == L'.')
+            {
+                normalized.push_back(ch);
+                continue;
+            }
+
+            if (started)
+            {
+                break;
+            }
+        }
+        return normalized;
+    }
+
+    std::array<int, 4> ParseVersionParts(std::wstring_view value)
+    {
+        std::array<int, 4> parts{};
+        size_t start = 0;
+        size_t index = 0;
+        while (start < value.size() && index < parts.size())
+        {
+            size_t end = value.find(L'.', start);
+            std::wstring_view token = end == std::wstring_view::npos
+                ? value.substr(start)
+                : value.substr(start, end - start);
+            if (!token.empty())
+            {
+                try
+                {
+                    parts[index] = std::stoi(std::wstring(token));
+                }
+                catch (...)
+                {
+                    parts[index] = 0;
+                }
+            }
+            ++index;
+            if (end == std::wstring_view::npos)
+            {
+                break;
+            }
+            start = end + 1;
+        }
+        return parts;
+    }
+
+    int CompareVersions(std::wstring_view left, std::wstring_view right)
+    {
+        auto const leftParts = ParseVersionParts(left);
+        auto const rightParts = ParseVersionParts(right);
+        for (size_t i = 0; i < leftParts.size(); ++i)
+        {
+            if (leftParts[i] < rightParts[i]) return -1;
+            if (leftParts[i] > rightParts[i]) return 1;
+        }
+        return 0;
+    }
+
     winrt::fire_and_forget OpenHCPlayerDefaultAppsSettingsAsync()
     {
         try
@@ -362,6 +445,20 @@ namespace
     }
 
 
+    void ApplyLocalizedToggleText(
+        winrt::Microsoft::UI::Xaml::Controls::ToggleSwitch const& toggle)
+    {
+        // Changing the application language already requires a restart, so
+        // resolve these two PRI strings only once per process.
+        static std::wstring const onText =
+            SettingsResource(L"SettingsToggleOn", L"Ativado");
+        static std::wstring const offText =
+            SettingsResource(L"SettingsToggleOff", L"Desativado");
+        toggle.OnContent(winrt::box_value(onText));
+        toggle.OffContent(winrt::box_value(offText));
+    }
+
+
     std::wstring LocalizeSettingsMessage(std::wstring const& message)
     {
         if (message.empty()) return {};
@@ -417,9 +514,15 @@ namespace
         {
             if (message.ends_with(suffix))
             {
-                return LocalizeSettingsMessage(
-                    message.substr(0, message.size() - suffix.size())) +
-                    T(suffix);
+                std::wstring localizedBase = LocalizeSettingsMessage(
+                    message.substr(0, message.size() - suffix.size()));
+                std::wstring localizedSuffix = T(suffix);
+                if (localizedBase.ends_with(L'.') &&
+                    localizedSuffix.starts_with(L'.'))
+                {
+                    localizedSuffix.erase(0, 1);
+                }
+                return localizedBase + localizedSuffix;
             }
         }
 
@@ -453,6 +556,8 @@ namespace
                     localized += message.substr(countStart, countLength);
                     localized += T(ignoredSuffix);
                 }
+                if (!localized.ends_with(L'.'))
+                    localized += L'.';
                 return localized;
             }
         }
@@ -558,7 +663,7 @@ namespace
 #else
         return SettingsResource(
             L"SettingsAboutStableBuild",
-            L"Estável • Agosto de 2026");
+            L"Estável • Outubro de 2026");
 #endif
     }
 
@@ -756,6 +861,8 @@ namespace winrt::HCPlayer::implementation
         RefreshAboutInfo();
         UpdateTemporalScalerAvailability();
         SyncLiveRuntimeStates();
+        UpdateOnlineSubtitlesCardState();
+        UpdateYouTubeCommentsCardState();
 
         // Always-on-top is a live window state shared with Ctrl+T and the
         // context menu. Re-sync the Toggle every time Settings opens so this
@@ -1031,6 +1138,8 @@ namespace winrt::HCPlayer::implementation
         RestoreSavedControls(SettingsRoot());
         SyncLiveRuntimeStates();
         UpdateTemporalScalerAvailability();
+        UpdateOnlineSubtitlesCardState();
+        UpdateYouTubeCommentsCardState();
 
         std::wstring savedCardStyle = L"hcplayer";
         PlayerTryGetSavedMpvOption(L"ui-card-style", savedCardStyle);
@@ -1053,8 +1162,6 @@ namespace winrt::HCPlayer::implementation
 
     void SettingsPage::RefreshAboutInfo()
     {
-        constexpr wchar_t AppVersion[] = L"1.0";
-
         PlayerEngineVersionInfo const engine = PlayerGetEngineVersionInfo();
         std::wstring const architecture = AboutArchitecture();
         std::wstring const buildType = AboutBuildType();
@@ -1099,7 +1206,7 @@ namespace winrt::HCPlayer::implementation
         RefreshAboutInfo();
 
         std::wostringstream text;
-        text << L"HC Player 1.0\r\n"
+        text << L"HC Player " << AppVersion << L"\r\n"
             << T(L"Arquitetura: ") << AboutArchitectureText().Text().c_str() << L"\r\n"
             << T(L"Compilação: ") << AboutBuildText().Text().c_str() << L"\r\n"
             << T(L"Interface: WinUI 3 / Windows App SDK 2.4.0") << L"\r\n"
@@ -1121,6 +1228,119 @@ namespace winrt::HCPlayer::implementation
         AboutCopyStatus().Severity(
             Microsoft::UI::Xaml::Controls::InfoBarSeverity::Success);
         AboutCopyStatus().IsOpen(true);
+    }
+
+    void SettingsPage::CheckForUpdatesClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        CheckForUpdatesAsync();
+    }
+
+    winrt::fire_and_forget SettingsPage::CheckForUpdatesAsync()
+    {
+        auto lifetime = get_strong();
+        using namespace winrt::Windows::Foundation;
+        using namespace winrt::Windows::System;
+        using namespace winrt::Windows::Web::Http;
+        using namespace winrt::Windows::Data::Json;
+
+        AboutCopyStatus().IsOpen(false);
+        AboutUpdateStatus().IsOpen(false);
+        AboutCheckUpdatesButton().IsEnabled(false);
+        AboutUpdateProgressRing().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
+        AboutUpdateProgressRing().IsActive(true);
+        AboutUpdateButtonIcon().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+        AboutUpdateButtonText().Text(T(L"Verificando..."));
+
+        auto restoreButton = [this]()
+        {
+            AboutUpdateProgressRing().IsActive(false);
+            AboutUpdateProgressRing().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+            AboutUpdateButtonIcon().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
+            AboutUpdateButtonText().Text(T(L"Verificar atualizações"));
+            AboutCheckUpdatesButton().IsEnabled(true);
+        };
+
+        try
+        {
+            HttpClient client;
+            HttpRequestMessage request(HttpMethod::Get(),
+                Uri(L"https://api.github.com/repos/henzfdev/HC-Player/releases/latest"));
+            request.Headers().UserAgent().ParseAdd(winrt::hstring{ std::wstring(L"HCPlayer/") + AppVersion });
+            request.Headers().Accept().ParseAdd(L"application/vnd.github+json");
+
+            HttpResponseMessage response = co_await client.SendRequestAsync(request);
+            if (!response.IsSuccessStatusCode())
+            {
+                restoreButton();
+                AboutUpdateStatus().Title(T(L"Falha ao verificar atualizações"));
+                AboutUpdateStatus().Message(T(L"Não foi possível consultar o GitHub agora. Tente novamente mais tarde."));
+                AboutUpdateStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Warning);
+                AboutUpdateStatus().IsOpen(true);
+                co_return;
+            }
+
+            winrt::hstring body = co_await response.Content().ReadAsStringAsync();
+            JsonObject json = JsonObject::Parse(body);
+            std::wstring latestVersion = NormalizeVersionString(json.GetNamedString(L"tag_name", L"").c_str());
+            std::wstring releaseUrl = json.GetNamedString(L"html_url", L"").c_str();
+
+            restoreButton();
+
+            if (latestVersion.empty() || releaseUrl.empty())
+            {
+                AboutUpdateStatus().Title(T(L"Falha ao verificar atualizações"));
+                AboutUpdateStatus().Message(T(L"A resposta recebida do GitHub não pôde ser interpretada."));
+                AboutUpdateStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Warning);
+                AboutUpdateStatus().IsOpen(true);
+                co_return;
+            }
+
+            int const comparison = CompareVersions(latestVersion, NormalizeVersionString(AppVersion));
+            if (comparison > 0)
+            {
+                bool const launched = co_await Launcher::LaunchUriAsync(Uri(winrt::hstring{ releaseUrl }));
+                AboutUpdateStatus().Title(T(L"Atualização disponível"));
+                if (launched)
+                {
+                    AboutUpdateStatus().Message(
+                        winrt::hstring(std::wstring(L"HC Player ") + latestVersion + T(L" está disponível. A página da release foi aberta no GitHub.")));
+                    AboutUpdateStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Success);
+                }
+                else
+                {
+                    AboutUpdateStatus().Message(
+                        winrt::hstring(std::wstring(L"HC Player ") + latestVersion + T(L" está disponível, mas não foi possível abrir o navegador automaticamente.")));
+                    AboutUpdateStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Informational);
+                }
+                AboutUpdateStatus().IsOpen(true);
+                co_return;
+            }
+
+            if (comparison == 0)
+            {
+                AboutUpdateStatus().Title(T(L"HC Player atualizado"));
+                AboutUpdateStatus().Message(T(L"Você está usando a versão mais recente do HC Player."));
+                AboutUpdateStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Success);
+                AboutUpdateStatus().IsOpen(true);
+                co_return;
+            }
+
+            AboutUpdateStatus().Title(T(L"Versão mais recente"));
+            AboutUpdateStatus().Message(
+                winrt::hstring(std::wstring(T(L"Você está usando uma versão mais recente que a publicada no GitHub. Versão publicada: ")) + latestVersion));
+            AboutUpdateStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Informational);
+            AboutUpdateStatus().IsOpen(true);
+        }
+        catch (...)
+        {
+            restoreButton();
+            AboutUpdateStatus().Title(T(L"Falha ao verificar atualizações"));
+            AboutUpdateStatus().Message(T(L"Não foi possível consultar o GitHub agora. Tente novamente mais tarde."));
+            AboutUpdateStatus().Severity(Microsoft::UI::Xaml::Controls::InfoBarSeverity::Warning);
+            AboutUpdateStatus().IsOpen(true);
+        }
     }
 
     void SettingsPage::StageOption(
@@ -1170,6 +1390,16 @@ namespace winrt::HCPlayer::implementation
 
         if (auto element = root.try_as<Microsoft::UI::Xaml::FrameworkElement>())
         {
+            if (auto toggle = element.try_as<ToggleSwitch>())
+            {
+                // Raw imported mpv boolean editors intentionally have no Tag
+                // and keep their literal yes/no values.
+                if (toggle.Tag() || toggle.Name() == L"Anime4KEnabledToggle")
+                {
+                    ApplyLocalizedToggleText(toggle);
+                }
+            }
+
             if (auto boxedTag = element.Tag())
             {
                 auto tag = winrt::unbox_value_or<winrt::hstring>(boxedTag, winrt::hstring{});
@@ -1588,6 +1818,7 @@ namespace winrt::HCPlayer::implementation
                     if (spec.editor == EditorKind::Toggle)
                     {
                         auto editor = ToggleSwitch{};
+                        ApplyLocalizedToggleText(editor);
                         editor.Tag(winrt::box_value(spec.name));
                         editor.IsOn(value != L"no" && value != L"false" && value != L"0");
                         editor.VerticalAlignment(VerticalAlignment::Center);
@@ -1640,7 +1871,7 @@ namespace winrt::HCPlayer::implementation
                                 if (choice == L"auto")
                                 {
                                     item.Content(winrt::box_value(SettingsResource(
-                                        L"SettingsDeinterlaceAuto.Content", L"Automático")));
+                                        L"SettingsDitherDepthAuto", L"Automático")));
                                 }
                                 else if (choice == L"no")
                                 {
@@ -1667,7 +1898,7 @@ namespace winrt::HCPlayer::implementation
                             else if (spec.name == L"ui-ytdl-cookie-browser" && choice == L"firefox")
                             {
                                 auto item = ComboBoxItem{};
-                                item.Content(winrt::box_value(L"Firefox"));
+                                item.Content(winrt::box_value(L"firefox"));
                                 // Keep the real yt-dlp token separate from the
                                 // friendly label shown in the settings panel.
                                 item.Tag(winrt::box_value(L"firefox"));
@@ -1976,10 +2207,16 @@ namespace winrt::HCPlayer::implementation
         }
     }
 
-    void SettingsPage::ImportMediaBadgeSetClicked(
-        Windows::Foundation::IInspectable const&,
+    winrt::fire_and_forget SettingsPage::ImportMediaBadgeSetClicked(
+        Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
+        auto lifetime = get_strong();
+        if (m_badgeSetImportInProgress)
+        {
+            co_return;
+        }
+
         winrt::com_ptr<IFileOpenDialog> dialog;
         winrt::check_hresult(CoCreateInstance(
             CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
@@ -1998,7 +2235,7 @@ namespace winrt::HCPlayer::implementation
         if (FAILED(dialog->Show(
             reinterpret_cast<HWND>(PlayerGetMainWindowHandle()))))
         {
-            return;
+            co_return;
         }
 
         winrt::com_ptr<IShellItem> item;
@@ -2010,16 +2247,54 @@ namespace winrt::HCPlayer::implementation
         std::wstring selectedFolder{ rawPath };
         CoTaskMemFree(rawPath);
 
+        auto uiContext = winrt::apartment_context{};
+        auto importButton = sender.try_as<Microsoft::UI::Xaml::Controls::Button>();
+        m_badgeSetImportInProgress = true;
+        if (importButton)
+        {
+            importButton.IsEnabled(false);
+        }
+        MediaBadgeSetStatus().Text(
+            SettingsResource(
+                L"MediaBadgeImporting",
+                L"Importando badges…"));
+
         int imported{};
         std::wstring error;
-        if (!PlayerImportCustomBadgeSet(selectedFolder, imported, error))
+        bool success{};
+
+        co_await winrt::resume_background();
+
+        try
+        {
+            success = PlayerImportCustomBadgeSet(
+                selectedFolder,
+                imported,
+                error);
+        }
+        catch (...)
+        {
+            error = L"Falha inesperada ao ler a pasta selecionada.";
+        }
+
+        co_await uiContext;
+
+        m_badgeSetImportInProgress = false;
+        if (importButton)
+        {
+            importButton.IsEnabled(true);
+        }
+
+        if (!success)
         {
             MediaBadgeSetStatus().Text(
                 SettingsResource(
                     L"MediaBadgeImportFailed",
                     L"Nenhuma badge compatível foi importada"));
-            return;
+            co_return;
         }
+
+        PlayerRefreshCustomBadgeVisuals();
 
         bool const wasReady = m_ready;
         m_ready = false;
@@ -2035,6 +2310,11 @@ namespace winrt::HCPlayer::implementation
         Windows::Foundation::IInspectable const&,
         Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
+        if (m_badgeSetImportInProgress)
+        {
+            return;
+        }
+
         std::wstring error;
         if (!PlayerResetCustomBadgeSet(error))
         {
@@ -2070,6 +2350,11 @@ namespace winrt::HCPlayer::implementation
         Windows::Foundation::IInspectable const&,
         Microsoft::UI::Xaml::RoutedEventArgs const&)
     {
+        if (m_badgeSetImportInProgress)
+        {
+            return;
+        }
+
         winrt::com_ptr<IFileOpenDialog> dialog;
         winrt::check_hresult(CoCreateInstance(
             CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
@@ -2321,6 +2606,71 @@ namespace winrt::HCPlayer::implementation
             TemporalScalerCombo().SelectedIndex(0);
         }
         UpdateTemporalScalerAvailability();
+    }
+
+    void SettingsPage::UpdateOnlineSubtitlesCardState()
+    {
+        using Microsoft::UI::Xaml::Visibility;
+
+        bool const enabled = OnlineSubtitlesToggle().IsOn();
+        OnlineSubtitlesDetailsPanel().Visibility(
+            enabled ? Visibility::Visible : Visibility::Collapsed);
+    }
+
+    void SettingsPage::OnlineSubtitlesToggled(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        auto toggle = sender.as<Microsoft::UI::Xaml::Controls::ToggleSwitch>();
+        UpdateOnlineSubtitlesCardState();
+
+        if (!m_ready) return;
+        StageOption(L"ui-online-subtitles", toggle.IsOn() ? L"yes" : L"no");
+    }
+
+    void SettingsPage::ConfigureOpenSubtitlesSettingsClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        PlayerConfigureOpenSubtitles();
+    }
+
+    void SettingsPage::UpdateYouTubeCommentsCardState()
+    {
+        using Microsoft::UI::Xaml::Visibility;
+
+        bool const enabled = YouTubeCommentsToggle().IsOn();
+        YouTubeCommentsDetailsPanel().Visibility(
+            enabled ? Visibility::Visible : Visibility::Collapsed);
+    }
+
+    void SettingsPage::SponsorBlockToggled(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        if (!m_ready) return;
+        auto toggle = sender.as<Microsoft::UI::Xaml::Controls::ToggleSwitch>();
+        StageOption(L"ui-sponsorblock", toggle.IsOn() ? L"yes" : L"no");
+    }
+
+    void SettingsPage::YouTubeCommentsToggled(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        auto toggle = sender.as<Microsoft::UI::Xaml::Controls::ToggleSwitch>();
+        UpdateYouTubeCommentsCardState();
+
+        if (!m_ready) return;
+        StageOption(L"ui-youtube-comments", toggle.IsOn() ? L"yes" : L"no");
+    }
+
+    void SettingsPage::YouTubeApiKeyLostFocus(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        if (!m_ready) return;
+        auto text = sender.as<Microsoft::UI::Xaml::Controls::TextBox>();
+        StageOption(L"ui-youtube-api-key", text.Text().c_str());
     }
 
     void SettingsPage::NativeSubtitleToggleToggled(
@@ -3090,6 +3440,7 @@ namespace winrt::HCPlayer::implementation
             layout.Children().Append(nameHost);
 
             auto enabled = ToggleSwitch{};
+            ApplyLocalizedToggleText(enabled);
             enabled.Tag(winrt::box_value(shader.path));
             enabled.IsOn(shader.enabled);
             enabled.IsEnabled(!managedByAnime4KPreset);
@@ -3351,6 +3702,7 @@ namespace winrt::HCPlayer::implementation
 
         ContentDialog dialog{};
         dialog.XamlRoot(SettingsRoot().XamlRoot());
+        dialog.RequestedTheme(RequestedTheme());
         dialog.Title(winrt::box_value(T(L"Remover todos os shaders?")));
 
         auto message = TextBlock{};

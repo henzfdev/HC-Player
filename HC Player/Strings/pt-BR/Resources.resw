@@ -120,6 +120,42 @@
   <data name="SettingsB030.Text" xml:space="preserve">
     <value>Mantém o tom natural quando a velocidade muda</value>
   </data>
+  <data name="SettingsAudioChannelsTitle.Text" xml:space="preserve">
+    <value>Canais de áudio</value>
+  </data>
+  <data name="SettingsAudioChannelsDescription.Text" xml:space="preserve">
+    <value>Define os layouts permitidos na saída</value>
+  </data>
+  <data name="SettingsAudioChannelsAuto.Content" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="SettingsAudioChannelsStereo.Content" xml:space="preserve">
+    <value>Estéreo</value>
+  </data>
+  <data name="SettingsAudioChannels51.Content" xml:space="preserve">
+    <value>Surround até 5.1</value>
+  </data>
+  <data name="SettingsAudioChannels71.Content" xml:space="preserve">
+    <value>Surround até 7.1</value>
+  </data>
+  <data name="SettingsAudioSpdifTitle.Text" xml:space="preserve">
+    <value>Passthrough Dolby &amp; DTS</value>
+  </data>
+  <data name="SettingsAudioSpdifDescription.Text" xml:space="preserve">
+    <value>Envia o áudio diretamente ao equipamento conectado</value>
+  </data>
+  <data name="SettingsAudioSpdifRequirement.Text" xml:space="preserve">
+    <value>Requer receiver ou soundbar compatível</value>
+  </data>
+  <data name="SettingsAudioSpdifOff.Content" xml:space="preserve">
+    <value>Desativado</value>
+  </data>
+  <data name="SettingsAudioSpdifClassic.Content" xml:space="preserve">
+    <value>Dolby Digital / DTS</value>
+  </data>
+  <data name="SettingsAudioSpdifHomeTheater.Content" xml:space="preserve">
+    <value>Home Theater (HD)</value>
+  </data>
   <data name="SettingsB031.Text" xml:space="preserve">
     <value>Dispositivo de saída</value>
   </data>
@@ -475,7 +511,7 @@
     <value>Importar</value>
   </data>
   <data name="SettingsB149.Text" xml:space="preserve">
-    <value>Versão 1.0</value>
+    <value>Versão 1.5.0</value>
   </data>
   <data name="SettingsB150.Text" xml:space="preserve">
     <value>Um player de mídia robusto e moderno para Windows</value>
@@ -514,7 +550,7 @@
     <value>Compilação</value>
   </data>
   <data name="SettingsAboutStableBuild" xml:space="preserve">
-    <value>Estável • Agosto de 2026</value>
+    <value>Estável • Outubro de 2026</value>
   </data>
   <data name="SettingsB162.Text" xml:space="preserve">
     <value>Copiar informações</value>
@@ -1329,6 +1365,9 @@
   <data name="SettingsToggleOff" xml:space="preserve">
     <value>Desativado</value>
   </data>
+  <data name="SettingsDitherDepthAuto" xml:space="preserve">
+    <value>Automático</value>
+  </data>
   <data name="MediaInfoHeaderTitle.Text" xml:space="preserve">
     <value>Informações de mídia</value>
   </data>
@@ -1637,6 +1676,12 @@
   </data>
   <data name="MediaInfoField_2937166B" xml:space="preserve">
     <value>Classificação</value>
+  </data>
+  <data name="MediaInfoField_DEF47546" xml:space="preserve">
+    <value>Gênero</value>
+  </data>
+  <data name="MediaInfoField_EECF032C" xml:space="preserve">
+    <value>Tipo de conteúdo</value>
   </data>
   <data name="MediaInfoField_3B5FD93B" xml:space="preserve">
     <value>UPC</value>
@@ -2437,7 +2482,7 @@
     <value>Pronto para reproduzir</value>
   </data>
   <data name="NativeEmptyStateSubtitle" xml:space="preserve">
-    <value>Arraste um arquivo ou cole uma URL para começar</value>
+    <value>Arraste um arquivo, uma pasta ou cole uma URL para começar</value>
   </data>
   <data name="PickerOpenFolderDisc" xml:space="preserve">
     <value>Abrir pasta, DVD ou Blu-ray</value>
@@ -2717,6 +2762,12 @@
   </data>
   <data name="SettingsRememberWindowSizeDescription.Text" xml:space="preserve">
     <value>Restaura o último tamanho normal usado ao abrir o HC Player</value>
+  </data>
+  <data name="SettingsRememberWindowPositionTitle.Text" xml:space="preserve">
+    <value>Lembrar posição da janela</value>
+  </data>
+  <data name="SettingsRememberWindowPositionDescription.Text" xml:space="preserve">
+    <value>Restaura a última posição da janela usada ao abrir o HC Player</value>
   </data>
   <data name="SettingsCompactContextMenuTitle.Text" xml:space="preserve">
     <value>Menu de contexto compacto</value>
@@ -3205,8 +3256,32 @@
   <data name="PlaylistHeaderSubtitle.Text" xml:space="preserve">
     <value>Itens atuais da playlist</value>
   </data>
+  <data name="PlaylistPreviousWindowButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Página anterior da fila</value>
+  </data>
+  <data name="PlaylistNextWindowButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Próxima página da fila</value>
+  </data>
   <data name="PlaylistMoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Mais opções da fila</value>
+  </data>
+  <data name="PlaylistAddUrlMenuItem.Text" xml:space="preserve">
+    <value>Adicionar URL à fila</value>
+  </data>
+  <data name="PlaylistAddUrlDialogTitle" xml:space="preserve">
+    <value>Adicionar URL à fila</value>
+  </data>
+  <data name="PlaylistAddUrlPrimaryButton" xml:space="preserve">
+    <value>Adicionar</value>
+  </data>
+  <data name="PlaylistAddUrlCancelButton" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="PlaylistAddUrlHint" xml:space="preserve">
+    <value>Cole uma URL HTTP/HTTPS do YouTube, HLS (.m3u8) ou mídia web.</value>
+  </data>
+  <data name="PlaylistAddUrlInvalid" xml:space="preserve">
+    <value>Informe uma URL válida iniciando com http:// ou https://.</value>
   </data>
   <data name="PlaylistAddFolderMenuItem.Text" xml:space="preserve">
     <value>Adicionar pasta à fila</value>
@@ -3249,6 +3324,9 @@
   </data>
   <data name="PlaylistRemoveLabel" xml:space="preserve">
     <value>Remover da fila</value>
+  </data>
+  <data name="PlaylistRemoveSelectedLabel" xml:space="preserve">
+    <value>Remover selecionados</value>
   </data>
   <data name="PlaylistItemLabel" xml:space="preserve">
     <value>Item da playlist</value>
@@ -3501,5 +3579,331 @@
   </data>
   <data name="MainPageDynMinimalSettings" xml:space="preserve">
     <value>Configurações</value>
+  </data>
+  <data name="SettingsStartBorderlessTitle.Text" xml:space="preserve">
+    <value>Iniciar sem bordas</value>
+  </data>
+  <data name="SettingsStartBorderlessDescription.Text" xml:space="preserve">
+    <value>Abre o HC Player já sem bordas nas próximas inicializações; o atalho B continua alternando durante a sessão</value>
+  </data>
+  <data name="SettingsShowMediaTitleTitle.Text" xml:space="preserve">
+    <value>Mostrar título da mídia na barra de título</value>
+  </data>
+  <data name="SettingsShowMediaTitleDescription.Text" xml:space="preserve">
+    <value>Exibe o título da mídia quando disponível ou usa o nome do arquivo</value>
+  </data>
+  <data name="SettingsCheckUpdatesButtonText.Text" xml:space="preserve">
+    <value>Verificar atualizações</value>
+  </data>
+  <data name="MainPageDynSearchOnlineSubtitles" xml:space="preserve">
+    <value>Buscar legendas online…</value>
+  </data>
+  <data name="MainPageDynConfigureOpenSubtitles" xml:space="preserve">
+    <value>Configurar OpenSubtitles…</value>
+  </data>
+  <data name="MainPageDynClose" xml:space="preserve">
+    <value>Fechar</value>
+  </data>
+  <data name="MainPageDynSave" xml:space="preserve">
+    <value>Salvar</value>
+  </data>
+  <data name="MainPageDynCancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="MainPageDynConfigureOpenSubtitlesTitle" xml:space="preserve">
+    <value>Configurar OpenSubtitles</value>
+  </data>
+  <data name="MainPageDynOpenSubsConfigIntro" xml:space="preserve">
+    <value>Use sua conta do OpenSubtitles.com. A chave API e o usuário ficam salvos nas configurações do HC Player. Ao entrar, você pode manter a sessão salva com segurança pelo Gerenciador de Credenciais do Windows.</value>
+  </data>
+  <data name="MainPageDynOpenSubsApiKey" xml:space="preserve">
+    <value>Chave API</value>
+  </data>
+  <data name="MainPageDynOpenSubsUsername" xml:space="preserve">
+    <value>Usuário</value>
+  </data>
+  <data name="MainPageDynOpenSubsLanguage" xml:space="preserve">
+    <value>Idioma</value>
+  </data>
+  <data name="MainPageDynOpenSubsLanguageHint" xml:space="preserve">
+    <value>Você pode usar vários idiomas separados por vírgula, por exemplo: pt-br, en, es. A chave API pode ser criada na sua conta do OpenSubtitles.com.</value>
+  </data>
+  <data name="MainPageDynOpenSubsConfigIncompleteTitle" xml:space="preserve">
+    <value>Configuração incompleta</value>
+  </data>
+  <data name="MainPageDynOpenSubsConfigIncompleteMessage" xml:space="preserve">
+    <value>Preencha a chave API, o usuário e o idioma antes de buscar legendas.</value>
+  </data>
+  <data name="MainPageDynOpenSubsConfigSaveErrorTitle" xml:space="preserve">
+    <value>Não foi possível salvar</value>
+  </data>
+  <data name="MainPageDynOpenSubsConfigSaveErrorMessage" xml:space="preserve">
+    <value>O HC Player não conseguiu salvar a configuração do OpenSubtitles.</value>
+  </data>
+  <data name="MainPageDynOpenSubsLocalFileTitle" xml:space="preserve">
+    <value>Arquivo local necessário</value>
+  </data>
+  <data name="MainPageDynOpenSubsLocalFileMessage" xml:space="preserve">
+    <value>A busca por hash funciona com um arquivo de vídeo local aberto no HC Player.</value>
+  </data>
+  <data name="MainPageDynOpenSubsHashReadError" xml:space="preserve">
+    <value>Não foi possível ler o arquivo para calcular o identificador.</value>
+  </data>
+  <data name="MainPageDynOpenSubsHashOpenError" xml:space="preserve">
+    <value>Não foi possível abrir o arquivo para calcular o identificador.</value>
+  </data>
+  <data name="MainPageDynOpenSubsSearchErrorTitle" xml:space="preserve">
+    <value>Não foi possível buscar legendas</value>
+  </data>
+  <data name="MainPageDynOpenSubsSearching" xml:space="preserve">
+    <value>Buscando legendas online…</value>
+  </data>
+  <data name="MainPageDynOpenSubsApiError" xml:space="preserve">
+    <value>O OpenSubtitles recusou a solicitação.</value>
+  </data>
+  <data name="MainPageDynOpenSubsNoResultsTitle" xml:space="preserve">
+    <value>Nenhuma legenda encontrada</value>
+  </data>
+  <data name="MainPageDynOpenSubsNoResultsMessage" xml:space="preserve">
+    <value>Não encontrei legendas no idioma escolhido para este arquivo.</value>
+  </data>
+  <data name="MainPageDynOpenSubsChooseResult" xml:space="preserve">
+    <value>Escolha a legenda. Correspondências exatas do arquivo aparecem primeiro.</value>
+  </data>
+  <data name="MainPageDynOpenSubsUntitled" xml:space="preserve">
+    <value>Legenda</value>
+  </data>
+  <data name="MainPageDynOpenSubsTrusted" xml:space="preserve">
+    <value>confiável</value>
+  </data>
+  <data name="MainPageDynOpenSubsHI" xml:space="preserve">
+    <value>SDH</value>
+  </data>
+  <data name="MainPageDynOpenSubsResultsTitle" xml:space="preserve">
+    <value>Legendas encontradas</value>
+  </data>
+  <data name="MainPageDynOpenSubsDownload" xml:space="preserve">
+    <value>Baixar e carregar</value>
+  </data>
+  <data name="MainPageDynOpenSubsPasswordInfo" xml:space="preserve">
+    <value>Digite a senha da sua conta OpenSubtitles.com. Se você mantiver a opção abaixo ativada, ela será protegida pelo Gerenciador de Credenciais do Windows e o HC Player entrará automaticamente nas próximas vezes.</value>
+  </data>
+  <data name="MainPageDynOpenSubsKeepSignedIn" xml:space="preserve">
+    <value>Manter conectado neste computador</value>
+  </data>
+  <data name="MainPageDynOpenSubsPassword" xml:space="preserve">
+    <value>Senha</value>
+  </data>
+  <data name="MainPageDynOpenSubsLogin" xml:space="preserve">
+    <value>Entrar e baixar</value>
+  </data>
+  <data name="MainPageDynOpenSubsLoginErrorTitle" xml:space="preserve">
+    <value>Não foi possível entrar</value>
+  </data>
+  <data name="MainPageDynOpenSubsPasswordRequired" xml:space="preserve">
+    <value>A senha é necessária para baixar a legenda.</value>
+  </data>
+  <data name="MainPageDynOpenSubsLoginErrorMessage" xml:space="preserve">
+    <value>Confira o usuário, a senha e a chave API.</value>
+  </data>
+  <data name="MainPageDynOpenSubsNoToken" xml:space="preserve">
+    <value>O OpenSubtitles não retornou um token de autenticação.</value>
+  </data>
+  <data name="MainPageDynOpenSubsDownloadErrorTitle" xml:space="preserve">
+    <value>Não foi possível baixar</value>
+  </data>
+  <data name="MainPageDynOpenSubsDownloadErrorMessage" xml:space="preserve">
+    <value>O OpenSubtitles não liberou o download desta legenda.</value>
+  </data>
+  <data name="MainPageDynOpenSubsNoDownloadLink" xml:space="preserve">
+    <value>A resposta do OpenSubtitles não trouxe um link de download.</value>
+  </data>
+  <data name="MainPageDynOpenSubsFileDownloadError" xml:space="preserve">
+    <value>O arquivo da legenda não pôde ser transferido.</value>
+  </data>
+  <data name="MainPageDynOpenSubsEmptyFile" xml:space="preserve">
+    <value>O arquivo de legenda recebido está vazio.</value>
+  </data>
+  <data name="MainPageDynOpenSubsSaveErrorTitle" xml:space="preserve">
+    <value>Não foi possível salvar a legenda</value>
+  </data>
+  <data name="MainPageDynOpenSubsSaveErrorMessage" xml:space="preserve">
+    <value>O HC Player não conseguiu gravar a legenda ao lado do vídeo nem na pasta privada do aplicativo.</value>
+  </data>
+  <data name="MainPageDynOpenSubsLoadErrorTitle" xml:space="preserve">
+    <value>Legenda baixada, mas não carregada</value>
+  </data>
+  <data name="MainPageDynOpenSubsLoaded" xml:space="preserve">
+    <value>Legenda online carregada</value>
+  </data>
+  <data name="MainPageDynOpenSubsUnknownError" xml:space="preserve">
+    <value>Ocorreu um erro inesperado durante a consulta ao OpenSubtitles.</value>
+  </data>
+
+  <data name="SettingsOnlineSubtitlesTitle.Text" xml:space="preserve">
+    <value>Legendas online</value>
+  </data>
+  <data name="SettingsOnlineSubtitlesDescription.Text" xml:space="preserve">
+    <value>Permite buscar e baixar legendas pelo OpenSubtitles</value>
+  </data>
+  <data name="SettingsOnlineSubtitlesConfigure.Content" xml:space="preserve">
+    <value>Configurar OpenSubtitles…</value>
+  </data>
+
+  <data name="SettingsYouTubeSection.Text" xml:space="preserve">
+    <value>YOUTUBE</value>
+  </data>
+  <data name="SettingsSponsorBlockTitle.Text" xml:space="preserve">
+    <value>SponsorBlock</value>
+  </data>
+  <data name="SettingsSponsorBlockDescription.Text" xml:space="preserve">
+    <value>Pula automaticamente patrocínios e mostra segmentos coloridos na barra de progresso do YouTube</value>
+  </data>
+  <data name="SettingsYouTubeCommentsTitle.Text" xml:space="preserve">
+    <value>Comentários do YouTube</value>
+  </data>
+  <data name="SettingsYouTubeCommentsDescription.Text" xml:space="preserve">
+    <value>Exibe comentários e chat ao vivo do YouTube em um painel nativo</value>
+  </data>
+  <data name="SettingsYouTubeApiKeyLabel.Text" xml:space="preserve">
+    <value>API key da YouTube Data API</value>
+  </data>
+  <data name="SettingsYouTubeApiKeyHint.Text" xml:space="preserve">
+    <value>A chave é usada somente para consultar comentários públicos e chat ao vivo, e fica salva localmente nas configurações do HC Player</value>
+  </data>
+  <data name="MainPageYouTubeCommentsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Comentários / chat do YouTube</value>
+  </data>
+  <data name="MainPageYouTubeCommentsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Comentários do YouTube</value>
+  </data>
+  <data name="YouTubeCommentsHeaderTitle.Text" xml:space="preserve">
+    <value>Comentários do YouTube</value>
+  </data>
+  <data name="YouTubeCommentsHeaderSubtitle.Text" xml:space="preserve">
+    <value>Comentários públicos do vídeo atual</value>
+  </data>
+  <data name="YouTubeCommentsSortRelevant.Content" xml:space="preserve">
+    <value>Mais relevantes</value>
+  </data>
+  <data name="YouTubeCommentsSortRecent.Content" xml:space="preserve">
+    <value>Mais recentes</value>
+  </data>
+  <data name="YouTubeCommentsRefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Atualizar comentários</value>
+  </data>
+  <data name="YouTubeCommentsCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Fechar</value>
+  </data>
+  <data name="YouTubeCommentsLoadingText.Text" xml:space="preserve">
+    <value>Carregando comentários…</value>
+  </data>
+  <data name="YouTubeCommentsLoadMoreButton.Content" xml:space="preserve">
+    <value>Carregar mais</value>
+  </data>
+  <data name="YouTubeCommentsApiGenericError" xml:space="preserve">
+    <value>O YouTube recusou a solicitação de comentários</value>
+  </data>
+  <data name="YouTubeCommentsDisabled" xml:space="preserve">
+    <value>Os comentários estão desativados para este vídeo</value>
+  </data>
+  <data name="YouTubeCommentsUnknownAuthor" xml:space="preserve">
+    <value>Usuário</value>
+  </data>
+  <data name="YouTubeCommentsRepliesPrefix" xml:space="preserve">
+    <value>Respostas</value>
+  </data>
+  <data name="YouTubeCommentsMissingApiKey" xml:space="preserve">
+    <value>Configure uma API key da YouTube Data API em Configurações &gt; Mídia &gt; YouTube</value>
+  </data>
+  <data name="YouTubeCommentsNoVideo" xml:space="preserve">
+    <value>Abra um vídeo do YouTube para ver os comentários</value>
+  </data>
+  <data name="YouTubeCommentsEmpty" xml:space="preserve">
+    <value>Nenhum comentário público foi encontrado para este vídeo</value>
+  </data>
+  <data name="YouTubeCommentsNetworkError" xml:space="preserve">
+    <value>Não foi possível acessar os comentários do YouTube agora</value>
+  </data>
+
+  <data name="YouTubeCommentsLikesPrefix" xml:space="preserve">
+    <value>Curtidas</value>
+  </data>
+
+  <data name="YouTubeCommentsSecondAgoSingular" xml:space="preserve"><value>há {0} segundo</value></data>
+  <data name="YouTubeCommentsSecondAgoPlural" xml:space="preserve"><value>há {0} segundos</value></data>
+  <data name="YouTubeCommentsMinuteAgoSingular" xml:space="preserve"><value>há {0} minuto</value></data>
+  <data name="YouTubeCommentsMinuteAgoPlural" xml:space="preserve"><value>há {0} minutos</value></data>
+  <data name="YouTubeCommentsHourAgoSingular" xml:space="preserve"><value>há {0} hora</value></data>
+  <data name="YouTubeCommentsHourAgoPlural" xml:space="preserve"><value>há {0} horas</value></data>
+
+  <data name="YouTubeCommentsEdited" xml:space="preserve"><value>(editado)</value></data>
+
+  <data name="YouTubeCommentsViewRepliesPrefix" xml:space="preserve"><value>Ver</value></data>
+  <data name="YouTubeCommentsReplySingular" xml:space="preserve"><value>resposta</value></data>
+  <data name="YouTubeCommentsReplyPlural" xml:space="preserve"><value>respostas</value></data>
+  <data name="YouTubeCommentsLoadMoreReplies" xml:space="preserve"><value>Carregar mais respostas</value></data>
+  <data name="YouTubeCommentsHideReplies" xml:space="preserve"><value>Ocultar respostas</value></data>
+  <data name="YouTubeCommentsLoadingReplies" xml:space="preserve"><value>Carregando respostas…</value></data>
+  <data name="YouTubeCommentsRetryReplies" xml:space="preserve"><value>Tentar carregar respostas novamente</value></data>
+  <data name="YouTubeCommentsRepliesUnavailable" xml:space="preserve"><value>As respostas não estão disponíveis agora</value></data>
+  <data name="YouTubeCommentsRepliesNetworkError" xml:space="preserve"><value>Não foi possível carregar as respostas agora</value></data>
+
+  <data name="YouTubeCommentsHeaderTitleText" xml:space="preserve"><value>Comentários do YouTube</value></data>
+  <data name="YouTubeCommentsHeaderSubtitleText" xml:space="preserve"><value>Comentários públicos do vídeo atual</value></data>
+  <data name="YouTubeCommentsLoadingTextValue" xml:space="preserve"><value>Carregando comentários…</value></data>
+  <data name="YouTubeLiveChatHeaderTitle" xml:space="preserve"><value>Chat ao vivo</value></data>
+  <data name="YouTubeLiveChatHeaderSubtitle" xml:space="preserve"><value>Mensagens da transmissão ao vivo</value></data>
+  <data name="YouTubeLiveChatLoading" xml:space="preserve"><value>Conectando ao chat ao vivo…</value></data>
+  <data name="YouTubeLiveChatWaiting" xml:space="preserve"><value>Aguardando novas mensagens do chat…</value></data>
+  <data name="YouTubeLiveChatEnded" xml:space="preserve"><value>A transmissão ao vivo terminou</value></data>
+  <data name="YouTubeLiveChatNetworkError" xml:space="preserve"><value>Não foi possível acessar o chat ao vivo agora</value></data>
+  <data name="YouTubeLiveChatOwner" xml:space="preserve"><value>Canal</value></data>
+  <data name="YouTubeLiveChatModerator" xml:space="preserve"><value>Moderador</value></data>
+  <data name="YouTubeLiveChatMember" xml:space="preserve"><value>Membro</value></data>
+  <data name="ShortcutAction074.Text" xml:space="preserve">
+    <value>Abrir / fechar painel do YouTube</value>
+  </data>
+
+  <data name="SettingsDyn_33889CCB" xml:space="preserve"><value>Verificando...</value></data>
+  <data name="SettingsDyn_9C43D581" xml:space="preserve"><value>Verificar atualizações</value></data>
+  <data name="SettingsDyn_2B8B8FB5" xml:space="preserve"><value>Falha ao verificar atualizações</value></data>
+  <data name="SettingsDyn_5BCDC5DA" xml:space="preserve"><value>Não foi possível consultar o GitHub agora. Tente novamente mais tarde.</value></data>
+  <data name="SettingsDyn_46965F4E" xml:space="preserve"><value>A resposta recebida do GitHub não pôde ser interpretada.</value></data>
+  <data name="SettingsDyn_9854B044" xml:space="preserve"><value>Atualização disponível</value></data>
+  <data name="SettingsDyn_CEFD1183" xml:space="preserve"><value> está disponível. A página da release foi aberta no GitHub.</value></data>
+  <data name="SettingsDyn_24CA078C" xml:space="preserve"><value> está disponível, mas não foi possível abrir o navegador automaticamente.</value></data>
+  <data name="SettingsDyn_BF4C9DF1" xml:space="preserve"><value>HC Player atualizado</value></data>
+  <data name="SettingsDyn_ACF69D86" xml:space="preserve"><value>Você está usando a versão mais recente do HC Player.</value></data>
+  <data name="SettingsDyn_96C39E8C" xml:space="preserve"><value>Versão mais recente</value></data>
+  <data name="SettingsDyn_29ABD555" xml:space="preserve"><value>Você está usando uma versão mais recente que a publicada no GitHub. Versão publicada: </value></data>
+  <data name="MediaBadgeImporting" xml:space="preserve"><value>Importando badges…</value></data>
+  <data name="PlaylistWebLimitNotice" xml:space="preserve"><value>Playlists do YouTube são limitadas a 30 vídeos por vez</value></data>
+  <data name="PlaylistMaximumNotice" xml:space="preserve"><value>A fila atingiu o limite de 1000 itens. Alguns itens não puderam ser adicionados</value></data>
+  <data name="ContextMenuDynPlaylistWindow" xml:space="preserve"><value>Mostrando {0}–{1} de {2}</value></data>
+  <data name="ContextMenuDynOpenFullQueue" xml:space="preserve"><value>Abrir fila completa</value></data>
+  <data name="MainPageDynSponsorBlockSponsor" xml:space="preserve">
+    <value>Patrocínio</value>
+  </data>
+  <data name="MainPageDynSponsorBlockIntro" xml:space="preserve">
+    <value>Introdução</value>
+  </data>
+  <data name="MainPageDynSponsorBlockOutro" xml:space="preserve">
+    <value>Encerramento</value>
+  </data>
+  <data name="MainPageDynSponsorBlockInteraction" xml:space="preserve">
+    <value>Interação</value>
+  </data>
+  <data name="MainPageDynSponsorBlockSelfPromo" xml:space="preserve">
+    <value>Autopromoção</value>
+  </data>
+  <data name="MainPageDynSponsorBlockMusicOfftopic" xml:space="preserve">
+    <value>Música fora do tema</value>
+  </data>
+  <data name="MainPageDynSponsorBlockPreview" xml:space="preserve">
+    <value>Prévia</value>
+  </data>
+  <data name="MainPageDynSponsorBlockFiller" xml:space="preserve">
+    <value>Enchimento</value>
   </data>
 </root>

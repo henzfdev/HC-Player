@@ -414,8 +414,62 @@ namespace winrt::HCPlayer::implementation
         menu.Items().Append(shuffle);
         menu.Items().Append(Microsoft::UI::Xaml::Controls::MenuFlyoutSeparator{});
 
-        for (auto const& entry : playlist)
+        constexpr size_t maximumVisiblePlaylistItems = 40;
+        size_t visibleStart = 0;
+        size_t visibleEnd = playlist.size();
+
+        if (playlist.size() > maximumVisiblePlaylistItems)
         {
+            auto const current = std::find_if(
+                playlist.begin(), playlist.end(),
+                [](MediaPlaylistItem const& entry) { return entry.current; });
+            size_t const currentPosition = current == playlist.end()
+                ? 0
+                : static_cast<size_t>(std::distance(playlist.begin(), current));
+            size_t const itemsBeforeCurrent = maximumVisiblePlaylistItems / 2;
+
+            visibleStart = currentPosition > itemsBeforeCurrent
+                ? currentPosition - itemsBeforeCurrent
+                : 0;
+            if (visibleStart + maximumVisiblePlaylistItems > playlist.size())
+            {
+                visibleStart = playlist.size() - maximumVisiblePlaylistItems;
+            }
+            visibleEnd = visibleStart + maximumVisiblePlaylistItems;
+
+            auto rangeText = ContextMenuString(
+                L"ContextMenuDynPlaylistWindow",
+                L"Mostrando {0}\u2013{1} de {2}");
+            auto replaceToken = [&](wchar_t const* token, size_t value)
+                {
+                    auto const position = rangeText.find(token);
+                    if (position != std::wstring::npos)
+                    {
+                        rangeText.replace(
+                            position, std::wstring_view{ token }.size(), std::to_wstring(value));
+                    }
+                };
+            replaceToken(L"{0}", visibleStart + 1);
+            replaceToken(L"{1}", visibleEnd);
+            replaceToken(L"{2}", playlist.size());
+
+            Microsoft::UI::Xaml::Controls::MenuFlyoutItem range;
+            range.Text(rangeText);
+            range.IsEnabled(false);
+            menu.Items().Append(range);
+
+            Microsoft::UI::Xaml::Controls::MenuFlyoutItem openQueue;
+            openQueue.Text(ContextMenuString(
+                L"ContextMenuDynOpenFullQueue", L"Abrir fila completa"));
+            openQueue.Tag(winrt::box_value(L"action:open-full-queue"));
+            openQueue.Click({ this, &ContextMenuPage::MenuItemClicked });
+            menu.Items().Append(openQueue);
+            menu.Items().Append(Microsoft::UI::Xaml::Controls::MenuFlyoutSeparator{});
+        }
+
+        for (size_t position = visibleStart; position < visibleEnd; ++position)
+        {
+            auto const& entry = playlist[position];
             Microsoft::UI::Xaml::Controls::ToggleMenuFlyoutItem item;
             item.Text(entry.title);
             item.KeyboardAcceleratorTextOverride(entry.format);
@@ -576,6 +630,7 @@ namespace winrt::HCPlayer::implementation
         // can leave stale composition surfaces and can crash Microsoft.UI.Xaml.
         else if (tag == L"action:settings") m_openSettingsAfterClose = true;
         else if (tag == L"action:mediainfo") m_openMediaInfoAfterClose = true;
+        else if (tag == L"action:open-full-queue") m_openPlaylistAfterClose = true;
         else if (tag.starts_with(L"key:")) PlayerSendMpvKey(tag.substr(4));
         else if (tag.starts_with(L"cmd:"))
             PlayerExecuteMpvCommand(LocalizeContextMenuOsdCommand(tag.substr(4)));
@@ -587,8 +642,10 @@ namespace winrt::HCPlayer::implementation
     {
         bool const openSettings = m_openSettingsAfterClose;
         bool const openMediaInfo = m_openMediaInfoAfterClose;
+        bool const openPlaylist = m_openPlaylistAfterClose;
         m_openSettingsAfterClose = false;
         m_openMediaInfoAfterClose = false;
+        m_openPlaylistAfterClose = false;
 
         PlayerCloseContextMenu();
 
@@ -596,5 +653,7 @@ namespace winrt::HCPlayer::implementation
             PlayerShowSettings();
         else if (openMediaInfo)
             PlayerShowMediaInfo();
+        else if (openPlaylist)
+            PlayerShowPlaylist();
     }
 }

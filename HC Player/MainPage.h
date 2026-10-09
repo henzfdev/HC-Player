@@ -21,14 +21,17 @@ namespace winrt::HCPlayer::implementation
         void RestorePlayerState(std::wstring const& path);
         void ClearPlayerState();
         void SetSettingsOverlayOpen(bool open);
+        void PrepareSidePanelTransportReturn();
         void PrepareSilentFullscreenEntry();
-        void SetPictureInPictureMode(bool enabled);
+        void SetPictureInPictureMode(bool enabled, bool revealTransport = true);
+        void SetPictureInPictureTimeWindowLargeEnough(bool largeEnough);
         void TransportHostPointerEntered();
         void TransportHostPointerExited();
         void TransportVideoPointerMoved(bool overControls);
         void ShowVolumeFeedback();
         void RefreshThemeVisuals();
         void RefreshInterfacePreferences();
+        bool CanOpenYouTubeComments() const noexcept;
         bool UsesMinimalTransportStyle() const noexcept;
         Windows::Foundation::Rect MinimalTransportRegion();
 
@@ -68,12 +71,23 @@ namespace winrt::HCPlayer::implementation
             Windows::Foundation::IInspectable const&,
             Microsoft::UI::Xaml::RoutedEventArgs const&);
 
+        void YouTubeCommentsClicked(
+            Windows::Foundation::IInspectable const&,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+
         void SpeedFlyoutOpening(
             Windows::Foundation::IInspectable const&,
             Windows::Foundation::IInspectable const&);
         void TracksFlyoutOpening(
             Windows::Foundation::IInspectable const&,
             Windows::Foundation::IInspectable const&);
+        void SearchOnlineSubtitlesClicked(
+            Windows::Foundation::IInspectable const&,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void ConfigureOpenSubtitlesClicked(
+            Windows::Foundation::IInspectable const&,
+            Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void ConfigureOpenSubtitlesFromSettings();
         void ProfilesFlyoutOpening(
             Windows::Foundation::IInspectable const&,
             Windows::Foundation::IInspectable const&);
@@ -139,6 +153,12 @@ namespace winrt::HCPlayer::implementation
         void VolumeIconTapped(
             Windows::Foundation::IInspectable const&,
             Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const&);
+        void VolumeIconPointerEntered(
+            Windows::Foundation::IInspectable const&,
+            Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const&);
+        void VolumeIconPointerExited(
+            Windows::Foundation::IInspectable const&,
+            Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const&);
         void VolumeSliderSizeChanged(
             Windows::Foundation::IInspectable const&,
             Microsoft::UI::Xaml::SizeChangedEventArgs const&);
@@ -211,6 +231,8 @@ namespace winrt::HCPlayer::implementation
             Windows::Foundation::IInspectable const&);
 
     private:
+        bool AcceptSidePanelReturnPointerActivity();
+
         struct ChapterView
         {
             double time{};
@@ -224,6 +246,21 @@ namespace winrt::HCPlayer::implementation
             Microsoft::UI::Xaml::Controls::Border root{ nullptr };
             Microsoft::UI::Xaml::Controls::Border cache{ nullptr };
             Microsoft::UI::Xaml::Controls::Border fill{ nullptr };
+        };
+
+        struct SponsorBlockSegment
+        {
+            double start{};
+            double end{};
+            std::wstring category;
+            std::wstring uuid;
+            bool skipped{};
+        };
+        struct SponsorBlockSegmentVisual
+        {
+            double start{};
+            double end{};
+            Microsoft::UI::Xaml::Controls::Border root{ nullptr };
         };
 
         bool m_isPlaying{ false };
@@ -243,6 +280,12 @@ namespace winrt::HCPlayer::implementation
         // After a final precise seek, give mpv a short window to publish the
         // new playback-time before the 250-ms progress timer resumes ownership.
         int m_timelineProgressHoldTicks{};
+
+        // Minimal-mode Slider clicks update their custom filled track from the
+        // requested target immediately. Keep only the Minimal slider protected
+        // for a couple of progress ticks while mpv publishes the new time-pos;
+        // the established normal timeline ownership path remains untouched.
+        int m_minimalTimelineProgressHoldTicks{};
         bool m_isUpdatingVolume{ false };
         bool m_controlsReady{ false };
         bool m_transportVisible{ true };
@@ -257,7 +300,17 @@ namespace winrt::HCPlayer::implementation
         bool m_consoleOpen{ false };
         std::chrono::steady_clock::time_point m_transportHideNotBefore{};
         bool m_pictureInPicture{ false };
+        bool m_pipTimeWindowLargeEnough{ true };
+        // Invalidates queued PiP media-kind reveal callbacks when the playlist
+        // changes again before the previous visual handoff has completed.
+        uint64_t m_pipMediaKindVisualGeneration{};
         bool m_settingsOverlayOpen{ false };
+        // MediaInfo/Playlist close can re-present the transport underneath a
+        // stationary cursor. Ignore layout-generated pointer re-entry until the
+        // physical cursor actually moves, without changing the normal hide timer.
+        bool m_sidePanelReturnPointerGate{ false };
+        int32_t m_sidePanelReturnCursorX{};
+        int32_t m_sidePanelReturnCursorY{};
         bool m_transportFlyoutOpen{ false };
         bool m_mediaControlsExpanded{ false };
         bool m_minimalTransportStyle{ false };
@@ -275,15 +328,52 @@ namespace winrt::HCPlayer::implementation
         bool m_showShuffleButton{ true };
         bool m_showMediaInfoButton{ true };
 
+        // OpenSubtitles bearer tokens remain session-only. When the user opts
+        // to stay signed in, only the password is persisted through Windows
+        // Credential Manager; it is never stored in HC Player settings/files.
+        std::wstring m_openSubtitlesToken;
+        std::wstring m_openSubtitlesBaseUrl;
+        std::wstring m_openSubtitlesTokenUser;
+        bool m_onlineSubtitleSearchBusy{ false };
+        // Online subtitle lookup is explicitly opt-in. Missing saved state
+        // means OFF so HC Player performs no OpenSubtitles UI/network work
+        // unless the user enables the feature in Settings > Media > Subtitles.
+        bool m_onlineSubtitlesEnabled{ false };
+
+        // SponsorBlock is explicitly opt-in. Missing saved state means OFF, so
+        // HC Player performs no SponsorBlock request and no automatic seek
+        // unless the user enables it in Settings > Interface > YouTube.
+        bool m_sponsorBlockEnabled{ false };
+        std::wstring m_sponsorBlockVideoId;
+        std::vector<SponsorBlockSegment> m_sponsorBlockSegments;
+        std::uint64_t m_sponsorBlockRequestGeneration{};
+        std::uint64_t m_sponsorBlockVisualRevision{};
+        std::uint64_t m_sponsorBlockNormalRenderedRevision{};
+        std::uint64_t m_sponsorBlockMinimalRenderedRevision{};
+        double m_sponsorBlockMarkerDuration{};
+        double m_sponsorBlockMarkerWidth{};
+        double m_minimalSponsorBlockMarkerDuration{};
+        double m_minimalSponsorBlockMarkerWidth{};
+        std::vector<SponsorBlockSegmentVisual> m_sponsorBlockNormalVisuals;
+        std::vector<SponsorBlockSegmentVisual> m_sponsorBlockMinimalVisuals;
+
+        // YouTube comments are also explicitly opt-in. Missing saved state
+        // means OFF, so HC Player performs no YouTube Data API requests unless
+        // the user enables the feature in Settings > Interface > YouTube.
+        bool m_youtubeCommentsEnabled{ false };
+
         // Video thumbnails are opt-in. No saved value means OFF, so the
         // auxiliary thumbnail decoder never starts unless the user explicitly
         // enables previews in Settings > Interface.
         bool m_videoThumbnailsEnabled{ false };
 
-        bool m_continuousPlayback{ false };
+        bool m_continuousPlayback{ true };
         bool m_lastEofReached{ false };
         bool m_filledTimelineStyle{ false };
         bool m_filledTimelineHovered{ false };
+        // Presentation-only expansion for the native Windows 11 seek thumb.
+        // It never owns pointer input or changes the seek ruler.
+        bool m_windows11TimelineThumbHovered{ false };
         bool m_volumeSliderHovered{ false };
         bool m_timelinePointerArmed{ true };
         int32_t m_timelineResumeCursorX{};
@@ -312,6 +402,7 @@ namespace winrt::HCPlayer::implementation
         bool m_minimalChapterThemeWasLight{};
         double m_webCacheEnd{};
         int32_t m_hoveredChapterSegment{ -1 };
+        int32_t m_hoveredMinimalChapterSegment{ -1 };
         std::vector<ChapterView> m_chapters;
         std::vector<ChapterSegmentVisual> m_chapterSegments;
         std::vector<ChapterSegmentVisual> m_minimalChapterSegments;
@@ -360,6 +451,12 @@ namespace winrt::HCPlayer::implementation
         double m_thumbnailDisplayedFrameTime{};
         double m_thumbnailDisplayedPointX{};
 
+        Windows::Foundation::IAsyncOperation<bool>
+            ConfigureOpenSubtitlesAsync(bool force);
+        Windows::Foundation::IAsyncAction ShowOpenSubtitlesMessageAsync(
+            std::wstring title, std::wstring message);
+        winrt::fire_and_forget SearchOnlineSubtitlesAsync();
+
         void SetTransportVisible(bool visible, bool animate = true);
         void SetMediaControlsExpanded(bool expanded);
         void UpdateVideoOnlyActionVisibility();
@@ -378,13 +475,25 @@ namespace winrt::HCPlayer::implementation
         void UpdatePlayButtonState();
         void UpdateLoopButtonState();
         void UpdateShuffleButtonState();
+        Microsoft::UI::Xaml::Media::Brush PlaybackProgressBrush();
         void RefreshChapterData(double duration, double elapsed);
         void UpdateChapterTitle(double elapsed);
         void RenderChapterMarkers(double duration, double elapsed);
         void RenderMinimalChapterMarkers(double duration, double elapsed);
+        void RenderSponsorBlockMarkers(double duration);
+        std::wstring SponsorBlockLabelAtTime(double time) const;
+        void ClearSponsorBlockState();
+        void EnsureSponsorBlockForCurrentMedia();
+        winrt::fire_and_forget FetchSponsorBlockSegmentsAsync(
+            std::wstring videoId, std::uint64_t generation);
+        void CheckSponsorBlockAutoSkip(double elapsed, double duration);
         void UpdateMinimalTimelineVisual();
+        void UpdateMinimalTimelineVisual(double elapsed, double duration);
         void SetHoveredChapterSegment(int32_t index);
+        void SetHoveredMinimalChapterSegment(int32_t index);
         void SetFilledTimelineHovered(bool hovered);
+        void UpdateWindows11TimelineThumbHover(double pointerX);
+        void SetWindows11TimelineThumbHover(bool hovered);
         void SetVolumeSliderHovered(bool hovered);
         double TimelineTimeFromPointerX(double pointerX, double duration);
         bool ApplyTimelinePointerPosition(double pointerX, bool exact);

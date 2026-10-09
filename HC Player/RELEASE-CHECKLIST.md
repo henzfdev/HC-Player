@@ -1,10 +1,12 @@
-# HC Player 1.0 — GPL release checklist
+# HC Player 1.5.0 — GPL release checklist
 
 This checklist is intentionally conservative. A checked application build is
 not automatically a legally complete public release.
 
 - [ ] Release x64 build completes with 0 errors.
 - [ ] Player opens and passes playback/Settings/theme/DPI smoke tests.
+- [ ] Imported mpv profiles pass HDR and non-HDR switch/restore smoke tests; no stale profile-only options remain active.
+- [ ] Persistent mpv GPU shader cache is created under `%LOCALAPPDATA%\HC Player\mpv-cache\gpu-shaders` and is reused after restarting HC Player.
 - [ ] `Netflix Sans Medium.otf` is absent from source and binary packages.
 - [ ] `HC Player.pdb`, `.lib` and `.exp` are absent from the public binary ZIP.
 - [ ] `LICENSE`, `THIRD-PARTY-NOTICES.md`, `SOURCE-MANIFEST.md` and `Licenses/`

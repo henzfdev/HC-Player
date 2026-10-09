@@ -131,9 +131,16 @@
     <Page Include="ContextMenuPage.xaml" />
     <Page Include="MediaInfoPage.xaml" />
     <Page Include="PlaylistPage.xaml" />
+    <Page Include="YouTubeCommentsPage.xaml" />
   </ItemGroup>
   <ItemGroup>
     <PRIResource Include="Strings\pt-BR\Resources.resw" />
     <PRIResource Include="Strings\en-US\Resources.resw" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="YouTubeCommentsPage.h" />
+    <ClCompile Include="YouTubeCommentsPage.cpp" />
+    <Midl Include="YouTubeCommentsPage.idl" />
   </ItemGroup>
 </Project>

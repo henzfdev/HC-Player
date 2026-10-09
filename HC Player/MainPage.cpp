@@ -3,17 +3,31 @@
 #include "PlayerBridge.h"
 #include "LocalizationManager.h"
 #include "SystemMediaControlsManager.h"
+#include "StoragePaths.h"
 
 #include <shobjidl.h>
 #include <filesystem>
 #include <winrt/Microsoft.UI.Xaml.Media.Imaging.h>
 #include <winrt/Windows.Storage.h>
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Data.Json.h>
+#include <winrt/Windows.Web.Http.h>
+#include <winrt/Windows.Web.Http.Headers.h>
 #include <cmath>
 #include <cstring>
 #include <iomanip>
 #include <memory>
 #include <sstream>
+#include <fstream>
+#include <vector>
+#include <cstdint>
+#include <system_error>
+#include <algorithm>
+#include <set>
+#include <cwctype>
+#include <wincred.h>
+
+#pragma comment(lib, "Advapi32.lib")
 
 // WriteableBitmap::PixelBuffer implements this COM ABI contract.
 // Local declaration avoids SDK/header namespace differences.
@@ -40,7 +54,495 @@ namespace
             MainPageString(resourceId, fallback) });
     }
 
+    // The Windows 11 Slider template owns the actual Thumb and its Fluent
+    // PointerOver animation. Locate that presentation element only when the
+    // expanded-hover state changes; normal pointer movement stays on HC
+    // Player's existing TimelineInputSurface and never changes seek ownership.
+    winrt::Microsoft::UI::Xaml::Controls::Primitives::Thumb FindSliderThumb(
+        winrt::Microsoft::UI::Xaml::DependencyObject const& root)
+    {
+        using winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper;
+        using winrt::Microsoft::UI::Xaml::Controls::Primitives::Thumb;
 
+        if (!root)
+        {
+            return nullptr;
+        }
+
+        if (auto thumb = root.try_as<Thumb>())
+        {
+            return thumb;
+        }
+
+        int32_t const childCount = VisualTreeHelper::GetChildrenCount(root);
+        for (int32_t index = 0; index < childCount; ++index)
+        {
+            if (auto thumb = FindSliderThumb(
+                VisualTreeHelper::GetChild(root, index)))
+            {
+                return thumb;
+            }
+        }
+
+        return nullptr;
+    }
+
+    // MainPage itself is hosted only inside the bottom transport island.
+    // OpenSubtitles dialogs use a separate full-client XAML island exposed by
+    // PlayerBridge so they can be centered over the video instead of being
+    // clipped to the transport bar.
+    struct OpenSubtitlesModalHostGuard
+    {
+        winrt::Microsoft::UI::Xaml::XamlRoot root{ nullptr };
+
+        OpenSubtitlesModalHostGuard()
+            : root(PlayerBeginModalDialogHost())
+        {
+        }
+
+        ~OpenSubtitlesModalHostGuard()
+        {
+            PlayerEndModalDialogHost();
+        }
+    };
+
+    void ApplyOpenSubtitlesDialogTheme(
+        winrt::Microsoft::UI::Xaml::Controls::ContentDialog const& dialog)
+    {
+        // ContentDialog is presented in its own popup tree. Setting the theme
+        // only on the XAML-island root is not sufficient: the dialog can still
+        // resolve theme resources from the Windows system theme. Pin the dialog
+        // itself to HC Player's current app theme so all of its content inherits
+        // the same Light/Dark choice as the main player.
+        dialog.RequestedTheme(
+            PlayerIsLightTheme()
+                ? winrt::Microsoft::UI::Xaml::ElementTheme::Light
+                : winrt::Microsoft::UI::Xaml::ElementTheme::Dark);
+    }
+
+    struct OpenSubtitleSearchResult
+    {
+        int64_t fileId{};
+        std::wstring language;
+        std::wstring release;
+        std::wstring fileName;
+        int64_t downloads{};
+        bool trusted{};
+        bool hearingImpaired{};
+        bool exactHash{};
+    };
+
+    std::wstring OpenSubtitlesSavedValue(
+        std::wstring const& name, std::wstring const& fallback = {})
+    {
+        std::wstring value;
+        return PlayerTryGetSavedMpvOption(name, value) && !value.empty()
+            ? value
+            : fallback;
+    }
+
+    constexpr wchar_t OpenSubtitlesCredentialTarget[] =
+        L"HC Player/OpenSubtitles.com";
+
+    bool OpenSubtitlesSameUser(
+        std::wstring_view left, std::wstring_view right)
+    {
+        std::wstring const leftValue{ left };
+        std::wstring const rightValue{ right };
+        return _wcsicmp(leftValue.c_str(), rightValue.c_str()) == 0;
+    }
+
+    void SecureClearOpenSubtitlesSecret(std::wstring& value)
+    {
+        if (!value.empty())
+        {
+            SecureZeroMemory(
+                value.data(), value.size() * sizeof(std::wstring::value_type));
+            value.clear();
+        }
+    }
+
+    bool ReadOpenSubtitlesPassword(
+        std::wstring const& username, std::wstring& password)
+    {
+        password.clear();
+        PCREDENTIALW credential{};
+        if (!CredReadW(
+            OpenSubtitlesCredentialTarget, CRED_TYPE_GENERIC, 0, &credential))
+        {
+            return false;
+        }
+
+        struct CredentialGuard
+        {
+            PCREDENTIALW value{};
+            ~CredentialGuard() { if (value) CredFree(value); }
+        } guard{ credential };
+
+        if (!credential->UserName ||
+            !OpenSubtitlesSameUser(credential->UserName, username) ||
+            credential->CredentialBlobSize == 0 ||
+            (credential->CredentialBlobSize % sizeof(wchar_t)) != 0)
+        {
+            return false;
+        }
+
+        auto const* first = reinterpret_cast<wchar_t const*>(
+            credential->CredentialBlob);
+        size_t const count =
+            credential->CredentialBlobSize / sizeof(wchar_t);
+        password.assign(first, first + count);
+        return !password.empty();
+    }
+
+    bool SaveOpenSubtitlesPassword(
+        std::wstring const& username, std::wstring const& password)
+    {
+        size_t const byteCount = password.size() * sizeof(wchar_t);
+        if (username.empty() || password.empty() ||
+            byteCount > CRED_MAX_CREDENTIAL_BLOB_SIZE)
+        {
+            return false;
+        }
+
+        CREDENTIALW credential{};
+        credential.Type = CRED_TYPE_GENERIC;
+        credential.TargetName = const_cast<LPWSTR>(
+            OpenSubtitlesCredentialTarget);
+        credential.CredentialBlobSize = static_cast<DWORD>(byteCount);
+        credential.CredentialBlob = reinterpret_cast<LPBYTE>(
+            const_cast<wchar_t*>(password.data()));
+        credential.Persist = CRED_PERSIST_LOCAL_MACHINE;
+        credential.UserName = const_cast<LPWSTR>(username.c_str());
+        return CredWriteW(&credential, 0) != FALSE;
+    }
+
+    void DeleteOpenSubtitlesPassword()
+    {
+        if (!CredDeleteW(
+            OpenSubtitlesCredentialTarget, CRED_TYPE_GENERIC, 0))
+        {
+            DWORD const error = GetLastError();
+            if (error != ERROR_NOT_FOUND)
+            {
+                // Credential persistence is an optional convenience. Failure
+                // to remove it must never block subtitle playback.
+            }
+        }
+    }
+
+
+    std::vector<std::wstring> ParseOpenSubtitlesLanguages(std::wstring_view value)
+    {
+        std::vector<std::wstring> languages;
+        std::set<std::wstring> seen;
+        std::wstring token;
+
+        auto flush = [&]()
+            {
+                if (token.empty()) return;
+                std::transform(token.begin(), token.end(), token.begin(), towlower);
+                if (token == L"e" || token == L"and")
+                {
+                    token.clear();
+                    return;
+                }
+
+                std::wstring cleaned;
+                cleaned.reserve(token.size());
+                for (wchar_t ch : token)
+                {
+                    if (iswalnum(ch) || ch == L'-') cleaned.push_back(ch);
+                    else if (ch == L'_') cleaned.push_back(L'-');
+                }
+                token.clear();
+                if (cleaned.empty()) return;
+                if (seen.insert(cleaned).second) languages.push_back(std::move(cleaned));
+            };
+
+        for (wchar_t ch : value)
+        {
+            if (ch == L',' || ch == L';' || ch == L'|' || ch == L'/' ||
+                ch == L'&' || iswspace(ch))
+            {
+                flush();
+            }
+            else
+            {
+                token.push_back(ch);
+            }
+        }
+        flush();
+        return languages;
+    }
+
+    std::wstring JoinOpenSubtitlesLanguages(
+        std::vector<std::wstring> const& languages)
+    {
+        std::wstring joined;
+        for (auto const& language : languages)
+        {
+            if (!joined.empty()) joined += L",";
+            joined += language;
+        }
+        return joined;
+    }
+
+    std::wstring OpenSubtitlesResultLanguage(
+        std::wstring_view resultLanguage,
+        std::vector<std::wstring> const& configuredLanguages)
+    {
+        auto parsed = ParseOpenSubtitlesLanguages(resultLanguage);
+        if (!parsed.empty()) return parsed.front();
+        return configuredLanguages.empty() ? L"sub" : configuredLanguages.front();
+    }
+
+    std::wstring OpenSubtitlesUrlEncode(std::wstring_view value)
+    {
+        static constexpr wchar_t Hex[] = L"0123456789ABCDEF";
+        std::string utf8 = winrt::to_string(winrt::hstring{ value });
+        std::wstring encoded;
+        encoded.reserve(utf8.size() * 3);
+        for (unsigned char ch : utf8)
+        {
+            bool const unreserved =
+                (ch >= 'A' && ch <= 'Z') ||
+                (ch >= 'a' && ch <= 'z') ||
+                (ch >= '0' && ch <= '9') ||
+                ch == '-' || ch == '_' || ch == '.' || ch == '~';
+            if (unreserved)
+            {
+                encoded.push_back(static_cast<wchar_t>(ch));
+            }
+            else
+            {
+                encoded.push_back(L'%');
+                encoded.push_back(Hex[(ch >> 4) & 0x0F]);
+                encoded.push_back(Hex[ch & 0x0F]);
+            }
+        }
+        return encoded;
+    }
+
+    bool ComputeOpenSubtitlesMovieHash(
+        std::filesystem::path const& path,
+        std::wstring& hash,
+        uint64_t& fileSize,
+        std::wstring& error)
+    {
+        hash.clear();
+        fileSize = 0;
+        error.clear();
+
+        std::error_code ec;
+        fileSize = std::filesystem::file_size(path, ec);
+        if (ec || fileSize == 0)
+        {
+            error = MainPageString(
+                L"MainPageDynOpenSubsHashReadError",
+                L"Não foi possível ler o tamanho do arquivo de vídeo.");
+            return false;
+        }
+
+        constexpr std::streamoff ChunkSize = 64 * 1024;
+        std::ifstream stream(path, std::ios::binary);
+        if (!stream)
+        {
+            error = MainPageString(
+                L"MainPageDynOpenSubsHashOpenError",
+                L"Não foi possível abrir o arquivo para calcular o identificador.");
+            return false;
+        }
+
+        uint64_t sum = fileSize;
+        auto addChunk = [&stream, &sum](std::streamoff offset) -> bool
+            {
+                stream.clear();
+                stream.seekg(offset, std::ios::beg);
+                if (!stream) return false;
+
+                std::vector<unsigned char> bytes(static_cast<size_t>(ChunkSize));
+                stream.read(reinterpret_cast<char*>(bytes.data()), ChunkSize);
+                std::streamsize const read = stream.gcount();
+                if (read <= 0) return false;
+
+                size_t const wholeWords = static_cast<size_t>(read) / 8;
+                for (size_t i = 0; i < wholeWords; ++i)
+                {
+                    uint64_t word = 0;
+                    for (int byte = 0; byte < 8; ++byte)
+                    {
+                        word |= static_cast<uint64_t>(bytes[i * 8 + byte])
+                            << (byte * 8);
+                    }
+                    sum += word;
+                }
+                return true;
+            };
+
+        if (!addChunk(0))
+        {
+            error = MainPageString(
+                L"MainPageDynOpenSubsHashReadError",
+                L"Não foi possível ler o arquivo para calcular o identificador.");
+            return false;
+        }
+
+        std::streamoff const tailOffset = fileSize > static_cast<uint64_t>(ChunkSize)
+            ? static_cast<std::streamoff>(fileSize - ChunkSize)
+            : 0;
+        if (!addChunk(tailOffset))
+        {
+            error = MainPageString(
+                L"MainPageDynOpenSubsHashReadError",
+                L"Não foi possível ler o arquivo para calcular o identificador.");
+            return false;
+        }
+
+        std::wostringstream out;
+        out << std::hex << std::nouppercase << std::setfill(L'0')
+            << std::setw(16) << sum;
+        hash = out.str();
+        return true;
+    }
+
+    void AppendOpenSubtitlesHeaders(
+        winrt::Windows::Web::Http::HttpRequestMessage const& request,
+        std::wstring const& apiKey,
+        std::wstring const& bearer = {})
+    {
+        request.Headers().TryAppendWithoutValidation(
+            L"Api-Key", winrt::hstring{ apiKey });
+        request.Headers().UserAgent().ParseAdd(L"HCPlayer/1.5.0");
+        request.Headers().Accept().ParseAdd(L"application/json");
+        if (!bearer.empty())
+        {
+            request.Headers().TryAppendWithoutValidation(
+                L"Authorization", winrt::hstring{ L"Bearer " + bearer });
+        }
+    }
+
+    std::wstring OpenSubtitlesApiMessage(
+        winrt::hstring const& body,
+        std::wstring const& fallback)
+    {
+        try
+        {
+            auto json = winrt::Windows::Data::Json::JsonObject::Parse(body);
+            auto message = json.GetNamedString(L"message", L"");
+            if (!message.empty()) return message.c_str();
+        }
+        catch (...)
+        {
+        }
+        return fallback;
+    }
+
+    std::wstring NormalizeOpenSubtitlesApiBase(std::wstring value)
+    {
+        while (!value.empty() && (value.back() == L'/' || iswspace(value.back())))
+            value.pop_back();
+        size_t first = 0;
+        while (first < value.size() && iswspace(value[first])) ++first;
+        if (first > 0) value.erase(0, first);
+        if (value.empty()) return L"https://api.opensubtitles.com/api/v1";
+        if (!value.starts_with(L"http://") && !value.starts_with(L"https://"))
+            value = L"https://" + value;
+        if (!value.ends_with(L"/api/v1")) value += L"/api/v1";
+        return value;
+    }
+
+    std::wstring SafeSubtitleExtension(std::wstring const& fileName)
+    {
+        std::wstring ext = std::filesystem::path(fileName).extension().wstring();
+        std::transform(ext.begin(), ext.end(), ext.begin(), towlower);
+        static const std::set<std::wstring> Allowed = {
+            L".srt", L".ass", L".ssa", L".vtt", L".sub", L".smi", L".txt" };
+        return Allowed.contains(ext) ? ext : L".srt";
+    }
+
+    std::wstring SponsorBlockExtractYouTubeVideoId(std::wstring const& input)
+    {
+        if (input.empty()) return {};
+
+        std::wstring value = input;
+        if (value.starts_with(L"ytdl://")) value.erase(0, 7);
+        if (auto fragment = value.find(L'#'); fragment != std::wstring::npos)
+            value.resize(fragment);
+
+        std::wstring lower = value;
+        std::transform(lower.begin(), lower.end(), lower.begin(),
+            [](wchar_t ch) { return static_cast<wchar_t>(towlower(ch)); });
+
+        auto validId = [](std::wstring const& id)
+        {
+            if (id.size() != 11) return false;
+            return std::all_of(id.begin(), id.end(), [](wchar_t ch)
+                {
+                    return (ch >= L'A' && ch <= L'Z') ||
+                        (ch >= L'a' && ch <= L'z') ||
+                        (ch >= L'0' && ch <= L'9') ||
+                        ch == L'-' || ch == L'_';
+                });
+        };
+
+        auto queryValue = [&](std::wstring const& key) -> std::wstring
+        {
+            std::wstring const marker = key + L"=";
+            size_t pos = lower.find(marker);
+            while (pos != std::wstring::npos)
+            {
+                bool const validStart = pos == 0 || lower[pos - 1] == L'?' ||
+                    lower[pos - 1] == L'&';
+                if (validStart)
+                {
+                    size_t const start = pos + marker.size();
+                    size_t const end = value.find_first_of(L"&#", start);
+                    std::wstring id = value.substr(
+                        start, end == std::wstring::npos
+                            ? std::wstring::npos : end - start);
+                    if (validId(id)) return id;
+                }
+                pos = lower.find(marker, pos + marker.size());
+            }
+            return {};
+        };
+
+        if (auto id = queryValue(L"v"); !id.empty()) return id;
+
+        auto pathValue = [&](std::wstring const& marker) -> std::wstring
+        {
+            size_t const pos = lower.find(marker);
+            if (pos == std::wstring::npos) return {};
+            size_t const start = pos + marker.size();
+            size_t const end = value.find_first_of(L"?&#/", start);
+            std::wstring id = value.substr(
+                start, end == std::wstring::npos
+                    ? std::wstring::npos : end - start);
+            return validId(id) ? id : std::wstring{};
+        };
+
+        for (auto const* marker :
+            { L"youtu.be/", L"/shorts/", L"/live/", L"/embed/" })
+        {
+            if (auto id = pathValue(marker); !id.empty()) return id;
+        }
+        return {};
+    }
+
+    winrt::Windows::UI::Color SponsorBlockCategoryColor(std::wstring const& category)
+    {
+        // These RGB values reproduce the visible colors from the user's old
+        // ASS/mpv skin (whose source literals were stored in BGR order).
+        if (category == L"intro")          return { 255, 0x00, 0xFF, 0xFF };
+        if (category == L"outro")          return { 255, 0xED, 0x00, 0x00 };
+        if (category == L"interaction")    return { 255, 0xFF, 0x00, 0xCC };
+        if (category == L"selfpromo")      return { 255, 0xFF, 0xFF, 0x00 };
+        if (category == L"music_offtopic") return { 255, 0x00, 0x99, 0xFF };
+        if (category == L"preview")        return { 255, 0xD6, 0x8F, 0x00 };
+        if (category == L"filler")         return { 255, 0xFF, 0x00, 0x73 };
+        return { 255, 0x00, 0xD4, 0x00 }; // sponsor / safe fallback
+    }
 }
 
 
@@ -75,11 +577,23 @@ namespace winrt::HCPlayer::implementation
         m_thumbnailController = std::make_unique<ThumbnailController>();
     }
 
+    void MainPage::SetPictureInPictureTimeWindowLargeEnough(bool largeEnough)
+    {
+        m_pipTimeWindowLargeEnough = largeEnough;
+        if (m_pictureInPicture)
+        {
+            UpdateResponsiveControls(PlaybackControlsRow().ActualWidth());
+        }
+    }
+
     void MainPage::SetSettingsOverlayOpen(bool open)
     {
         m_settingsOverlayOpen = open;
         if (open)
         {
+            // A newly opened overlay owns pointer input again. Any previous
+            // MediaInfo/Playlist return gate is no longer relevant.
+            m_sidePanelReturnPointerGate = false;
             m_transportHideTimer.Stop();
             SetTransportVisible(false, false);
         }
@@ -90,6 +604,53 @@ namespace winrt::HCPlayer::implementation
             // available briefly, but make the transition feel more immediate.
             ScheduleTransportHide(std::chrono::milliseconds(1000));
         }
+    }
+
+    void MainPage::PrepareSidePanelTransportReturn()
+    {
+        // MediaInfo and Playlist live on the left XAML island. Removing that
+        // island and restoring the transport can make WinUI/native hot-zone
+        // tracking report pointer entry even though the mouse never moved.
+        // Capture the physical point before the transport returns so those
+        // synthetic events cannot cancel the established 1000-ms hide timer.
+        POINT cursor{};
+        if (GetCursorPos(&cursor))
+        {
+            m_sidePanelReturnCursorX = cursor.x;
+            m_sidePanelReturnCursorY = cursor.y;
+            m_sidePanelReturnPointerGate = true;
+        }
+        else
+        {
+            m_sidePanelReturnPointerGate = false;
+        }
+    }
+
+    bool MainPage::AcceptSidePanelReturnPointerActivity()
+    {
+        if (!m_sidePanelReturnPointerGate)
+        {
+            return true;
+        }
+
+        POINT cursor{};
+        if (!GetCursorPos(&cursor))
+        {
+            // Fail open if Windows cannot provide a physical cursor position.
+            m_sidePanelReturnPointerGate = false;
+            return true;
+        }
+
+        if (cursor.x == m_sidePanelReturnCursorX &&
+            cursor.y == m_sidePanelReturnCursorY)
+        {
+            return false;
+        }
+
+        // The user really moved the mouse. From this point onward the existing
+        // transport hover/reveal behavior resumes without any additional delay.
+        m_sidePanelReturnPointerGate = false;
+        return true;
     }
 
     void MainPage::PrepareSilentFullscreenEntry()
@@ -110,7 +671,7 @@ namespace winrt::HCPlayer::implementation
         SetTransportVisible(false, false);
     }
 
-    void MainPage::SetPictureInPictureMode(bool enabled)
+    void MainPage::SetPictureInPictureMode(bool enabled, bool revealTransport)
     {
         m_pictureInPicture = enabled;
         if (enabled && m_thumbnailController)
@@ -172,7 +733,12 @@ namespace winrt::HCPlayer::implementation
             ? Microsoft::UI::Xaml::Visibility::Collapsed
             : Microsoft::UI::Xaml::Visibility::Visible);
         VolumeIcon().Visibility(visibility);
+        VolumeIconHitTarget().Visibility(visibility);
         VolumeSliderHost().Visibility(visibility);
+        if (enabled)
+        {
+            VolumeIconHoverBackground().Opacity(0.0);
+        }
         if (enabled)
             TimeDisplayHost().Visibility(
                 Microsoft::UI::Xaml::Visibility::Visible);
@@ -259,6 +825,11 @@ namespace winrt::HCPlayer::implementation
         ChapterHoverPopup().IsOpen(false);
         SetHoveredChapterSegment(-1);
         SetFilledTimelineHovered(false);
+        // Reset presentation-only thumb hover at every PiP boundary. This
+        // prevents a Full/Compact PointerOver state from leaking into PiP (or
+        // vice versa) while still allowing PiP to reacquire the same expanded
+        // hover zone after real pointer movement. Seek input is untouched.
+        SetWindows11TimelineThumbHover(false);
         SetVolumeSliderHovered(false);
 
         PipIcon().Glyph(enabled ? L"\uE944" : L"\uE8A7");
@@ -332,8 +903,27 @@ namespace winrt::HCPlayer::implementation
                 : MainPageBoxString(L"MainPageDynPictureInPicture", L"Picture-in-Picture"));
         ApplyTransportStyleVisuals();
         if (enabled) PlayerReleaseTransportFocus();
-        SetTransportVisible(true, false);
-        ScheduleTransportHide(std::chrono::milliseconds(1800));
+
+        if (enabled || revealTransport)
+        {
+            // PiP itself keeps the established compact controls visible, and
+            // non-window-return callers preserve the previous behavior.
+            SetTransportVisible(true, false);
+            ScheduleTransportHide(std::chrono::milliseconds(1800));
+        }
+        else
+        {
+            // PiP -> normal window should return to clean video, not force the
+            // transport onscreen. Keep the rebuilt normal transport hidden and
+            // disarmed until genuine pointer movement reaches the normal hot
+            // zone. This also prevents the old compact PiP bar from being
+            // presented during the native window restore.
+            m_transportRevealArmed = false;
+            m_transportHideTimer.Stop();
+            m_transportCollapseTimer.Stop();
+            m_transportHideNotBefore = {};
+            SetTransportVisible(false, false);
+        }
     }
 
     void MainPage::SetMediaControlsExpanded(bool expanded)
@@ -376,7 +966,7 @@ namespace winrt::HCPlayer::implementation
                     : Microsoft::UI::Xaml::Visibility::Collapsed);
             TransportRoot().Padding(expanded
                 ? Microsoft::UI::Xaml::Thickness{ 10.0, 5.0, 10.0, 2.0 }
-            : Microsoft::UI::Xaml::Thickness{ 10.0, 8.0, 10.0, 8.0 });
+            : Microsoft::UI::Xaml::Thickness{ 10.0, 6.0, 10.0, 6.0 });
         }
         PlayerSetTransportCompact(!expanded);
         UpdateVideoOnlyActionVisibility();
@@ -401,6 +991,16 @@ namespace winrt::HCPlayer::implementation
             m_mediaControlsExpanded &&
             !minimalActive &&
             !m_pictureInPicture;
+
+        // The enlarged thumb-hover target belongs to the shared Windows 11
+        // Full/Compact/PiP timeline. Minimal remains fully isolated. Clear the
+        // state only when Minimal is active or the normal transport is hidden;
+        // PiP resets it explicitly on mode entry/exit and may then reacquire
+        // PointerOver from genuine timeline pointer movement.
+        if (minimalActive || (!m_pictureInPicture && !m_mediaControlsExpanded))
+        {
+            SetWindows11TimelineThumbHover(false);
+        }
 
         // These two controls have exactly two legal XAML owners each. During a
         // hidden shell cold-start, OpenPath() can expand the transport before the
@@ -443,17 +1043,26 @@ namespace winrt::HCPlayer::implementation
                 InformationCenterGrid(), CompactBadgeSlot(), CompactBadgeSlot());
             moveBetweenPanels(CaptureButton(),
                 InformationActions(), RightControls(), RightControls());
+            moveBetweenPanels(YouTubeCommentsButton(),
+                InformationActions(), RightControls(), RightControls());
 
             // Match the Compact row's approved 40x38 bottom-control geometry.
-            // The Capture button keeps its original style/logic and is restored
-            // to the frozen 36x34 Full-bar geometry below.
+            // Both controls keep their existing logic and are restored to the
+            // Full-bar geometry below.
             CaptureButton().Width(40.0);
             CaptureButton().Height(38.0);
+            YouTubeCommentsButton().Width(40.0);
+            YouTubeCommentsButton().Height(38.0);
 
-            // Keep Capture exactly between Tracks (subtitles/audio) and Stats
-            // in Bar Compact. Reparenting the approved button preserves the
-            // existing flyout, feedback pulse and capture implementation.
+            // Keep YouTube Comments and Capture together immediately before
+            // Stats in Bar Compact. A collapsed comments button takes no space,
+            // so non-YouTube media remains visually byte-for-byte equivalent.
             auto rightControls = RightControls().Children();
+            uint32_t commentsIndex{};
+            if (rightControls.IndexOf(YouTubeCommentsButton(), commentsIndex))
+            {
+                rightControls.RemoveAt(commentsIndex);
+            }
             uint32_t captureIndex{};
             if (rightControls.IndexOf(CaptureButton(), captureIndex))
             {
@@ -463,10 +1072,12 @@ namespace winrt::HCPlayer::implementation
             uint32_t statsIndex{};
             if (rightControls.IndexOf(StatsButton(), statsIndex))
             {
-                rightControls.InsertAt(statsIndex, CaptureButton());
+                rightControls.InsertAt(statsIndex, YouTubeCommentsButton());
+                rightControls.InsertAt(statsIndex + 1, CaptureButton());
             }
             else
             {
+                rightControls.Append(YouTubeCommentsButton());
                 rightControls.Append(CaptureButton());
             }
 
@@ -480,22 +1091,29 @@ namespace winrt::HCPlayer::implementation
                 InformationCenterGrid(), CompactBadgeSlot(), InformationCenterGrid());
             moveBetweenPanels(CaptureButton(),
                 InformationActions(), RightControls(), InformationActions());
+            moveBetweenPanels(YouTubeCommentsButton(),
+                InformationActions(), RightControls(), InformationActions());
 
-            // Restore the exact frozen Full-bar Capture size after leaving
-            // Compact so the original three-row layout remains unchanged.
+            // Restore the Full-bar geometry after leaving Compact.
             CaptureButton().Width(36.0);
             CaptureButton().Height(34.0);
+            YouTubeCommentsButton().Width(36.0);
+            YouTubeCommentsButton().Height(34.0);
 
-            // Capture preceded Settings in the frozen three-row bar. Reinsert
-            // it at index zero so Full layout is visually identical after any
-            // Compact -> Full round-trip.
+            // Restore the intended Full-bar order: Comments, Capture, Settings.
             auto actions = InformationActions().Children();
+            uint32_t commentsIndex{};
+            if (actions.IndexOf(YouTubeCommentsButton(), commentsIndex))
+            {
+                actions.RemoveAt(commentsIndex);
+            }
             uint32_t captureIndex{};
-            if (actions.IndexOf(CaptureButton(), captureIndex) && captureIndex != 0)
+            if (actions.IndexOf(CaptureButton(), captureIndex))
             {
                 actions.RemoveAt(captureIndex);
-                actions.InsertAt(0, CaptureButton());
             }
+            actions.InsertAt(0, YouTubeCommentsButton());
+            actions.InsertAt(1, CaptureButton());
 
             MediaBadgesHost().Margin(
                 Microsoft::UI::Xaml::Thickness{ 0.0, 0.0, 18.0, 0.0 });
@@ -590,9 +1208,18 @@ namespace winrt::HCPlayer::implementation
                 ? Visibility::Visible : Visibility::Collapsed);
         PlaybackControlsRow().Visibility(
             m_mediaControlsExpanded ? Visibility::Visible : Visibility::Collapsed);
+        // Keep all control sizes unchanged. The 92-DIP compact video bar keeps
+        // the established 94-DIP controls placement relative to the bottom edge:
+        // only 2 DIP are trimmed from the original 5-DIP root top padding.
+        // Timeline/playback spacing remains at the established 4/8 DIP values.
+        bool const compactVideoBarActive = compactBarActive && !imageWithoutTimeline;
+        TimelineRow().Margin(
+            Microsoft::UI::Xaml::Thickness{ 0.0, 4.0, 0.0, 0.0 });
         TransportRoot().Padding(m_mediaControlsExpanded
-            ? Microsoft::UI::Xaml::Thickness{ 10.0, 5.0, 10.0, 2.0 }
-            : Microsoft::UI::Xaml::Thickness{ 10.0, 8.0, 10.0, 8.0 });
+            ? (compactVideoBarActive
+                ? Microsoft::UI::Xaml::Thickness{ 10.0, 3.0, 10.0, 2.0 }
+                : Microsoft::UI::Xaml::Thickness{ 10.0, 5.0, 10.0, 2.0 })
+            : Microsoft::UI::Xaml::Thickness{ 10.0, 6.0, 10.0, 6.0 });
         PlayerSetTransportImageMode(imageWithoutTimeline);
         PlayerSetTransportCompact(!m_mediaControlsExpanded);
         UpdateResponsiveControls(PlaybackControlsRow().ActualWidth());
@@ -682,6 +1309,13 @@ namespace winrt::HCPlayer::implementation
         }
     }
 
+    bool MainPage::CanOpenYouTubeComments() const noexcept
+    {
+        return m_youtubeCommentsEnabled &&
+            (m_sourceBadge == MediaSourceBadge::YouTube ||
+             m_sourceBadge == MediaSourceBadge::YouTubeLive);
+    }
+
     void MainPage::RefreshInterfacePreferences()
     {
         auto enabled = [](wchar_t const* name)
@@ -694,6 +1328,47 @@ namespace winrt::HCPlayer::implementation
         m_showCaptureButton = enabled(L"ui-show-capture-button");
         m_showShuffleButton = enabled(L"ui-show-shuffle-button");
         m_showMediaInfoButton = enabled(L"ui-show-mediainfo-button");
+
+        // Online subtitle lookup is opt-in. A missing value intentionally
+        // means disabled, unlike the ordinary visibility toggles above.
+        std::wstring onlineSubtitles;
+        m_onlineSubtitlesEnabled =
+            PlayerTryGetSavedMpvOption(
+                L"ui-online-subtitles", onlineSubtitles) &&
+            onlineSubtitles == L"yes";
+
+        std::wstring sponsorBlock;
+        bool const sponsorBlockEnabled =
+            PlayerTryGetSavedMpvOption(
+                L"ui-sponsorblock", sponsorBlock) &&
+            sponsorBlock == L"yes";
+        bool const sponsorBlockChanged =
+            m_sponsorBlockEnabled != sponsorBlockEnabled;
+        m_sponsorBlockEnabled = sponsorBlockEnabled;
+        if (!m_sponsorBlockEnabled)
+        {
+            ClearSponsorBlockState();
+        }
+        else if (sponsorBlockChanged)
+        {
+            EnsureSponsorBlockForCurrentMedia();
+        }
+
+        std::wstring youtubeComments;
+        m_youtubeCommentsEnabled =
+            PlayerTryGetSavedMpvOption(
+                L"ui-youtube-comments", youtubeComments) &&
+            youtubeComments == L"yes";
+
+        // Settings are applied while the current media can already be open.
+        // Re-evaluate the comments button immediately instead of waiting for
+        // another media-badge refresh/load cycle.
+        YouTubeCommentsButton().Visibility(
+            m_youtubeCommentsEnabled &&
+                (m_sourceBadge == MediaSourceBadge::YouTube ||
+                 m_sourceBadge == MediaSourceBadge::YouTubeLive)
+                ? Microsoft::UI::Xaml::Visibility::Visible
+                : Microsoft::UI::Xaml::Visibility::Collapsed);
 
         std::wstring transportStyle;
         m_minimalTransportStyle =
@@ -740,11 +1415,13 @@ namespace winrt::HCPlayer::implementation
             HideThumbnailPreview();
         }
 
-        // Opt-in behavior: if no value has ever been saved, stay disabled.
+        // Continuous playback is ON by default. Preserve an explicit saved
+        // OFF value, but a fresh/reset profile starts with the safer queue
+        // handoff behavior enabled.
         std::wstring continuousPlayback;
-        m_continuousPlayback =
-            PlayerTryGetSavedMpvOption(
-                L"ui-continuous-playback", continuousPlayback) &&
+        bool const hasContinuousPlayback = PlayerTryGetSavedMpvOption(
+            L"ui-continuous-playback", continuousPlayback);
+        m_continuousPlayback = !hasContinuousPlayback ||
             continuousPlayback == L"yes";
 
         std::wstring timelineStyle;
@@ -761,6 +1438,10 @@ namespace winrt::HCPlayer::implementation
         }
 
         m_filledTimelineStyle = filledTimeline;
+        if (filledTimeline)
+        {
+            SetWindows11TimelineThumbHover(false);
+        }
 
         // Always reassert the visual state. The logical style and the XAML
         // Opacity/Visibility can temporarily diverge after a settings/layout
@@ -785,6 +1466,7 @@ namespace winrt::HCPlayer::implementation
         ChapterMarkers().Margin(filledTimeline
             ? Microsoft::UI::Xaml::Thickness{ 10.0, 0.0, 10.0, 0.0 }
             : Microsoft::UI::Xaml::Thickness{ 9.0, 0.0, 9.0, 0.0 });
+        SponsorBlockMarkers().Margin(ChapterMarkers().Margin());
         FilledTimelineOverlay().Visibility(filledTimeline
             ? Microsoft::UI::Xaml::Visibility::Visible
             : Microsoft::UI::Xaml::Visibility::Collapsed);
@@ -820,6 +1502,10 @@ namespace winrt::HCPlayer::implementation
             m_minimalChapterMarkerDuration = 0.0;
             m_minimalChapterMarkerWidth = 0.0;
             m_minimalChapterSegments.clear();
+            m_sponsorBlockMarkerDuration = 0.0;
+            m_sponsorBlockMarkerWidth = 0.0;
+            m_minimalSponsorBlockMarkerDuration = 0.0;
+            m_minimalSponsorBlockMarkerWidth = 0.0;
             double elapsed{};
             double duration{};
             if (PlayerGetPlaybackTimes(elapsed, duration))
@@ -882,11 +1568,10 @@ namespace winrt::HCPlayer::implementation
 
         if (m_pictureInPicture)
         {
-            // A janela PiP pode chegar a 320 DIP de largura. Depois dos
-            // paddings laterais, PlaybackControlsRow fica perto de 288 DIP.
-            // Vídeo continua usando o limiar já aprovado. O PiP de áudio tem
-            // um botão extra (Anterior | Play | Próxima | Loop), então o
-            // relógio cede por mais alguns DIP para nunca comprimir/clippá-los.
+            // The top-level HWND decides whether the PiP is at least 335 DIP wide.
+            // Height is intentionally irrelevant here: the time readout competes
+            // for horizontal space. Keep the established controls-row thresholds
+            // as a second guard so the clock never compresses the PiP transport.
             constexpr double PiPVideoTimeThreshold = 300.0;
             constexpr double PiPAudioTimeThreshold = 350.0;
 
@@ -895,8 +1580,8 @@ namespace winrt::HCPlayer::implementation
                 ? PiPAudioTimeThreshold
                 : PiPVideoTimeThreshold;
 
-            TimeDisplayHost().Visibility(
-                visibility(width > timeThreshold));
+            TimeDisplayHost().Visibility(visibility(
+                m_pipTimeWindowLargeEnough && width > timeThreshold));
             return;
         }
 
@@ -981,7 +1666,12 @@ namespace winrt::HCPlayer::implementation
         // Both return automatically when the window becomes wider again.
         bool showVolumeControls = width >= 900.0;
         VolumeIcon().Visibility(visibility(showVolumeControls));
+        VolumeIconHitTarget().Visibility(visibility(showVolumeControls));
         VolumeSliderHost().Visibility(visibility(showVolumeControls));
+        if (!showVolumeControls)
+        {
+            VolumeIconHoverBackground().Opacity(0.0);
+        }
 
         double volumeWidth = width < 680.0 ? 64.0 : 92.0;
         VolumeSliderHost().Width(volumeWidth);
@@ -1106,7 +1796,8 @@ namespace winrt::HCPlayer::implementation
         // surface and native hot-zone polling.
         if (m_settingsOverlayOpen ||
             m_transportStartupGuard ||
-            !m_transportRevealArmed)
+            !m_transportRevealArmed ||
+            !AcceptSidePanelReturnPointerActivity())
         {
             return;
         }
@@ -1122,7 +1813,8 @@ namespace winrt::HCPlayer::implementation
         // TransportVideoPointerMoved() is correctly rejecting startup motion.
         if (m_settingsOverlayOpen ||
             m_transportStartupGuard ||
-            !m_transportRevealArmed)
+            !m_transportRevealArmed ||
+            !AcceptSidePanelReturnPointerActivity())
         {
             return;
         }
@@ -1134,19 +1826,22 @@ namespace winrt::HCPlayer::implementation
         Windows::Foundation::IInspectable const&,
         Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const&)
     {
-        if (m_settingsOverlayOpen || m_transportFlyoutOpen) return;
+        if (m_settingsOverlayOpen || m_transportFlyoutOpen ||
+            !AcceptSidePanelReturnPointerActivity()) return;
         ScheduleTransportHide(std::chrono::milliseconds(180));
     }
 
     void MainPage::TransportHostPointerExited()
     {
-        if (m_settingsOverlayOpen || m_transportFlyoutOpen) return;
+        if (m_settingsOverlayOpen || m_transportFlyoutOpen ||
+            !AcceptSidePanelReturnPointerActivity()) return;
         ScheduleTransportHide(std::chrono::milliseconds(180));
     }
 
     void MainPage::TransportVideoPointerMoved(bool overControls)
     {
-        if (m_settingsOverlayOpen || m_transportStartupGuard) return;
+        if (m_settingsOverlayOpen || m_transportStartupGuard ||
+            !AcceptSidePanelReturnPointerActivity()) return;
 
         // HCPlayer.cpp filters layout-generated WM_MOUSEMOVE events before this
         // call. Reaching here therefore means the user actually moved the mouse.
@@ -1200,6 +1895,26 @@ namespace winrt::HCPlayer::implementation
         UpdateShuffleButtonState();
         RefreshInterfacePreferences();
 
+        // The HC-style volume track is custom geometry layered over the native
+        // Slider. On a cold Explorer launch the Slider can already hold the
+        // correct saved value (commonly 100) before the custom track has a
+        // realized width, so no ValueChanged event is guaranteed to repaint the
+        // fill. Synchronize the visual immediately and once more on the next
+        // dispatcher turn, after the first transport layout has settled. This is
+        // presentation-only: it never writes volume back to mpv or touches audio.
+        UpdateVolumeMarker();
+        auto weakThis = get_weak();
+        auto queue = DispatcherQueue();
+        if (queue)
+        {
+            queue.TryEnqueue([weakThis]()
+                {
+                    if (auto page = weakThis.get())
+                    {
+                        page->UpdateVolumeMarker();
+                    }
+                });
+        }
 
         // Normal-window placement from the very first frame. PiP has its own
         // unchanged placement in SetPictureInPictureMode().
@@ -1232,6 +1947,7 @@ namespace winrt::HCPlayer::implementation
         m_minimalChapterSegments.clear();
         ChapterMarkers().Children().Clear();
         MinimalChapterMarkers().Children().Clear();
+        ClearSponsorBlockState();
 
         // A fresh explicit open begins visually at zero immediately instead of
         // showing the previous movie's seek position until the next timer tick.
@@ -1358,6 +2074,7 @@ namespace winrt::HCPlayer::implementation
 
         ChapterMarkers().Children().Clear();
         MinimalChapterMarkers().Children().Clear();
+        ClearSponsorBlockState();
         ChapterHoverCard().Visibility(Visibility::Collapsed);
         ChapterHoverPopup().IsOpen(false);
         FilledTimelinePositionMarker().Visibility(Visibility::Collapsed);
@@ -1365,6 +2082,7 @@ namespace winrt::HCPlayer::implementation
 
         m_timelineUserInteraction = false;
         m_timelineProgressHoldTicks = 0;
+        m_minimalTimelineProgressHoldTicks = 0;
         m_timelineInteractionHasTarget = false;
         m_timelineInteractionSeconds = 0.0;
 
@@ -1621,6 +2339,24 @@ namespace winrt::HCPlayer::implementation
             MinimalPlayButton(), tooltip);
     }
 
+    Microsoft::UI::Xaml::Media::Brush MainPage::PlaybackProgressBrush()
+    {
+        // The filled HC Player style intentionally keeps its established
+        // SystemAccentColor. Windows 11 style instead reuses the exact live
+        // AccentFillColorDefaultBrush resolved by the native Settings UI.
+        if (!m_filledTimelineStyle)
+        {
+            if (auto windowsAccent = StandardVolumeValueTrack().Background())
+            {
+                return windowsAccent;
+            }
+        }
+
+        return Resources().Lookup(
+            winrt::box_value(L"TimelineProgressBrush"))
+            .as<Microsoft::UI::Xaml::Media::Brush>();
+    }
+
     void MainPage::UpdateLoopButtonState()
     {
         // Reuse the same live ThemeResource brush as the timeline/volume.
@@ -1718,6 +2454,8 @@ namespace winrt::HCPlayer::implementation
         AudioBadgeImage().Visibility(
             Microsoft::UI::Xaml::Visibility::Collapsed);
         MediaBadgesHost().Visibility(
+            Microsoft::UI::Xaml::Visibility::Collapsed);
+        YouTubeCommentsButton().Visibility(
             Microsoft::UI::Xaml::Visibility::Collapsed);
     }
 
@@ -2002,6 +2740,17 @@ namespace winrt::HCPlayer::implementation
             hasBadge
             ? Visibility::Visible
             : Visibility::Collapsed);
+
+        // The same native panel handles both normal YouTube comments and
+        // active YouTube live chat. YouTubeLive is classified separately for
+        // presentation (AO VIVO badge), but it must keep this action visible.
+        bool const isYouTubeCommentsSource =
+            m_sourceBadge == MediaSourceBadge::YouTube ||
+            m_sourceBadge == MediaSourceBadge::YouTubeLive;
+        YouTubeCommentsButton().Visibility(
+            m_youtubeCommentsEnabled && isYouTubeCommentsSource
+                ? Visibility::Visible
+                : Visibility::Collapsed);
     }
 
     winrt::fire_and_forget MainPage::LoadCustomBadgeImageAsync(
@@ -2316,8 +3065,8 @@ namespace winrt::HCPlayer::implementation
         // A still image has no meaningful playback clock. Ask mpv explicitly
         // whether the selected video track is an image instead of inferring it
         // from duration == 0, because live streams can also have no duration.
-        // PiP intentionally keeps its existing time-display behavior untouched.
-        if (!m_pictureInPicture && PlayerIsCurrentMediaImage())
+        // Keep the same neutral readout in normal/compact/Minimal and PiP.
+        if (imageMedia)
         {
             ElapsedTimeText().Text(L"--:-- / --:--");
             return;
@@ -2661,9 +3410,16 @@ namespace winrt::HCPlayer::implementation
                         label += L"\u2026";
                     }
 
-                    ToggleMenuFlyoutItem item;
+                    // Use a regular item and draw the selected state with an
+                    // Accept icon. ToggleMenuFlyoutItem reserves a dedicated
+                    // checkmark lane for the entire presenter, which creates a
+                    // large empty gutter at the left of every track row.
+                    MenuFlyoutItem item;
                     item.Text(label);
-                    item.IsChecked(selected);
+                    if (selected)
+                    {
+                        item.Icon(SymbolIcon{ Symbol::Accept });
+                    }
                     item.KeyboardAcceleratorTextOverride(track.language);
                     auto value = std::to_wstring(track.id);
                     item.Click([property, value](auto const&, auto const&)
@@ -2673,11 +3429,14 @@ namespace winrt::HCPlayer::implementation
                     menu.Items().Append(item);
                 }
 
-                ToggleMenuFlyoutItem disabled;
+                MenuFlyoutItem disabled;
                 disabled.Text(type == L"audio"
                     ? MainPageString(L"MainPageDynNoAudio", L"Sem \u00e1udio")
                     : MainPageString(L"MainPageDynDisabled", L"Desativadas"));
-                disabled.IsChecked(!anySelected);
+                if (!anySelected)
+                {
+                    disabled.Icon(SymbolIcon{ Symbol::Accept });
+                }
                 disabled.Click([property](auto const&, auto const&)
                     {
                         PlayerSelectMediaTrack(property, L"no");
@@ -2693,6 +3452,826 @@ namespace winrt::HCPlayer::implementation
         appendHeader(MainPageString(L"MainPageDynSubtitlesHeader", L"LEGENDAS"));
         appendTracks(L"sub", L"sid",
             MainPageString(L"MainPageDynSubtitleBase", L"Legenda"), 0);
+
+        if (m_onlineSubtitlesEnabled)
+        {
+            menu.Items().Append(MenuFlyoutSeparator{});
+
+            MenuFlyoutItem searchOnline;
+            searchOnline.Text(MainPageString(
+                L"MainPageDynSearchOnlineSubtitles", L"Buscar legendas online…"));
+            searchOnline.Icon(SymbolIcon{ Symbol::Find });
+            searchOnline.Click({ this, &MainPage::SearchOnlineSubtitlesClicked });
+            menu.Items().Append(searchOnline);
+
+            MenuFlyoutItem configureOpenSubtitles;
+            configureOpenSubtitles.Text(MainPageString(
+                L"MainPageDynConfigureOpenSubtitles", L"Configurar OpenSubtitles…"));
+            configureOpenSubtitles.Icon(SymbolIcon{ Symbol::Setting });
+            configureOpenSubtitles.Click(
+                { this, &MainPage::ConfigureOpenSubtitlesClicked });
+            menu.Items().Append(configureOpenSubtitles);
+        }
+    }
+
+    void MainPage::SearchOnlineSubtitlesClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        if (!m_onlineSubtitlesEnabled) return;
+        SearchOnlineSubtitlesAsync();
+    }
+
+    void MainPage::ConfigureOpenSubtitlesClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        if (!m_onlineSubtitlesEnabled) return;
+        ConfigureOpenSubtitlesAsync(true);
+    }
+
+    void MainPage::ConfigureOpenSubtitlesFromSettings()
+    {
+        // Settings may open configuration before the opt-in toggle is saved.
+        // This path deliberately bypasses the flyout visibility gate while
+        // preserving the exact same proven ContentDialog implementation.
+        ConfigureOpenSubtitlesAsync(true);
+    }
+
+    Windows::Foundation::IAsyncAction MainPage::ShowOpenSubtitlesMessageAsync(
+        std::wstring title, std::wstring message)
+    {
+        auto lifetime = get_strong();
+        using namespace Microsoft::UI::Xaml;
+        using namespace Microsoft::UI::Xaml::Controls;
+
+        OpenSubtitlesModalHostGuard dialogHost{};
+        ContentDialog dialog{};
+        ApplyOpenSubtitlesDialogTheme(dialog);
+        dialog.XamlRoot(dialogHost.root
+            ? dialogHost.root
+            : TransportRoot().XamlRoot());
+        dialog.Title(winrt::box_value(winrt::hstring{ title }));
+
+        TextBlock text{};
+        text.Text(message);
+        text.TextWrapping(TextWrapping::Wrap);
+        text.MaxWidth(520);
+        dialog.Content(text);
+        dialog.CloseButtonText(winrt::hstring{ MainPageString(
+            L"MainPageDynClose", L"Fechar") });
+        dialog.DefaultButton(ContentDialogButton::Close);
+        co_await dialog.ShowAsync();
+    }
+
+    Windows::Foundation::IAsyncOperation<bool>
+        MainPage::ConfigureOpenSubtitlesAsync(bool force)
+    {
+        auto lifetime = get_strong();
+        using namespace Microsoft::UI::Xaml;
+        using namespace Microsoft::UI::Xaml::Controls;
+
+        std::wstring apiKey = OpenSubtitlesSavedValue(
+            L"ui-opensubtitles-api-key");
+        std::wstring username = OpenSubtitlesSavedValue(
+            L"ui-opensubtitles-username");
+        std::wstring const previousUsername = username;
+        std::wstring language = OpenSubtitlesSavedValue(
+            L"ui-opensubtitles-language", L"pt-br");
+
+        if (!force && !apiKey.empty() && !username.empty() && !language.empty())
+        {
+            co_return true;
+        }
+
+        StackPanel panel{};
+        panel.Spacing(10);
+        panel.MaxWidth(560);
+
+        TextBlock intro{};
+        intro.Text(MainPageString(
+            L"MainPageDynOpenSubsConfigIntro",
+            L"Use sua conta do OpenSubtitles.com. A chave API e o usuário ficam salvos nas configurações do HC Player. Ao entrar, você pode manter a sessão salva com segurança pelo Gerenciador de Credenciais do Windows."));
+        intro.TextWrapping(TextWrapping::Wrap);
+        intro.Opacity(0.72);
+        panel.Children().Append(intro);
+
+        TextBox apiKeyBox{};
+        apiKeyBox.Header(MainPageBoxString(
+            L"MainPageDynOpenSubsApiKey", L"Chave API"));
+        apiKeyBox.Text(apiKey);
+        apiKeyBox.PlaceholderText(L"Api-Key");
+        panel.Children().Append(apiKeyBox);
+
+        TextBox usernameBox{};
+        usernameBox.Header(MainPageBoxString(
+            L"MainPageDynOpenSubsUsername", L"Usuário"));
+        usernameBox.Text(username);
+        panel.Children().Append(usernameBox);
+
+        TextBox languageBox{};
+        languageBox.Header(MainPageBoxString(
+            L"MainPageDynOpenSubsLanguage", L"Idioma"));
+        languageBox.Text(language);
+        languageBox.PlaceholderText(L"pt-br");
+        panel.Children().Append(languageBox);
+
+        TextBlock hint{};
+        hint.Text(MainPageString(
+            L"MainPageDynOpenSubsLanguageHint",
+            L"Exemplos: pt-br, pt-pt, en, es. A chave API pode ser criada na sua conta do OpenSubtitles.com."));
+        hint.TextWrapping(TextWrapping::Wrap);
+        hint.FontSize(12);
+        hint.Opacity(0.62);
+        panel.Children().Append(hint);
+
+        ContentDialogResult result{ ContentDialogResult::None };
+        {
+            OpenSubtitlesModalHostGuard dialogHost{};
+            ContentDialog dialog{};
+            ApplyOpenSubtitlesDialogTheme(dialog);
+            dialog.XamlRoot(dialogHost.root
+                ? dialogHost.root
+                : TransportRoot().XamlRoot());
+            dialog.Title(winrt::box_value(winrt::hstring{ MainPageString(
+                L"MainPageDynConfigureOpenSubtitlesTitle",
+                L"Configurar OpenSubtitles") }));
+            dialog.Content(panel);
+            dialog.PrimaryButtonText(winrt::hstring{ MainPageString(
+                L"MainPageDynSave", L"Salvar") });
+            dialog.CloseButtonText(winrt::hstring{ MainPageString(
+                L"MainPageDynCancel", L"Cancelar") });
+            dialog.DefaultButton(ContentDialogButton::Primary);
+
+            result = co_await dialog.ShowAsync();
+        }
+        if (result != ContentDialogResult::Primary) co_return false;
+
+        apiKey = apiKeyBox.Text().c_str();
+        username = usernameBox.Text().c_str();
+        language = languageBox.Text().c_str();
+        auto trim = [](std::wstring& value)
+            {
+                auto const first = value.find_first_not_of(L" \t\r\n");
+                if (first == std::wstring::npos)
+                {
+                    value.clear();
+                    return;
+                }
+                auto const last = value.find_last_not_of(L" \t\r\n");
+                value = value.substr(first, last - first + 1);
+            };
+        trim(apiKey);
+        trim(username);
+        trim(language);
+        auto configuredLanguages = ParseOpenSubtitlesLanguages(language);
+        language = JoinOpenSubtitlesLanguages(configuredLanguages);
+
+        if (apiKey.empty() || username.empty() || language.empty())
+        {
+            co_await ShowOpenSubtitlesMessageAsync(
+                MainPageString(L"MainPageDynOpenSubsConfigIncompleteTitle",
+                    L"Configuração incompleta"),
+                MainPageString(L"MainPageDynOpenSubsConfigIncompleteMessage",
+                    L"Preencha a chave API, o usuário e o idioma antes de buscar legendas."));
+            co_return false;
+        }
+
+        std::wstring error;
+        std::vector<std::pair<std::wstring, std::wstring>> options = {
+            { L"ui-opensubtitles-api-key", apiKey },
+            { L"ui-opensubtitles-username", username },
+            { L"ui-opensubtitles-language", language }
+        };
+        if (!PlayerApplyMpvOptions(options, error))
+        {
+            co_await ShowOpenSubtitlesMessageAsync(
+                MainPageString(L"MainPageDynOpenSubsConfigSaveErrorTitle",
+                    L"Não foi possível salvar"),
+                error.empty()
+                    ? MainPageString(L"MainPageDynOpenSubsConfigSaveErrorMessage",
+                        L"O HC Player não conseguiu salvar a configuração do OpenSubtitles.")
+                    : error);
+            co_return false;
+        }
+
+        // A different account must never inherit the credential saved for the
+        // previous username. The password itself lives only in Windows
+        // Credential Manager, never in HC Player settings.
+        if (!previousUsername.empty() &&
+            !OpenSubtitlesSameUser(previousUsername, username))
+        {
+            DeleteOpenSubtitlesPassword();
+        }
+
+        // A newly saved API key or account invalidates any bearer token from
+        // the previous configuration. Keep credentials/session state aligned.
+        m_openSubtitlesToken.clear();
+        m_openSubtitlesBaseUrl.clear();
+        m_openSubtitlesTokenUser.clear();
+        co_return true;
+    }
+
+    winrt::fire_and_forget MainPage::SearchOnlineSubtitlesAsync()
+    {
+        auto lifetime = get_strong();
+        if (m_onlineSubtitleSearchBusy) co_return;
+        m_onlineSubtitleSearchBusy = true;
+        struct BusyReset
+        {
+            bool& value;
+            ~BusyReset() { value = false; }
+        } busyReset{ m_onlineSubtitleSearchBusy };
+
+        using namespace Microsoft::UI::Xaml;
+        using namespace Microsoft::UI::Xaml::Controls;
+        using namespace Windows::Data::Json;
+        using namespace Windows::Foundation;
+        using namespace Windows::Storage::Streams;
+        using namespace Windows::Web::Http;
+
+        std::wstring deferredErrorMessage;
+
+        try
+        {
+            std::wstring mediaPath = PlayerGetCurrentMediaPath();
+            std::error_code mediaError;
+            if (mediaPath.empty() ||
+                !std::filesystem::is_regular_file(mediaPath, mediaError) || mediaError)
+            {
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsLocalFileTitle",
+                        L"Arquivo local necessário"),
+                    MainPageString(L"MainPageDynOpenSubsLocalFileMessage",
+                        L"A busca por hash funciona com um arquivo de vídeo local aberto no HC Player."));
+                co_return;
+            }
+
+            if (!co_await ConfigureOpenSubtitlesAsync(false)) co_return;
+
+            std::wstring const apiKey = OpenSubtitlesSavedValue(
+                L"ui-opensubtitles-api-key");
+            std::wstring const username = OpenSubtitlesSavedValue(
+                L"ui-opensubtitles-username");
+            std::wstring const language = OpenSubtitlesSavedValue(
+                L"ui-opensubtitles-language", L"pt-br");
+            auto const configuredLanguages = ParseOpenSubtitlesLanguages(language);
+            if (configuredLanguages.empty())
+            {
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsConfigIncompleteTitle",
+                        L"Configuração incompleta"),
+                    MainPageString(L"MainPageDynOpenSubsConfigIncompleteMessage",
+                        L"Preencha a chave API, o usuário e pelo menos um idioma antes de buscar legendas."));
+                co_return;
+            }
+
+            std::wstring movieHash;
+            uint64_t movieSize{};
+            std::wstring hashError;
+            if (!ComputeOpenSubtitlesMovieHash(
+                std::filesystem::path(mediaPath), movieHash, movieSize, hashError))
+            {
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsSearchErrorTitle",
+                        L"Não foi possível buscar legendas"), hashError);
+                co_return;
+            }
+
+            PlayerExecuteMpvCommand(L"show-text \"" +
+                MainPageString(L"MainPageDynOpenSubsSearching",
+                    L"Buscando legendas online…") + L"\" 1200");
+
+            HttpClient client{};
+            auto performSearch = [&](std::wstring const& url)
+                -> IAsyncOperation<winrt::hstring>
+                {
+                    HttpRequestMessage request(HttpMethod::Get(), Uri(winrt::hstring{ url }));
+                    AppendOpenSubtitlesHeaders(request, apiKey);
+                    HttpResponseMessage response = co_await client.SendRequestAsync(request);
+                    winrt::hstring body = co_await response.Content().ReadAsStringAsync();
+                    if (!response.IsSuccessStatusCode())
+                    {
+                        throw winrt::hresult_error(E_FAIL, winrt::hstring{
+                            OpenSubtitlesApiMessage(body,
+                                MainPageString(L"MainPageDynOpenSubsApiError",
+                                    L"O OpenSubtitles recusou a solicitação.")) });
+                    }
+                    co_return body;
+                };
+
+            auto parseResults = [](winrt::hstring const& body, bool exactHash,
+                std::wstring const& languageHint)
+                {
+                    std::vector<OpenSubtitleSearchResult> parsed;
+                    JsonObject root = JsonObject::Parse(body);
+                    if (!root.HasKey(L"data")) return parsed;
+                    JsonArray data = root.GetNamedArray(L"data");
+                    for (uint32_t i = 0; i < data.Size(); ++i)
+                    {
+                        try
+                        {
+                            JsonObject item = data.GetObjectAt(i);
+                            JsonObject attrs = item.GetNamedObject(L"attributes");
+                            if (!attrs.HasKey(L"files")) continue;
+                            JsonArray files = attrs.GetNamedArray(L"files");
+                            if (files.Size() == 0) continue;
+                            JsonObject file = files.GetObjectAt(0);
+                            int64_t const fileId = static_cast<int64_t>(
+                                file.GetNamedNumber(L"file_id", 0));
+                            if (fileId <= 0) continue;
+
+                            OpenSubtitleSearchResult result{};
+                            result.fileId = fileId;
+                            result.language = attrs.GetNamedString(
+                                L"language", L"").c_str();
+                            if (result.language.empty()) result.language = languageHint;
+                            result.release = attrs.GetNamedString(
+                                L"release", L"").c_str();
+                            result.fileName = file.GetNamedString(
+                                L"file_name", L"").c_str();
+                            result.downloads = static_cast<int64_t>(
+                                attrs.GetNamedNumber(L"download_count", 0));
+                            result.trusted = attrs.GetNamedBoolean(
+                                L"from_trusted", false);
+                            result.hearingImpaired = attrs.GetNamedBoolean(
+                                L"hearing_impaired", false);
+                            result.exactHash = exactHash || attrs.GetNamedBoolean(
+                                L"moviehash_match", false);
+                            if (result.release.empty()) result.release = result.fileName;
+                            parsed.push_back(std::move(result));
+                        }
+                        catch (...)
+                        {
+                        }
+                    }
+                    return parsed;
+                };
+
+            std::wstring const apiBase = L"https://api.opensubtitles.com/api/v1";
+            std::wstring const query =
+                std::filesystem::path(mediaPath).stem().wstring();
+
+            std::vector<OpenSubtitleSearchResult> results;
+            std::set<int64_t> seenFileIds;
+            constexpr size_t PerLanguageLimit = 6;
+
+            auto appendLanguageResults = [&](
+                std::vector<OpenSubtitleSearchResult> languageResults)
+                {
+                    std::stable_sort(languageResults.begin(), languageResults.end(),
+                        [](auto const& a, auto const& b)
+                        {
+                            if (a.exactHash != b.exactHash)
+                                return a.exactHash > b.exactHash;
+                            if (a.trusted != b.trusted)
+                                return a.trusted > b.trusted;
+                            return a.downloads > b.downloads;
+                        });
+                    if (languageResults.size() > PerLanguageLimit)
+                        languageResults.resize(PerLanguageLimit);
+                    for (auto& item : languageResults)
+                    {
+                        if (seenFileIds.insert(item.fileId).second)
+                            results.push_back(std::move(item));
+                    }
+                };
+
+            // Query each configured language independently. This guarantees
+            // that a strong pt-BR hash match cannot hide available English
+            // results (or vice versa) merely because the API returned enough
+            // rows for the first language.
+            for (auto const& requestedLanguage : configuredLanguages)
+            {
+                std::wstring const hashUrl = apiBase +
+                    L"/subtitles?languages=" +
+                    OpenSubtitlesUrlEncode(requestedLanguage) + L"&moviehash=" +
+                    OpenSubtitlesUrlEncode(movieHash) + L"&moviebytesize=" +
+                    std::to_wstring(movieSize);
+
+                auto languageResults = parseResults(
+                    co_await performSearch(hashUrl), true, requestedLanguage);
+
+                if (languageResults.empty())
+                {
+                    std::wstring const queryUrl = apiBase +
+                        L"/subtitles?languages=" +
+                        OpenSubtitlesUrlEncode(requestedLanguage) + L"&query=" +
+                        OpenSubtitlesUrlEncode(query);
+                    languageResults = parseResults(
+                        co_await performSearch(queryUrl), false, requestedLanguage);
+                }
+
+                appendLanguageResults(std::move(languageResults));
+            }
+
+            if (results.empty())
+            {
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsNoResultsTitle",
+                        L"Nenhuma legenda encontrada"),
+                    MainPageString(L"MainPageDynOpenSubsNoResultsMessage",
+                        L"Não encontrei legendas no idioma escolhido para este arquivo."));
+                co_return;
+            }
+
+            auto languageRank = [&](std::wstring const& value)
+                {
+                    std::wstring normalized = OpenSubtitlesResultLanguage(
+                        value, configuredLanguages);
+                    auto it = std::find(
+                        configuredLanguages.begin(), configuredLanguages.end(), normalized);
+                    return it == configuredLanguages.end()
+                        ? configuredLanguages.size()
+                        : static_cast<size_t>(std::distance(
+                            configuredLanguages.begin(), it));
+                };
+            std::stable_sort(results.begin(), results.end(),
+                [&](auto const& a, auto const& b)
+                {
+                    if (a.exactHash != b.exactHash) return a.exactHash > b.exactHash;
+                    size_t const ar = languageRank(a.language);
+                    size_t const br = languageRank(b.language);
+                    if (ar != br) return ar < br;
+                    if (a.trusted != b.trusted) return a.trusted > b.trusted;
+                    return a.downloads > b.downloads;
+                });
+            size_t const maxResults = (std::min)(
+                static_cast<size_t>(24),
+                configuredLanguages.size() * PerLanguageLimit);
+            if (results.size() > maxResults) results.resize(maxResults);
+
+            StackPanel resultsPanel{};
+            resultsPanel.Spacing(10);
+            resultsPanel.MaxWidth(640);
+
+            TextBlock resultsInfo{};
+            resultsInfo.Text(MainPageString(
+                L"MainPageDynOpenSubsChooseResult",
+                L"Escolha a legenda. Correspondências exatas do arquivo aparecem primeiro."));
+            resultsInfo.TextWrapping(TextWrapping::Wrap);
+            resultsInfo.Opacity(0.72);
+            resultsPanel.Children().Append(resultsInfo);
+
+            ComboBox selector{};
+            selector.HorizontalAlignment(HorizontalAlignment::Stretch);
+            for (auto const& result : results)
+            {
+                std::wstring label;
+                if (result.exactHash) label += L"✓ ";
+                label += result.release.empty()
+                    ? MainPageString(L"MainPageDynOpenSubsUntitled", L"Legenda")
+                    : result.release;
+                if (!result.language.empty()) label += L"  ·  " + result.language;
+                if (result.trusted) label += L"  ·  " + MainPageString(
+                    L"MainPageDynOpenSubsTrusted", L"confiável");
+                if (result.hearingImpaired) label += L"  ·  " + MainPageString(
+                    L"MainPageDynOpenSubsHI", L"SDH");
+                if (result.downloads > 0)
+                    label += L"  ·  " + std::to_wstring(result.downloads) + L" ↓";
+                ComboBoxItem item{};
+                item.Content(winrt::box_value(winrt::hstring{ label }));
+                selector.Items().Append(item);
+            }
+            selector.SelectedIndex(0);
+            resultsPanel.Children().Append(selector);
+
+            ContentDialogResult resultDialogResult{ ContentDialogResult::None };
+            {
+                OpenSubtitlesModalHostGuard resultDialogHost{};
+                ContentDialog resultDialog{};
+                ApplyOpenSubtitlesDialogTheme(resultDialog);
+                resultDialog.XamlRoot(resultDialogHost.root
+                    ? resultDialogHost.root
+                    : TransportRoot().XamlRoot());
+                resultDialog.Title(winrt::box_value(winrt::hstring{ MainPageString(
+                    L"MainPageDynOpenSubsResultsTitle", L"Legendas encontradas") }));
+                resultDialog.Content(resultsPanel);
+                resultDialog.PrimaryButtonText(winrt::hstring{ MainPageString(
+                    L"MainPageDynOpenSubsDownload", L"Baixar e carregar") });
+                resultDialog.CloseButtonText(winrt::hstring{ MainPageString(
+                    L"MainPageDynCancel", L"Cancelar") });
+                resultDialog.DefaultButton(ContentDialogButton::Primary);
+                resultDialogResult = co_await resultDialog.ShowAsync();
+            }
+            if (resultDialogResult != ContentDialogResult::Primary)
+                co_return;
+
+            int32_t const selectedIndex = selector.SelectedIndex();
+            if (selectedIndex < 0 ||
+                selectedIndex >= static_cast<int32_t>(results.size()))
+                co_return;
+            OpenSubtitleSearchResult const selected = results[selectedIndex];
+
+            if (m_openSubtitlesToken.empty() ||
+                !OpenSubtitlesSameUser(m_openSubtitlesTokenUser, username))
+            {
+                std::wstring loginError;
+
+                auto loginWithPassword =
+                    [&](std::wstring password) -> IAsyncOperation<bool>
+                    {
+                        JsonObject loginJson{};
+                        loginJson.SetNamedValue(L"username",
+                            JsonValue::CreateStringValue(winrt::hstring{ username }));
+                        loginJson.SetNamedValue(L"password",
+                            JsonValue::CreateStringValue(winrt::hstring{ password }));
+
+                        // The JSON/HTTP stack owns its own request copy from this
+                        // point. Erase HC Player's mutable password buffer before
+                        // the first suspension point.
+                        SecureClearOpenSubtitlesSecret(password);
+
+                        HttpRequestMessage loginRequest(
+                            HttpMethod::Post(), Uri(winrt::hstring{ apiBase + L"/login" }));
+                        AppendOpenSubtitlesHeaders(loginRequest, apiKey);
+                        loginRequest.Content(HttpStringContent(
+                            loginJson.Stringify(), UnicodeEncoding::Utf8,
+                            L"application/json"));
+
+                        HttpResponseMessage loginResponse =
+                            co_await client.SendRequestAsync(loginRequest);
+                        winrt::hstring loginBody =
+                            co_await loginResponse.Content().ReadAsStringAsync();
+                        if (!loginResponse.IsSuccessStatusCode())
+                        {
+                            m_openSubtitlesToken.clear();
+                            m_openSubtitlesBaseUrl.clear();
+                            m_openSubtitlesTokenUser.clear();
+                            loginError = OpenSubtitlesApiMessage(loginBody,
+                                MainPageString(
+                                    L"MainPageDynOpenSubsLoginErrorMessage",
+                                    L"Confira o usuário, a senha e a chave API."));
+                            co_return false;
+                        }
+
+                        JsonObject loginRoot = JsonObject::Parse(loginBody);
+                        m_openSubtitlesToken = loginRoot.GetNamedString(
+                            L"token", L"").c_str();
+                        m_openSubtitlesBaseUrl = NormalizeOpenSubtitlesApiBase(
+                            loginRoot.GetNamedString(L"base_url", L"").c_str());
+                        m_openSubtitlesTokenUser = username;
+                        if (m_openSubtitlesToken.empty())
+                        {
+                            loginError = MainPageString(
+                                L"MainPageDynOpenSubsNoToken",
+                                L"O OpenSubtitles não retornou um token de autenticação.");
+                            m_openSubtitlesTokenUser.clear();
+                            co_return false;
+                        }
+                        co_return true;
+                    };
+
+                // First choice: reuse the password protected by Windows
+                // Credential Manager. This makes OpenSubtitles sign-in silent
+                // after the user's first successful login on this Windows account.
+                bool loggedIn = false;
+                std::wstring savedPassword;
+                if (ReadOpenSubtitlesPassword(username, savedPassword))
+                {
+                    loggedIn = co_await loginWithPassword(savedPassword);
+                    SecureClearOpenSubtitlesSecret(savedPassword);
+                    if (!loggedIn)
+                    {
+                        // A stored password that the service no longer accepts
+                        // should not trap the user in a silent failure loop.
+                        DeleteOpenSubtitlesPassword();
+                    }
+                }
+
+                if (!loggedIn)
+                {
+                    StackPanel loginPanel{};
+                    loginPanel.Spacing(10);
+
+                    TextBlock loginInfo{};
+                    loginInfo.Text(MainPageString(
+                        L"MainPageDynOpenSubsPasswordInfo",
+                        L"Digite a senha da sua conta OpenSubtitles.com. Se você mantiver a opção abaixo ativada, ela será protegida pelo Gerenciador de Credenciais do Windows e o HC Player entrará automaticamente nas próximas vezes."));
+                    loginInfo.TextWrapping(TextWrapping::Wrap);
+                    loginInfo.Opacity(0.72);
+                    loginPanel.Children().Append(loginInfo);
+
+                    PasswordBox passwordBox{};
+                    passwordBox.Header(MainPageBoxString(
+                        L"MainPageDynOpenSubsPassword", L"Senha"));
+                    loginPanel.Children().Append(passwordBox);
+
+                    CheckBox keepSignedIn{};
+                    keepSignedIn.Content(MainPageBoxString(
+                        L"MainPageDynOpenSubsKeepSignedIn",
+                        L"Manter conectado neste computador"));
+                    keepSignedIn.IsChecked(true);
+                    loginPanel.Children().Append(keepSignedIn);
+
+                    ContentDialogResult loginDialogResult{ ContentDialogResult::None };
+                    {
+                        OpenSubtitlesModalHostGuard loginDialogHost{};
+                        ContentDialog loginDialog{};
+                        ApplyOpenSubtitlesDialogTheme(loginDialog);
+                        loginDialog.XamlRoot(loginDialogHost.root
+                            ? loginDialogHost.root
+                            : TransportRoot().XamlRoot());
+                        loginDialog.Title(winrt::box_value(winrt::hstring{ username }));
+                        loginDialog.Content(loginPanel);
+                        loginDialog.PrimaryButtonText(winrt::hstring{ MainPageString(
+                            L"MainPageDynOpenSubsLogin", L"Entrar e baixar") });
+                        loginDialog.CloseButtonText(winrt::hstring{ MainPageString(
+                            L"MainPageDynCancel", L"Cancelar") });
+                        loginDialog.DefaultButton(ContentDialogButton::Primary);
+                        loginDialogResult = co_await loginDialog.ShowAsync();
+                    }
+                    if (loginDialogResult != ContentDialogResult::Primary)
+                        co_return;
+
+                    std::wstring password = passwordBox.Password().c_str();
+                    passwordBox.Password(L"");
+                    if (password.empty())
+                    {
+                        co_await ShowOpenSubtitlesMessageAsync(
+                            MainPageString(L"MainPageDynOpenSubsLoginErrorTitle",
+                                L"Não foi possível entrar"),
+                            MainPageString(L"MainPageDynOpenSubsPasswordRequired",
+                                L"A senha é necessária para baixar a legenda."));
+                        co_return;
+                    }
+
+                    auto checked = keepSignedIn.IsChecked();
+                    bool const persistPassword = checked && checked.Value();
+                    loggedIn = co_await loginWithPassword(password);
+                    if (loggedIn)
+                    {
+                        if (persistPassword)
+                        {
+                            SaveOpenSubtitlesPassword(username, password);
+                        }
+                        else
+                        {
+                            DeleteOpenSubtitlesPassword();
+                        }
+                    }
+                    SecureClearOpenSubtitlesSecret(password);
+
+                    if (!loggedIn)
+                    {
+                        co_await ShowOpenSubtitlesMessageAsync(
+                            MainPageString(L"MainPageDynOpenSubsLoginErrorTitle",
+                                L"Não foi possível entrar"),
+                            loginError.empty()
+                                ? MainPageString(
+                                    L"MainPageDynOpenSubsLoginErrorMessage",
+                                    L"Confira o usuário, a senha e a chave API.")
+                                : loginError);
+                        co_return;
+                    }
+                }
+            }
+
+            JsonObject downloadJson{};
+            downloadJson.SetNamedValue(L"file_id",
+                JsonValue::CreateNumberValue(static_cast<double>(selected.fileId)));
+            HttpRequestMessage downloadRequest(
+                HttpMethod::Post(),
+                Uri(winrt::hstring{
+                    NormalizeOpenSubtitlesApiBase(m_openSubtitlesBaseUrl) +
+                    L"/download" }));
+            AppendOpenSubtitlesHeaders(
+                downloadRequest, apiKey, m_openSubtitlesToken);
+            downloadRequest.Content(HttpStringContent(
+                downloadJson.Stringify(), UnicodeEncoding::Utf8,
+                L"application/json"));
+
+            HttpResponseMessage downloadResponse =
+                co_await client.SendRequestAsync(downloadRequest);
+            winrt::hstring downloadBody =
+                co_await downloadResponse.Content().ReadAsStringAsync();
+            if (!downloadResponse.IsSuccessStatusCode())
+            {
+                if (downloadResponse.StatusCode() == HttpStatusCode::Unauthorized)
+                {
+                    m_openSubtitlesToken.clear();
+                    m_openSubtitlesTokenUser.clear();
+                }
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsDownloadErrorTitle",
+                        L"Não foi possível baixar"),
+                    OpenSubtitlesApiMessage(downloadBody,
+                        MainPageString(L"MainPageDynOpenSubsDownloadErrorMessage",
+                            L"O OpenSubtitles não liberou o download desta legenda.")));
+                co_return;
+            }
+
+            JsonObject downloadRoot = JsonObject::Parse(downloadBody);
+            std::wstring const link = downloadRoot.GetNamedString(
+                L"link", L"").c_str();
+            std::wstring const downloadedName = downloadRoot.GetNamedString(
+                L"file_name", winrt::hstring{ selected.fileName }).c_str();
+            if (link.empty())
+            {
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsDownloadErrorTitle",
+                        L"Não foi possível baixar"),
+                    MainPageString(L"MainPageDynOpenSubsNoDownloadLink",
+                        L"A resposta do OpenSubtitles não trouxe um link de download."));
+                co_return;
+            }
+
+            HttpResponseMessage fileResponse = co_await client.GetAsync(Uri(winrt::hstring{ link }));
+            if (!fileResponse.IsSuccessStatusCode())
+            {
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsDownloadErrorTitle",
+                        L"Não foi possível baixar"),
+                    MainPageString(L"MainPageDynOpenSubsFileDownloadError",
+                        L"O arquivo da legenda não pôde ser transferido."));
+                co_return;
+            }
+
+            auto buffer = co_await fileResponse.Content().ReadAsBufferAsync();
+            if (!buffer || buffer.Length() == 0)
+            {
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsDownloadErrorTitle",
+                        L"Não foi possível baixar"),
+                    MainPageString(L"MainPageDynOpenSubsEmptyFile",
+                        L"O arquivo de legenda recebido está vazio."));
+                co_return;
+            }
+            DataReader reader = DataReader::FromBuffer(buffer);
+            std::vector<uint8_t> bytes(buffer.Length());
+            reader.ReadBytes(bytes);
+
+            std::filesystem::path const videoPath(mediaPath);
+            std::wstring const extension = SafeSubtitleExtension(downloadedName);
+            std::wstring const selectedLanguage = OpenSubtitlesResultLanguage(
+                selected.language, configuredLanguages);
+            std::filesystem::path outputPath = videoPath.parent_path() /
+                (videoPath.stem().wstring() + L"." + selectedLanguage + extension);
+
+            auto writeFile = [&bytes](std::filesystem::path const& target)
+                {
+                    std::ofstream out(target, std::ios::binary | std::ios::trunc);
+                    if (!out) return false;
+                    out.write(reinterpret_cast<char const*>(bytes.data()),
+                        static_cast<std::streamsize>(bytes.size()));
+                    return out.good();
+                };
+
+            if (!writeFile(outputPath))
+            {
+                std::error_code directoryError;
+                auto cacheDirectory = hc::storage::UserDataRoot() /
+                    L"Subtitles" / L"Online";
+                std::filesystem::create_directories(
+                    cacheDirectory, directoryError);
+                outputPath = cacheDirectory /
+                    (movieHash + L"." + selectedLanguage + extension);
+                if (directoryError || !writeFile(outputPath))
+                {
+                    co_await ShowOpenSubtitlesMessageAsync(
+                        MainPageString(L"MainPageDynOpenSubsSaveErrorTitle",
+                            L"Não foi possível salvar a legenda"),
+                        MainPageString(L"MainPageDynOpenSubsSaveErrorMessage",
+                            L"O HC Player não conseguiu gravar a legenda ao lado do vídeo nem na pasta privada do aplicativo."));
+                    co_return;
+                }
+            }
+
+            if (!PlayerLoadExternalSubtitle(outputPath.wstring()))
+            {
+                co_await ShowOpenSubtitlesMessageAsync(
+                    MainPageString(L"MainPageDynOpenSubsLoadErrorTitle",
+                        L"Legenda baixada, mas não carregada"),
+                    outputPath.wstring());
+                co_return;
+            }
+
+            PlayerExecuteMpvCommand(L"show-text \"" + MainPageString(
+                L"MainPageDynOpenSubsLoaded",
+                L"Legenda online carregada") + L"\" 1800");
+        }
+        catch (winrt::hresult_error const& error)
+        {
+            deferredErrorMessage = error.message().c_str();
+        }
+        catch (std::exception const& error)
+        {
+            deferredErrorMessage = winrt::to_hstring(error.what()).c_str();
+        }
+        catch (...)
+        {
+            deferredErrorMessage = MainPageString(
+                L"MainPageDynOpenSubsUnknownError",
+                L"Ocorreu um erro inesperado durante a consulta ao OpenSubtitles.");
+        }
+
+        if (!deferredErrorMessage.empty())
+        {
+            co_await ShowOpenSubtitlesMessageAsync(
+                MainPageString(L"MainPageDynOpenSubsSearchErrorTitle",
+                    L"Não foi possível buscar legendas"),
+                deferredErrorMessage);
+        }
     }
 
     void MainPage::MinimalMoreFlyoutOpening(
@@ -2976,6 +4555,19 @@ namespace winrt::HCPlayer::implementation
         double const targetSeconds =
             TimelineTimeFromPointerX(pointerX, duration);
 
+        // keep-open=always leaves mpv paused at EOF. When the user seeks back
+        // from that parked final frame, leave only HC Player's local Replay
+        // presentation immediately; do not resume playback or change mpv's
+        // pause state. This lets the requested position own the timeline on the
+        // same click instead of waiting for the next playback-state poll to
+        // clear eof-reached.
+        if (m_isReplay && targetSeconds < duration - 0.001)
+        {
+            m_isReplay = false;
+            m_isPlaying = false;
+            UpdatePlayButtonState();
+        }
+
         bool const targetChanged =
             !m_timelineInteractionHasTarget ||
             std::abs(
@@ -3031,20 +4623,91 @@ namespace winrt::HCPlayer::implementation
     }
 
     void MainPage::PositionChanged(
-        Windows::Foundation::IInspectable const&,
+        Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args)
     {
-        // ValueChanged also fires for timer-driven updates while
-        // m_isUpdatingPosition is true. Refresh the compact HC Player marker
-        // before the seek guard so it stays clock-synchronised in both cases.
+        bool const userDriven =
+            m_ready &&
+            !m_isUpdatingPosition &&
+            !m_timelineUserInteraction;
+
+        auto const changedSlider =
+            sender.try_as<Microsoft::UI::Xaml::Controls::Slider>();
+        auto const minimalSlider = MinimalPositionSlider();
+        bool const minimalUserChange =
+            userDriven &&
+            changedSlider &&
+            winrt::get_abi(changedSlider) == winrt::get_abi(minimalSlider);
+
+        if (minimalUserChange)
+        {
+            // The Minimal custom filled track used to redraw from mpv's old
+            // time-pos before the seek command had been reflected. Derive the
+            // requested timestamp from the Slider value instead, so a click
+            // paints the target immediately just like the established normal
+            // timeline. Seek semantics themselves remain unchanged.
+            double elapsed{};
+            double duration{};
+            if (PlayerGetPlaybackTimes(elapsed, duration) &&
+                std::isfinite(duration) && duration > 0.0)
+            {
+                auto const slider = MinimalPositionSlider();
+                double const range = slider.Maximum() - slider.Minimum();
+                double const ratio = range > 0.0
+                    ? (args.NewValue() - slider.Minimum()) / range
+                    : 0.0;
+                double const clamped = (std::max)(
+                    0.0, (std::min)(1.0, ratio));
+                double const targetSeconds = duration * clamped;
+
+                // Match the normal timeline at EOF: seeking backwards leaves
+                // only the local Replay presentation. mpv remains paused, so
+                // the selected frame is shown without starting playback.
+                if (m_isReplay && targetSeconds < duration - 0.001)
+                {
+                    m_isReplay = false;
+                    m_isPlaying = false;
+                    UpdatePlayButtonState();
+                }
+
+                UpdateMinimalTimelineVisual(
+                    targetSeconds, duration);
+
+                // Do not let the existing 250-ms playback poll immediately
+                // overwrite the just-clicked Minimal position with stale mpv
+                // time-pos. This hold is Minimal-only; PositionSlider and its
+                // pointer ownership logic are not changed.
+                m_minimalTimelineProgressHoldTicks = 2;
+            }
+            else
+            {
+                UpdateMinimalTimelineVisual();
+            }
+
+            PlayerSeek(args.NewValue());
+            return;
+        }
+
+        // While a Minimal click owns its short visual settling window, the
+        // timer still updates PositionSlider (the normal bar) exactly as before.
+        // Its ValueChanged must not repaint the hidden Minimal custom track
+        // from stale mpv time-pos during that hold.
+        if (m_isUpdatingPosition &&
+            m_minimalTimelineProgressHoldTicks > 0)
+        {
+            return;
+        }
+
+        // ValueChanged also fires for timer-driven updates. Preserve the
+        // existing compact marker synchronization for every other path,
+        // including the normal timeline and accessibility/keyboard use.
         UpdateMinimalTimelineVisual();
 
-        if (m_ready &&
-            !m_isUpdatingPosition &&
-            !m_timelineUserInteraction)
+        if (userDriven)
         {
-            // Mouse seeking is owned by TimelineInputSurface and never reaches
-            // this path. Keep ValueChanged for keyboard/accessibility changes.
+            // Mouse seeking on the normal timeline is still owned exclusively
+            // by TimelineInputSurface. This remains the pre-existing fallback
+            // for keyboard/accessibility Slider changes.
             PlayerSeek(args.NewValue());
         }
     }
@@ -3073,6 +4736,7 @@ namespace winrt::HCPlayer::implementation
         // Hover preview only: once the user starts dragging the seek thumb,
         // hide the chapter/time card and let the Slider seek without any
         // tooltip surface. The native thumb tooltip is disabled in XAML.
+        SetHoveredMinimalChapterSegment(-1);
         MinimalTimelineHoverPopup().IsOpen(false);
     }
 
@@ -3081,9 +4745,9 @@ namespace winrt::HCPlayer::implementation
         Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args)
     {
         if (!UsesMinimalTransportStyle() ||
-            PlayerIsCurrentMediaImage() ||
-            !PlayerGetChapterHoverCardEnabled())
+            PlayerIsCurrentMediaImage())
         {
+            SetHoveredMinimalChapterSegment(-1);
             MinimalTimelineHoverPopup().IsOpen(false);
             return;
         }
@@ -3093,6 +4757,7 @@ namespace winrt::HCPlayer::implementation
         if (!PlayerGetPlaybackTimes(elapsed, duration) ||
             !std::isfinite(duration) || duration <= 0.0)
         {
+            SetHoveredMinimalChapterSegment(-1);
             MinimalTimelineHoverPopup().IsOpen(false);
             return;
         }
@@ -3104,6 +4769,7 @@ namespace winrt::HCPlayer::implementation
         // returns naturally on the next pointer move after the button is released.
         if (currentPoint.Properties().IsLeftButtonPressed())
         {
+            SetHoveredMinimalChapterSegment(-1);
             MinimalTimelineHoverPopup().IsOpen(false);
             return;
         }
@@ -3111,6 +4777,7 @@ namespace winrt::HCPlayer::implementation
         double const sliderWidth = slider.ActualWidth();
         if (sliderWidth <= 28.0)
         {
+            SetHoveredMinimalChapterSegment(-1);
             MinimalTimelineHoverPopup().IsOpen(false);
             return;
         }
@@ -3129,6 +4796,28 @@ namespace winrt::HCPlayer::implementation
         double const hoveredTime = (std::max)(
             0.0,
             (std::min)(duration, trackX * duration / trackWidth));
+
+        // Windows 11 segmented style: Minimal now uses the same
+        // per-section vertical hover as the normal/compact bar.
+        int32_t hoveredSegment = -1;
+        for (size_t index = 0; index < m_minimalChapterSegments.size(); ++index)
+        {
+            auto const& segment = m_minimalChapterSegments[index];
+            if (hoveredTime >= segment.start && hoveredTime <= segment.end)
+            {
+                hoveredSegment = static_cast<int32_t>(index);
+                break;
+            }
+        }
+        SetHoveredMinimalChapterSegment(hoveredSegment);
+
+        // The visual hover is independent from the optional chapter/time
+        // tooltip. Disabling the card must not disable track feedback.
+        if (!PlayerGetChapterHoverCardEnabled())
+        {
+            MinimalTimelineHoverPopup().IsOpen(false);
+            return;
+        }
 
         std::wstring title;
         if (!m_chapters.empty())
@@ -3151,6 +4840,12 @@ namespace winrt::HCPlayer::implementation
                 title.resize(MaximumTitleLength - 1);
                 title += L"…";
             }
+        }
+
+        if (auto const sponsorLabel = SponsorBlockLabelAtTime(hoveredTime);
+            !sponsorLabel.empty())
+        {
+            title = sponsorLabel;
         }
 
         auto const hoveredTimeText = FormatPlaybackTime(
@@ -3225,6 +4920,7 @@ namespace winrt::HCPlayer::implementation
         Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const&)
     {
         SetFilledTimelineHovered(false);
+        SetHoveredMinimalChapterSegment(-1);
         MinimalTimelineHoverPopup().IsOpen(false);
     }
 
@@ -3335,6 +5031,7 @@ namespace winrt::HCPlayer::implementation
                     cursor.y == m_timelineResumeCursorY))
             {
                 SetFilledTimelineHovered(false);
+                SetWindows11TimelineThumbHover(false);
                 ChapterHoverCard().Visibility(
                     Microsoft::UI::Xaml::Visibility::Collapsed);
                 ChapterHoverPopup().IsOpen(false);
@@ -3362,13 +5059,43 @@ namespace winrt::HCPlayer::implementation
                 false);
         }
 
+        // Presentation only: broaden the native Windows 11 thumb's hover
+        // activation to a 24-DIP horizontal zone centered on the current
+        // playhead. Pointer capture, clicks, drag seeking and X->time math all
+        // remain exclusively owned by TimelineInputSurface.
+        UpdateWindows11TimelineThumbHover(static_cast<double>(point.X));
+
         if (m_pictureInPicture)
         {
             HideThumbnailPreview();
             ChapterHoverCard().Visibility(
                 Microsoft::UI::Xaml::Visibility::Collapsed);
             ChapterHoverPopup().IsOpen(false);
-            SetHoveredChapterSegment(-1);
+
+            // PiP intentionally has no chapter/time popup, but the
+            // Windows 11 segmented seekbar should retain the same
+            // per-section hover feedback as the full/compact bar.
+            int32_t hoveredSegment = -1;
+            double pipElapsed{};
+            double pipDuration{};
+            if (!m_filledTimelineStyle &&
+                PositionSlider().ActualWidth() > 1.0 &&
+                PlayerGetPlaybackTimes(pipElapsed, pipDuration) &&
+                std::isfinite(pipDuration) && pipDuration > 0.0)
+            {
+                double const hoveredTime = TimelineTimeFromPointerX(
+                    static_cast<double>(point.X), pipDuration);
+                for (size_t index = 0; index < m_chapterSegments.size(); ++index)
+                {
+                    auto const& segment = m_chapterSegments[index];
+                    if (hoveredTime >= segment.start && hoveredTime <= segment.end)
+                    {
+                        hoveredSegment = static_cast<int32_t>(index);
+                        break;
+                    }
+                }
+            }
+            SetHoveredChapterSegment(hoveredSegment);
             return;
         }
 
@@ -3532,6 +5259,12 @@ namespace winrt::HCPlayer::implementation
             }
         }
 
+        if (auto const sponsorLabel = SponsorBlockLabelAtTime(hoveredTime);
+            !sponsorLabel.empty())
+        {
+            title = sponsorLabel;
+        }
+
         auto const hoveredTimeText = FormatPlaybackTime(
             hoveredTime,
             m_highPrecisionTime);
@@ -3572,7 +5305,7 @@ namespace winrt::HCPlayer::implementation
 
         // Keep the lightweight chapter/time tooltip visible together with
         // the image preview. In Bar Compact it must be allowed to escape the
-        // 94-DIP transport bounds, so it lives in a Popup just like thumbnails.
+        // 92-DIP transport bounds, so it lives in a Popup just like thumbnails.
         card.Visibility(
             Microsoft::UI::Xaml::Visibility::Visible);
 
@@ -3623,7 +5356,7 @@ namespace winrt::HCPlayer::implementation
             !m_pictureInPicture;
 
         // Preserve the frozen three-row Bar's original tooltip position. Only
-        // Bar Compact needs the Popup lifted above the entire 94-DIP host.
+        // Bar Compact needs the Popup lifted above the entire 92-DIP host.
         double const top = compactBarActive
             ? static_cast<double>(transportOrigin.Y) -
                 cardHeight - TooltipGapAboveTransport
@@ -3659,6 +5392,7 @@ namespace winrt::HCPlayer::implementation
         HideThumbnailPreview();
 
         SetFilledTimelineHovered(false);
+        SetWindows11TimelineThumbHover(false);
         ChapterHoverCard().Visibility(
             Microsoft::UI::Xaml::Visibility::Collapsed);
         ChapterHoverPopup().IsOpen(false);
@@ -4124,6 +5858,28 @@ namespace winrt::HCPlayer::implementation
         args.Handled(true);
     }
 
+    void MainPage::VolumeIconPointerEntered(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const&)
+    {
+        auto host = VolumeIconHitTarget();
+        if (host)
+        {
+            VolumeIconHoverBackground().Opacity(1.0);
+        }
+    }
+
+    void MainPage::VolumeIconPointerExited(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const&)
+    {
+        auto host = VolumeIconHitTarget();
+        if (host)
+        {
+            VolumeIconHoverBackground().Opacity(0.0);
+        }
+    }
+
     void MainPage::VolumeChanged(
         Windows::Foundation::IInspectable const&,
         Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args)
@@ -4428,6 +6184,14 @@ namespace winrt::HCPlayer::implementation
         PlayerShowMediaInfo();
     }
 
+    void MainPage::YouTubeCommentsClicked(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::RoutedEventArgs const&)
+    {
+        if (!m_youtubeCommentsEnabled) return;
+        PlayerShowYouTubeComments();
+    }
+
     void MainPage::SettingsClicked(
         Windows::Foundation::IInspectable const&,
         Microsoft::UI::Xaml::RoutedEventArgs const&)
@@ -4526,6 +6290,364 @@ namespace winrt::HCPlayer::implementation
             : Microsoft::UI::Xaml::Visibility::Visible);
     }
 
+    void MainPage::ClearSponsorBlockState()
+    {
+        ++m_sponsorBlockRequestGeneration;
+        m_sponsorBlockVideoId.clear();
+        m_sponsorBlockSegments.clear();
+        ++m_sponsorBlockVisualRevision;
+        m_sponsorBlockNormalRenderedRevision = 0;
+        m_sponsorBlockMinimalRenderedRevision = 0;
+        m_sponsorBlockMarkerDuration = 0.0;
+        m_sponsorBlockMarkerWidth = 0.0;
+        m_minimalSponsorBlockMarkerDuration = 0.0;
+        m_minimalSponsorBlockMarkerWidth = 0.0;
+        m_sponsorBlockNormalVisuals.clear();
+        m_sponsorBlockMinimalVisuals.clear();
+        SponsorBlockMarkers().Children().Clear();
+        MinimalSponsorBlockMarkers().Children().Clear();
+    }
+
+    void MainPage::EnsureSponsorBlockForCurrentMedia()
+    {
+        if (!m_sponsorBlockEnabled)
+        {
+            if (!m_sponsorBlockVideoId.empty() ||
+                !m_sponsorBlockSegments.empty())
+            {
+                ClearSponsorBlockState();
+            }
+            return;
+        }
+
+        std::wstring const videoId = SponsorBlockExtractYouTubeVideoId(
+            PlayerGetCurrentMediaPath());
+        if (videoId.empty())
+        {
+            if (!m_sponsorBlockVideoId.empty() ||
+                !m_sponsorBlockSegments.empty())
+            {
+                ClearSponsorBlockState();
+            }
+            return;
+        }
+
+        // One request per logical YouTube item. A failed request remains
+        // silent and does not hammer the service every 250 ms; changing video
+        // (or toggling SponsorBlock off/on) creates a fresh generation.
+        if (videoId == m_sponsorBlockVideoId) return;
+
+        ++m_sponsorBlockRequestGeneration;
+        std::uint64_t const generation = m_sponsorBlockRequestGeneration;
+        m_sponsorBlockVideoId = videoId;
+        m_sponsorBlockSegments.clear();
+        ++m_sponsorBlockVisualRevision;
+        m_sponsorBlockNormalRenderedRevision = 0;
+        m_sponsorBlockMinimalRenderedRevision = 0;
+        m_sponsorBlockNormalVisuals.clear();
+        m_sponsorBlockMinimalVisuals.clear();
+        SponsorBlockMarkers().Children().Clear();
+        MinimalSponsorBlockMarkers().Children().Clear();
+        FetchSponsorBlockSegmentsAsync(videoId, generation);
+    }
+
+    winrt::fire_and_forget MainPage::FetchSponsorBlockSegmentsAsync(
+        std::wstring videoId, std::uint64_t generation)
+    {
+        auto lifetime = get_strong();
+        (void)lifetime;
+
+        using namespace Windows::Data::Json;
+        using namespace Windows::Foundation;
+        using namespace Windows::Web::Http;
+
+        try
+        {
+            // videoId is restricted to the normal 11-character YouTube ID
+            // alphabet before it reaches this URL, so no arbitrary query text
+            // can be injected here.
+            std::wstring url =
+                L"https://sponsor.ajay.app/api/skipSegments?videoID=" + videoId +
+                L"&category=sponsor"
+                L"&category=intro"
+                L"&category=outro"
+                L"&category=interaction"
+                L"&category=selfpromo"
+                L"&category=preview"
+                L"&category=music_offtopic"
+                L"&category=filler";
+
+            HttpClient client{};
+            HttpResponseMessage response = co_await client.GetAsync(
+                Uri{ winrt::hstring{ url } });
+            if (!response.IsSuccessStatusCode()) co_return;
+
+            winrt::hstring const body =
+                co_await response.Content().ReadAsStringAsync();
+            constexpr uint32_t MaxSponsorBlockBodyChars = 512 * 1024;
+            if (body.size() > MaxSponsorBlockBodyChars) co_return;
+
+            JsonArray const root = JsonArray::Parse(body);
+            std::vector<SponsorBlockSegment> parsed;
+            parsed.reserve((std::min)(root.Size(), 128u));
+
+            uint32_t const count = (std::min)(root.Size(), 256u);
+            static const std::set<std::wstring> AllowedCategories = {
+                L"sponsor", L"intro", L"outro", L"interaction",
+                L"selfpromo", L"preview", L"music_offtopic", L"filler"
+            };
+            for (uint32_t index = 0; index < count; ++index)
+            {
+                try
+                {
+                    JsonObject const item = root.GetObjectAt(index);
+                    if (!item.HasKey(L"segment") || !item.HasKey(L"category"))
+                        continue;
+
+                    JsonArray const times = item.GetNamedArray(L"segment");
+                    if (times.Size() < 2) continue;
+
+                    double const start = times.GetNumberAt(0);
+                    double const end = times.GetNumberAt(1);
+                    if (!std::isfinite(start) || !std::isfinite(end) ||
+                        start < 0.0 || end <= start || end - start < 1.0 ||
+                        end > 24.0 * 60.0 * 60.0)
+                    {
+                        continue;
+                    }
+
+                    std::wstring const category =
+                        item.GetNamedString(L"category", L"").c_str();
+                    if (!AllowedCategories.contains(category)) continue;
+
+                    SponsorBlockSegment segment;
+                    segment.start = start;
+                    segment.end = end;
+                    segment.category = category;
+                    segment.uuid = item.GetNamedString(L"UUID", L"").c_str();
+                    parsed.push_back(std::move(segment));
+                }
+                catch (...)
+                {
+                    // A malformed entry cannot poison the rest of the response.
+                }
+            }
+
+            std::sort(parsed.begin(), parsed.end(),
+                [](SponsorBlockSegment const& left,
+                   SponsorBlockSegment const& right)
+                {
+                    if (left.start != right.start)
+                        return left.start < right.start;
+                    return left.end < right.end;
+                });
+
+            // Ignore stale network replies if the playlist moved to another
+            // video, the user disabled SponsorBlock, or a newer request exists.
+            if (!m_sponsorBlockEnabled ||
+                generation != m_sponsorBlockRequestGeneration ||
+                videoId != m_sponsorBlockVideoId ||
+                SponsorBlockExtractYouTubeVideoId(
+                    PlayerGetCurrentMediaPath()) != videoId)
+            {
+                co_return;
+            }
+
+            m_sponsorBlockSegments = std::move(parsed);
+            ++m_sponsorBlockVisualRevision;
+            m_sponsorBlockNormalRenderedRevision = 0;
+            m_sponsorBlockMinimalRenderedRevision = 0;
+
+            double elapsed{};
+            double duration{};
+            if (PlayerGetPlaybackTimes(elapsed, duration) && duration > 0.0)
+            {
+                RenderSponsorBlockMarkers(duration);
+                CheckSponsorBlockAutoSkip(elapsed, duration);
+            }
+        }
+        catch (...)
+        {
+            // SponsorBlock is optional. Network/API/JSON failures never alter
+            // playback and intentionally produce no modal error or retry loop.
+        }
+    }
+
+    void MainPage::RenderSponsorBlockMarkers(double duration)
+    {
+        using Microsoft::UI::Xaml::Controls::Border;
+        using Microsoft::UI::Xaml::Controls::Canvas;
+        using Microsoft::UI::Xaml::Media::SolidColorBrush;
+
+        if (!m_sponsorBlockEnabled || m_sponsorBlockSegments.empty() ||
+            !std::isfinite(duration) || duration <= 0.0)
+        {
+            SponsorBlockMarkers().Children().Clear();
+            MinimalSponsorBlockMarkers().Children().Clear();
+            m_sponsorBlockNormalVisuals.clear();
+            m_sponsorBlockMinimalVisuals.clear();
+            m_sponsorBlockNormalRenderedRevision = m_sponsorBlockVisualRevision;
+            m_sponsorBlockMinimalRenderedRevision = m_sponsorBlockVisualRevision;
+            return;
+        }
+
+        auto render = [&](Microsoft::UI::Xaml::Controls::Canvas const& canvas,
+            std::vector<SponsorBlockSegmentVisual>& visuals,
+            double& cachedDuration, double& cachedWidth,
+            std::uint64_t& renderedRevision, bool minimalTimeline)
+            {
+                double const width = canvas.ActualWidth();
+                if (width <= 1.0) return;
+
+                bool const rebuild =
+                    renderedRevision != m_sponsorBlockVisualRevision ||
+                    std::abs(cachedDuration - duration) >= 0.01 ||
+                    std::abs(cachedWidth - width) >= 0.5;
+                if (!rebuild) return;
+
+                auto children = canvas.Children();
+                children.Clear();
+                visuals.clear();
+
+                double const markerHeight = m_filledTimelineStyle ? 6.0 : 4.0;
+                double const markerTop = m_filledTimelineStyle ? 1.0 : 2.0;
+                double const radius = m_filledTimelineStyle ? 1.5 : 2.0;
+
+                for (auto const& segment : m_sponsorBlockSegments)
+                {
+                    double const start = (std::max)(0.0,
+                        (std::min)(duration, segment.start));
+                    double const end = (std::max)(0.0,
+                        (std::min)(duration, segment.end));
+                    if (end <= start) continue;
+
+                    double const left = start * width / duration;
+                    double const right = end * width / duration;
+                    double const markerWidth = (std::max)(1.0, right - left);
+
+                    Border marker;
+                    marker.Width(markerWidth);
+                    marker.Height(markerHeight);
+                    marker.CornerRadius({ radius, radius, radius, radius });
+                    marker.Background(SolidColorBrush{
+                        SponsorBlockCategoryColor(segment.category) });
+                    marker.Opacity(0.94);
+                    Canvas::SetLeft(marker, left);
+                    Canvas::SetTop(marker, markerTop);
+                    children.Append(marker);
+
+                    // Normal/compact Windows 11 chapters scale around their
+                    // vertical centre. Minimal Windows 11 chapter Borders keep
+                    // the default top-edge Y pivot, so SponsorBlock must use
+                    // that same Y pivot there or its colored range drifts up
+                    // and down relative to the hovered chapter segment.
+                    auto visual = Microsoft::UI::Xaml::Hosting::
+                        ElementCompositionPreview::GetElementVisual(marker);
+                    float const centerY =
+                        (minimalTimeline && !m_filledTimelineStyle)
+                        ? 0.0f
+                        : static_cast<float>(markerHeight / 2.0);
+                    visual.CenterPoint({
+                        static_cast<float>(markerWidth / 2.0), centerY, 0.0f });
+                    visual.Scale({ 1.0f, 1.0f, 1.0f });
+
+                    visuals.push_back({ start, end, marker });
+                }
+
+                cachedDuration = duration;
+                cachedWidth = width;
+                renderedRevision = m_sponsorBlockVisualRevision;
+            };
+
+        render(SponsorBlockMarkers(),
+            m_sponsorBlockNormalVisuals,
+            m_sponsorBlockMarkerDuration,
+            m_sponsorBlockMarkerWidth,
+            m_sponsorBlockNormalRenderedRevision, false);
+        render(MinimalSponsorBlockMarkers(),
+            m_sponsorBlockMinimalVisuals,
+            m_minimalSponsorBlockMarkerDuration,
+            m_minimalSponsorBlockMarkerWidth,
+            m_sponsorBlockMinimalRenderedRevision, true);
+    }
+
+    std::wstring MainPage::SponsorBlockLabelAtTime(double time) const
+    {
+        if (!m_sponsorBlockEnabled || !std::isfinite(time)) return {};
+
+        SponsorBlockSegment const* match = nullptr;
+        for (auto const& segment : m_sponsorBlockSegments)
+        {
+            if (time < segment.start || time > segment.end) continue;
+
+            // When categories overlap, prefer the actual auto-skip category
+            // so the hover label describes the action HC Player will take.
+            if (segment.category == L"sponsor")
+            {
+                match = &segment;
+                break;
+            }
+            if (!match) match = &segment;
+        }
+        if (!match) return {};
+
+        auto const& category = match->category;
+        if (category == L"intro")
+            return MainPageString(L"MainPageDynSponsorBlockIntro", L"Introdução");
+        if (category == L"outro")
+            return MainPageString(L"MainPageDynSponsorBlockOutro", L"Encerramento");
+        if (category == L"interaction")
+            return MainPageString(L"MainPageDynSponsorBlockInteraction", L"Interação");
+        if (category == L"selfpromo")
+            return MainPageString(L"MainPageDynSponsorBlockSelfPromo", L"Autopromoção");
+        if (category == L"music_offtopic")
+            return MainPageString(L"MainPageDynSponsorBlockMusicOfftopic", L"Música fora do tema");
+        if (category == L"preview")
+            return MainPageString(L"MainPageDynSponsorBlockPreview", L"Prévia");
+        if (category == L"filler")
+            return MainPageString(L"MainPageDynSponsorBlockFiller", L"Enchimento");
+        return MainPageString(L"MainPageDynSponsorBlockSponsor", L"Patrocínio");
+    }
+
+    void MainPage::CheckSponsorBlockAutoSkip(double elapsed, double duration)
+    {
+        if (!m_sponsorBlockEnabled || m_timelineUserInteraction ||
+            !std::isfinite(elapsed) || !std::isfinite(duration) ||
+            duration <= 0.0)
+        {
+            return;
+        }
+
+        // Playlist handoff can replace the active item between the slower
+        // identity polls. Never let segments from the outgoing YouTube video
+        // seek the incoming item; update the SponsorBlock identity immediately.
+        std::wstring const currentVideoId = SponsorBlockExtractYouTubeVideoId(
+            PlayerGetCurrentMediaPath());
+        if (currentVideoId != m_sponsorBlockVideoId)
+        {
+            EnsureSponsorBlockForCurrentMedia();
+            return;
+        }
+        if (m_sponsorBlockSegments.empty()) return;
+
+        for (auto& segment : m_sponsorBlockSegments)
+        {
+            // V1 intentionally auto-skips only paid sponsor segments. All
+            // other fetched categories are visual markers only.
+            if (segment.category != L"sponsor" || segment.skipped) continue;
+            if (elapsed + 0.01 < segment.start || elapsed >= segment.end)
+                continue;
+
+            segment.skipped = true;
+            double const target = (std::min)(duration, segment.end);
+            if (target > elapsed + 0.01)
+            {
+                PlayerSeekAbsoluteExact(target);
+            }
+            return;
+        }
+    }
+
     void MainPage::RenderChapterMarkers(double duration, double elapsed)
     {
         double width = ChapterMarkers().ActualWidth();
@@ -4565,9 +6687,7 @@ namespace winrt::HCPlayer::implementation
             auto cacheBrush = Resources().Lookup(
                 winrt::box_value(L"TimelineCacheBrush"))
                 .as<Microsoft::UI::Xaml::Media::Brush>();
-            auto progressBrush = Resources().Lookup(
-                winrt::box_value(L"TimelineProgressBrush"))
-                .as<Microsoft::UI::Xaml::Media::Brush>();
+            auto progressBrush = PlaybackProgressBrush();
             double const gap = m_filledTimelineStyle ? 1.0 : 4.0;
             double const segmentHeight = m_filledTimelineStyle ? 6.0 : 4.0;
             double const segmentTop = m_filledTimelineStyle ? 1.0 : 2.0;
@@ -4640,9 +6760,7 @@ namespace winrt::HCPlayer::implementation
             auto currentTrackBrush = themeResources.Lookup(
                 winrt::box_value(L"TimelineTrackBrush"))
                 .as<Microsoft::UI::Xaml::Media::Brush>();
-            auto currentProgressBrush = Resources().Lookup(
-                winrt::box_value(L"TimelineProgressBrush"))
-                .as<Microsoft::UI::Xaml::Media::Brush>();
+            auto currentProgressBrush = PlaybackProgressBrush();
             auto currentCacheBrush = Resources().Lookup(
                 winrt::box_value(L"TimelineCacheBrush"))
                 .as<Microsoft::UI::Xaml::Media::Brush>();
@@ -4723,6 +6841,10 @@ namespace winrt::HCPlayer::implementation
                 Microsoft::UI::Xaml::Visibility::Collapsed);
         }
 
+        if (m_sponsorBlockEnabled)
+        {
+            RenderSponsorBlockMarkers(duration);
+        }
     }
 
     void MainPage::RenderMinimalChapterMarkers(double duration, double elapsed)
@@ -4751,6 +6873,9 @@ namespace winrt::HCPlayer::implementation
 
         if (rebuild)
         {
+            // The old Border instances are about to be discarded. Reset
+            // the hover index so a same-index replacement can animate.
+            m_hoveredMinimalChapterSegment = -1;
             auto children = canvas.Children();
             children.Clear();
             m_minimalChapterSegments.clear();
@@ -4773,9 +6898,7 @@ namespace winrt::HCPlayer::implementation
             auto cacheBrush = Resources().Lookup(
                 winrt::box_value(L"TimelineCacheBrush"))
                 .as<Microsoft::UI::Xaml::Media::Brush>();
-            auto progressBrush = Resources().Lookup(
-                winrt::box_value(L"TimelineProgressBrush"))
-                .as<Microsoft::UI::Xaml::Media::Brush>();
+            auto progressBrush = PlaybackProgressBrush();
 
             // Same segment geometry used by the normal transport. Minimal has a
             // fixed 14-DIP track inset, but the chapter gaps/heights/radii are
@@ -4856,19 +6979,39 @@ namespace winrt::HCPlayer::implementation
             fillRatio = (std::max)(0.0, (std::min)(1.0, fillRatio));
             segment.fill.Width(segment.width * fillRatio);
         }
+        if (m_sponsorBlockEnabled)
+        {
+            RenderSponsorBlockMarkers(duration);
+        }
     }
 
     void MainPage::UpdateMinimalTimelineVisual()
+    {
+        double elapsed{};
+        double duration{};
+        if (!PlayerGetPlaybackTimes(elapsed, duration))
+        {
+            using Microsoft::UI::Xaml::Visibility;
+            MinimalChapterMarkers().Children().Clear();
+            m_minimalChapterSegments.clear();
+            MinimalFilledTimelinePositionMarker().Visibility(
+                Visibility::Collapsed);
+            return;
+        }
+
+        UpdateMinimalTimelineVisual(elapsed, duration);
+    }
+
+    void MainPage::UpdateMinimalTimelineVisual(
+        double elapsed, double duration)
     {
         using Microsoft::UI::Xaml::Visibility;
         using Microsoft::UI::Xaml::Controls::Canvas;
 
         auto marker = MinimalFilledTimelinePositionMarker();
 
-        double elapsed{};
-        double duration{};
-        if (!PlayerGetPlaybackTimes(elapsed, duration) ||
-            !std::isfinite(duration) || duration <= 0.0)
+        if (!std::isfinite(duration) || duration <= 0.0 ||
+            !std::isfinite(elapsed))
         {
             MinimalChapterMarkers().Children().Clear();
             m_minimalChapterSegments.clear();
@@ -4876,7 +7019,9 @@ namespace winrt::HCPlayer::implementation
             return;
         }
 
-        RenderMinimalChapterMarkers(duration, elapsed);
+        double const visualElapsed = (std::max)(
+            0.0, (std::min)(duration, elapsed));
+        RenderMinimalChapterMarkers(duration, visualElapsed);
 
         if (!m_filledTimelineStyle)
         {
@@ -4934,16 +7079,161 @@ namespace winrt::HCPlayer::implementation
                 visual.StartAnimation(L"Scale", animation);
             };
 
+        auto animateSponsorRange = [&](ChapterSegmentVisual const& chapter,
+            float verticalScale)
+            {
+                for (auto const& sponsor : m_sponsorBlockNormalVisuals)
+                {
+                    if (sponsor.end <= chapter.start ||
+                        sponsor.start >= chapter.end)
+                    {
+                        continue;
+                    }
+                    animate(sponsor.root, verticalScale);
+                }
+            };
+
         if (m_hoveredChapterSegment >= 0 &&
             static_cast<size_t>(m_hoveredChapterSegment) < m_chapterSegments.size())
         {
-            animate(m_chapterSegments[m_hoveredChapterSegment].root, 1.0f);
+            auto const& previous = m_chapterSegments[m_hoveredChapterSegment];
+            animate(previous.root, 1.0f);
+            animateSponsorRange(previous, 1.0f);
         }
         if (index >= 0 && static_cast<size_t>(index) < m_chapterSegments.size())
         {
-            animate(m_chapterSegments[index].root, 1.55f);
+            auto const& current = m_chapterSegments[index];
+            animate(current.root, 1.55f);
+            animateSponsorRange(current, 1.55f);
         }
         m_hoveredChapterSegment = index;
+    }
+
+    void MainPage::SetHoveredMinimalChapterSegment(int32_t index)
+    {
+        if (index == m_hoveredMinimalChapterSegment) return;
+
+        // Filled/HC Player style has one continuous hover animation.
+        // Per-section pop-out belongs only to the Windows 11 style.
+        if (m_filledTimelineStyle)
+        {
+            m_hoveredMinimalChapterSegment = index;
+            return;
+        }
+
+        auto animate = [](Microsoft::UI::Xaml::Controls::Border const& segment,
+            float verticalScale)
+            {
+                if (!segment) return;
+                auto visual = Microsoft::UI::Xaml::Hosting::ElementCompositionPreview::
+                    GetElementVisual(segment);
+                auto compositor = visual.Compositor();
+                auto easing = compositor.CreateCubicBezierEasingFunction(
+                    { 0.16f, 1.0f }, { 0.30f, 1.0f });
+                auto animation = compositor.CreateVector3KeyFrameAnimation();
+                animation.InsertKeyFrame(1.0f, { 1.0f, verticalScale, 1.0f }, easing);
+                animation.Duration(std::chrono::milliseconds(140));
+                visual.StartAnimation(L"Scale", animation);
+            };
+
+        auto animateSponsorRange = [&](ChapterSegmentVisual const& chapter,
+            float verticalScale)
+            {
+                for (auto const& sponsor : m_sponsorBlockMinimalVisuals)
+                {
+                    if (sponsor.end <= chapter.start ||
+                        sponsor.start >= chapter.end)
+                    {
+                        continue;
+                    }
+                    animate(sponsor.root, verticalScale);
+                }
+            };
+
+        if (m_hoveredMinimalChapterSegment >= 0 &&
+            static_cast<size_t>(m_hoveredMinimalChapterSegment) <
+                m_minimalChapterSegments.size())
+        {
+            auto const& previous =
+                m_minimalChapterSegments[m_hoveredMinimalChapterSegment];
+            animate(previous.root, 1.0f);
+            animateSponsorRange(previous, 1.0f);
+        }
+        if (index >= 0 &&
+            static_cast<size_t>(index) < m_minimalChapterSegments.size())
+        {
+            auto const& current = m_minimalChapterSegments[index];
+            animate(current.root, 1.55f);
+            animateSponsorRange(current, 1.55f);
+        }
+        m_hoveredMinimalChapterSegment = index;
+    }
+
+    void MainPage::UpdateWindows11TimelineThumbHover(double pointerX)
+    {
+        // Strict scope: Windows 11 timeline + Full/Compact/PiP transport.
+        // Minimal remains on its separate interaction/visual path and never
+        // inherits this presentation state. PiP reuses PositionSlider and the
+        // same TimelineInputSurface, so this changes only visual hover reach.
+        bool const timelineVisible =
+            m_mediaControlsExpanded || m_pictureInPicture;
+        if (m_filledTimelineStyle ||
+            !timelineVisible ||
+            UsesMinimalTransportStyle() ||
+            !std::isfinite(pointerX))
+        {
+            SetWindows11TimelineThumbHover(false);
+            return;
+        }
+
+        auto const slider = PositionSlider();
+        double const sliderWidth = slider.ActualWidth();
+        double const trackWidth = ChapterMarkers().ActualWidth();
+        double const range = slider.Maximum() - slider.Minimum();
+        if (sliderWidth <= 1.0 || trackWidth <= 1.0 || range <= 0.0)
+        {
+            SetWindows11TimelineThumbHover(false);
+            return;
+        }
+
+        // Use the exact same real WinUI track inset already used by the seek
+        // conversion. This keeps the visual hover center locked to the native
+        // thumb without introducing a second seek ruler.
+        double const trackInset =
+            sliderWidth > trackWidth
+                ? (sliderWidth - trackWidth) / 2.0
+                : 0.0;
+        double const ratio = (std::max)(0.0, (std::min)(1.0,
+            (slider.Value() - slider.Minimum()) / range));
+        double const thumbCenterX = trackInset + (trackWidth * ratio);
+
+        constexpr double HoverHalfWidth = 12.0; // 24 DIP total
+        SetWindows11TimelineThumbHover(
+            std::abs(pointerX - thumbCenterX) <= HoverHalfWidth);
+    }
+
+    void MainPage::SetWindows11TimelineThumbHover(bool hovered)
+    {
+        if (hovered == m_windows11TimelineThumbHovered)
+        {
+            return;
+        }
+
+        // If the template is not realized yet, do not latch an artificial
+        // state. A later pointer move can retry after layout realization.
+        auto const thumb = FindSliderThumb(PositionSlider());
+        if (!thumb)
+        {
+            m_windows11TimelineThumbHovered = false;
+            return;
+        }
+
+        auto const thumbControl =
+            thumb.as<Microsoft::UI::Xaml::Controls::Control>();
+        bool const applied =
+            Microsoft::UI::Xaml::VisualStateManager::GoToState(
+                thumbControl, hovered ? L"PointerOver" : L"Normal", true);
+        m_windows11TimelineThumbHovered = applied && hovered;
     }
 
     void MainPage::SetFilledTimelineHovered(bool hovered)
@@ -4978,8 +7268,10 @@ namespace winrt::HCPlayer::implementation
         // vertically by 22% with the same easing and duration. Hidden elements
         // are harmless to animate and keep one authoritative hover state.
         animate(ChapterMarkers());
+        animate(SponsorBlockMarkers());
         animate(FilledTimelineOverlay());
         animate(MinimalChapterMarkers());
+        animate(MinimalSponsorBlockMarkers());
         animate(MinimalFilledTimelineOverlay());
     }
 
@@ -5074,6 +7366,19 @@ namespace winrt::HCPlayer::implementation
             TransportHostPointerEntered();
         }
 
+        // Keep the logical mpv queue inside HC Player's universal safety cap.
+        // The bridge throttles the actual playlist-count check to once per second,
+        // so the 250 ms transport timer does not add meaningful UI work.
+        PlayerMaintainPlaylistLimits();
+
+        // Full/Compact share this icon. M changes mpv's mute state directly;
+        // reuse the existing 250-ms UI poll to reflect it without writing audio
+        // state. PiP and Minimal keep their existing presentations unchanged.
+        if (m_controlsReady && !m_pictureInPicture && !UsesMinimalTransportStyle())
+        {
+            ShowVolumeFeedback();
+        }
+
         if (!m_ready)
         {
             return;
@@ -5109,25 +7414,101 @@ namespace winrt::HCPlayer::implementation
 
         if (TimelineRow().Visibility() != desiredTimelineVisibility)
         {
-            TimelineRow().Visibility(desiredTimelineVisibility);
-            PlayerSetTransportImageMode(imageWithoutTimeline);
+            // Photo -> timed media can be observed one step earlier than the
+            // replacement file's clock/timeline is actually ready. Expanding
+            // the native bar at that point exposes a short intermediate frame:
+            // the larger surface is already present, but the seek row is still
+            // empty. Keep the fully assembled photo bar until the new item has
+            // both a stable presentation and readable playback timing.
+            bool const returningFromImageBar =
+                !m_pictureInPicture &&
+                !minimalTransportActive &&
+                !imageWithoutTimeline &&
+                TimelineRow().Visibility() ==
+                    Microsoft::UI::Xaml::Visibility::Collapsed;
 
-            if (!m_pictureInPicture)
-            {
-                PlaybackControlsRow().Translation(
-                    Windows::Foundation::Numerics::float3{
-                        0.0f,
-                        imageWithoutTimeline ? 6.0f : 0.0f,
-                        0.0f });
-            }
+            double transitionElapsed{};
+            double transitionDuration{};
+            bool const timedMediaReady =
+                !returningFromImageBar ||
+                (PlayerIsMediaPresentationReady() &&
+                    PlayerGetPlaybackTimes(
+                        transitionElapsed, transitionDuration));
 
-            if (imageWithoutTimeline)
+            if (timedMediaReady)
             {
-                ChapterHoverCard().Visibility(
-                    Microsoft::UI::Xaml::Visibility::Collapsed);
-                ChapterHoverPopup().IsOpen(false);
-                SetHoveredChapterSegment(-1);
-                SetFilledTimelineHovered(false);
+                if (returningFromImageBar)
+                {
+                    // Assemble the complete timed-media XAML first while the
+                    // old, shorter photo HWND still clips the extra row. A
+                    // synchronous layout pass gives the timeline its final
+                    // width, then chapter/track visuals and the clock are seeded
+                    // before the native host grows. The next presented frame is
+                    // therefore the complete bar rather than the empty
+                    // intermediate surface.
+                    TimelineRow().Visibility(desiredTimelineVisibility);
+
+                    PlaybackControlsRow().Translation(
+                        Windows::Foundation::Numerics::float3{
+                            0.0f, 0.0f, 0.0f });
+
+                    TransportRoot().Padding(m_compactBarLayout
+                        ? Microsoft::UI::Xaml::Thickness{
+                            10.0, 3.0, 10.0, 2.0 }
+                        : Microsoft::UI::Xaml::Thickness{
+                            10.0, 5.0, 10.0, 2.0 });
+
+                    UpdateTimeDisplay(
+                        transitionElapsed, transitionDuration);
+
+                    double const transitionPosition =
+                        transitionDuration > 0.0
+                            ? (std::min)(100.0,
+                                transitionElapsed * 100.0 /
+                                    transitionDuration)
+                            : PlayerGetPositionPercent();
+                    m_isUpdatingPosition = true;
+                    if (transitionPosition >= 0.0)
+                    {
+                        PositionSlider().Value(transitionPosition);
+                    }
+                    m_isUpdatingPosition = false;
+
+                    TransportRoot().UpdateLayout();
+                    RefreshChapterData(
+                        transitionDuration, transitionElapsed);
+                    TransportRoot().UpdateLayout();
+
+                    // Only now expose the larger native transport host.
+                    PlayerSetTransportImageMode(false);
+                    m_chapterRefreshCountdown = 4;
+                }
+                else
+                {
+                    // Timed media -> photo already has the approved smooth
+                    // order: remove the seek row first, then shrink the native
+                    // host. Keep that direction untouched.
+                    TimelineRow().Visibility(desiredTimelineVisibility);
+                    PlayerSetTransportImageMode(imageWithoutTimeline);
+
+                    if (!m_pictureInPicture)
+                    {
+                        PlaybackControlsRow().Translation(
+                            Windows::Foundation::Numerics::float3{
+                                0.0f,
+                                imageWithoutTimeline ? 6.0f : 0.0f,
+                                0.0f });
+                    }
+                }
+
+                if (imageWithoutTimeline)
+                {
+                    ChapterHoverCard().Visibility(
+                        Microsoft::UI::Xaml::Visibility::Collapsed);
+                    ChapterHoverPopup().IsOpen(false);
+                    SetHoveredChapterSegment(-1);
+                    SetFilledTimelineHovered(false);
+                }
             }
         }
 
@@ -5138,6 +7519,7 @@ namespace winrt::HCPlayer::implementation
         if (PlayerGetPlaybackTimes(elapsed, duration))
         {
             UpdateTimeDisplay(elapsed, duration);
+            CheckSponsorBlockAutoSkip(elapsed, duration);
             double cacheEnd{};
             m_webCacheEnd = PlayerGetWebCacheEnd(cacheEnd)
                 ? (std::max)(elapsed, cacheEnd) : 0.0;
@@ -5171,8 +7553,17 @@ namespace winrt::HCPlayer::implementation
                 m_isUpdatingPosition = true;
                 if (position >= 0.0)
                 {
+                    // Normal timeline synchronization stays exactly as before.
                     PositionSlider().Value(position);
-                    MinimalPositionSlider().Value(position);
+
+                    // A Minimal-mode click already painted its requested target
+                    // immediately. Give mpv the same short settling window used
+                    // elsewhere before returning only the Minimal slider to the
+                    // 250-ms playback clock.
+                    if (m_minimalTimelineProgressHoldTicks == 0)
+                    {
+                        MinimalPositionSlider().Value(position);
+                    }
                 }
                 m_isUpdatingPosition = false;
             }
@@ -5180,6 +7571,25 @@ namespace winrt::HCPlayer::implementation
                 m_timelineProgressHoldTicks > 0)
             {
                 --m_timelineProgressHoldTicks;
+            }
+
+            // Unlike the normal timeline, Minimal used to refresh its custom
+            // chapter/cache track only as a side effect of Slider::ValueChanged.
+            // While playback is paused the playhead value is stable, so that
+            // event stops firing even though mpv's cache-end can keep growing.
+            // Refresh the visible Minimal track from the same 250-ms cache poll
+            // used by the normal bar. Preserve the short post-seek hold so a
+            // freshly clicked Minimal target is never repainted from stale
+            // time-pos while mpv settles the seek.
+            if (minimalTransportActive &&
+                m_minimalTimelineProgressHoldTicks == 0)
+            {
+                UpdateMinimalTimelineVisual(elapsed, duration);
+            }
+
+            if (m_minimalTimelineProgressHoldTicks > 0)
+            {
+                --m_minimalTimelineProgressHoldTicks;
             }
 
             if (m_chapterRefreshCountdown == 0)
@@ -5245,6 +7655,14 @@ namespace winrt::HCPlayer::implementation
         PlayerUpdateTaskbarProgress();
         if ((++m_progressTickCount % 4) == 0)
         {
+            // SponsorBlock follows the same playlist identity synchronization
+            // used by the rest of HC Player, but checks only once per second
+            // and does no media parsing while the opt-in feature is disabled.
+            if (m_sponsorBlockEnabled)
+            {
+                EnsureSponsorBlockForCurrentMedia();
+            }
+
             // Playlist navigation can replace the current item without OpenPath().
             // Reclassify once per second so video-only actions cannot leak into
             // audio or still-image items, without adding a new timer.
@@ -5259,6 +7677,7 @@ namespace winrt::HCPlayer::implementation
             // once per second is enough to replace the temporary URL label
             // without adding work to MPV's rendering path.
             auto const mediaTitle = PlayerGetMediaTitle();
+            PlayerRefreshWindowTitle(mediaTitle);
             if (!mediaTitle.empty() && NowPlayingText().Text() != mediaTitle)
             {
                 NowPlayingText().Text(mediaTitle);

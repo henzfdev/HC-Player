@@ -5,6 +5,7 @@
 #include "SettingsPage.h"
 #include "MediaInfoPage.h"
 #include "PlaylistPage.h"
+#include "YouTubeCommentsPage.h"
 #include "ContextMenuPage.h"
 #include "PlayerBridge.h"
 #include "ShaderManager.h"
@@ -41,12 +42,14 @@
 #include <fstream>
 #include <iomanip>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <regex>
 #include <set>
 #include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "comctl32.lib")
@@ -71,16 +74,20 @@ namespace
     // TimelineRow = 24 DIP + 4 DIP top margin. Images have no seek timeline,
     // so the transport removes exactly those 28 DIP.
     constexpr int ImageControlsHeight = 104;
-    // Two-row Bar removes the 38-DIP information row while preserving the
-    // approved timeline and playback rows. Still images additionally remove
-    // the 28-DIP timeline, leaving only the playback row.
-    constexpr int CompactBarControlsHeight = 94;
+    // Two-row Bar removes the information row. The 92-DIP video host preserves
+    // the established compact control geometry; still images keep their
+    // established 66-DIP layout.
+    constexpr int CompactBarControlsHeight = 92;
     constexpr int CompactBarImageControlsHeight = 66;
-    constexpr int CompactControlsHeight = 54;
+    constexpr int CompactControlsHeight = 50;
     constexpr int MinimalControlsHeight = 66;
     constexpr int PictureInPictureControlsHeight = 82;
+    // PiP timeline = 24 DIP + 1 DIP top margin. Still images have no seek
+    // timeline. The mathematical minimum is 57 DIP; keep 4 extra DIPs of
+    // breathing room so the one-row photo transport does not feel top-heavy.
+    constexpr int PictureInPictureImageControlsHeight = 61;
     constexpr int PictureInPictureWidth = 440;
-    constexpr int PictureInPictureHeight = 332;
+    constexpr int PictureInPictureHeight = 330;
     constexpr int NormalMinimumWidth = 568;
     constexpr int NormalMinimumHeight = 360;
     constexpr UINT TaskbarPreviousButtonId = 6101;
@@ -103,28 +110,43 @@ namespace
     constexpr UINT ClosePlaylistMessage = WM_APP + 15;
     constexpr UINT AddExternalAudioMessage = WM_APP + 16;
     constexpr UINT AddExternalSubtitleMessage = WM_APP + 17;
+    constexpr UINT ShowYouTubeCommentsMessage = WM_APP + 18;
+    constexpr UINT CloseYouTubeCommentsMessage = WM_APP + 19;
+    // Enter-only fullscreen input serialization. The actual window/style
+    // transition stays inside PlayerToggleFullscreen(); this message merely
+    // releases the next physical Enter after the previous UI/DWM commit.
+    constexpr UINT FullscreenInputCommitMessage = WM_APP + 20;
+    // Light-theme Snap Assist transport backing guard. During the shell's
+    // snap-in animation the XAML transport host can be exposed for one
+    // compositor frame before its content catches the new geometry. Keep only
+    // that backing surface black until the snapped layout has committed.
+    constexpr UINT LightSnapTransportCommitMessage = WM_APP + 21;
     constexpr UINT_PTR NativeSettingsSaveTimer = 41;
     constexpr UINT_PTR SettingsTransitionTimer = 42;
     constexpr UINT_PTR TransportPointerTimer = 43;
     constexpr UINT_PTR AutofitWindowTimer = 44;
     constexpr UINT_PTR VideoSingleClickTimer = 45;
     constexpr UINT_PTR DynamicWindowFitTimer = 46;
-    // Presentation-only one-shot poll used only after an immersive 16:9 ->
-    // 16:9 fullscreen entry. It keeps the already-existing frozen bridge over
+    // Presentation-only one-shot poll used only after an immersive media
+    // fullscreen entry. It keeps the already-existing frozen bridge over
     // the real window until mpv reports its fullscreen video margins settled.
     constexpr UINT_PTR FullscreenVideoSettleTimer = 47;
-    // 34.20.8.36 TEST: cold shell launches create the main HWND hidden only
-    // long enough to place a black child shield over the client area. The
-    // top-level window is then shown immediately while mpv resolves the first
-    // media geometry underneath the shield.
-    constexpr UINT_PTR InitialMediaRevealTimer = 48;
-    constexpr ULONGLONG InitialMediaRevealTimeoutMs = 1500;
+    // Cold-start media reveal uses libmpv wakeup events. This timer is a
+    // one-shot fail-safe only; it never polls playback or geometry state.
+    constexpr UINT_PTR StartupMediaFailSafeTimer = 48;
+    // Idle-only pointer tracking for the home-screen glow. This timer is
+    // armed only while the empty state is visible, so playback has zero
+    // additional polling overhead.
+    constexpr UINT_PTR EmptyStateGlowTimer = 49;
+    constexpr UINT StartupMediaFailSafeTimeoutMs = 1500;
     constexpr int SettingsPanelWidth = 520;
     constexpr int MediaInfoPanelWidth = 520;
     constexpr int PlaylistPanelWidth = 520;
+    constexpr int YouTubeCommentsPanelWidth = 470;
     constexpr wchar_t VideoWindowClassName[] = L"HCPlayer.VideoSurface";
     constexpr wchar_t SettingsHostClassName[] = L"HCPlayer.SettingsHost";
     constexpr wchar_t TransportHostClassName[] = L"HCPlayer.MinimalTransportHost";
+    constexpr wchar_t ModalDialogHostClassName[] = L"HCPlayer.ModalDialogHost";
     constexpr wchar_t PipResizeGripClassName[] = L"HCPlayer.PipResizeGrip";
     constexpr wchar_t BorderlessCaptionClassName[] =
         L"HCPlayer.BorderlessCaptionControls";
@@ -132,8 +154,6 @@ namespace
         L"HCPlayer.FullscreenTransitionShield";
     constexpr wchar_t MediaFullscreenTransitionShieldClassName[] =
         L"HCPlayer.MediaFullscreenTransitionShield";
-    constexpr wchar_t InitialMediaRevealShieldClassName[] =
-        L"HCPlayer.InitialMediaRevealShield";
     constexpr wchar_t InstalledSingleInstanceMutexName[] =
         L"Local\\HCPlayer.SingleInstance.v1";
     constexpr wchar_t InstalledSingleInstancePrimaryPropertyName[] =
@@ -157,11 +177,21 @@ namespace
     // one intermediate frame with the old transport width inside the new client
     // size. The video child stays live and continues receiving its final size.
     bool g_fullscreenLayoutTransition{};
+    // Synchronous window-to-fullscreen transaction only; PiP never uses this.
+    bool g_deferWindowFullscreenVideoResize{};
     // One-shot request used by keyboard/double-click fullscreen transitions.
     // Enter, Escape and video double-click keep the transport hidden across the
     // resize; the toolbar button and other fullscreen callers preserve the
     // established reveal behavior. PlayerToggleFullscreen consumes this flag.
     bool g_suppressFullscreenEntryTransportReveal{};
+    // Rapid physical Enter presses used to start a second window/fullscreen
+    // transaction as soon as the synchronous Win32 calls returned, even though
+    // WinUI/DWM presentation from the previous transaction could still be in
+    // flight. Keep only the Enter input serialized; toolbar/PiP/fullscreen code
+    // paths remain unchanged. Extra presses are coalesced by parity so the final
+    // state still matches the number of deliberate key presses.
+    bool g_enterFullscreenCommitPending{};
+    bool g_enterFullscreenQueuedParity{};
     WINDOWPLACEMENT g_previousPlacement{ sizeof(WINDOWPLACEMENT) };
     LONG_PTR g_previousStyle{};
     LONG_PTR g_previousExStyle{};
@@ -177,14 +207,35 @@ namespace
     // rounded popup.  Keep the transport completely hidden across that short
     // handoff so DWM never presents a mixed PiP/windowed frame.
     bool g_pipReturnLayoutTransition{};
+    // Light-theme PiP -> window uses a second, presentation-only guard: while
+    // Win32 restores the normal non-client frame and WinUI settles its final
+    // layout, keep the top-level HWND cloaked so DWM cannot expose a bright
+    // intermediate frame. Dark theme deliberately stays on the established
+    // path unchanged.
+    bool g_pipReturnWindowCloaked{};
+    // Narrow Snap Assist guard used only by the light-theme transport backing.
+    // It never changes Mica/backdrop, mpv, the owner window or dark theme.
+    bool g_lightSnapTransportBackingGuard{};
+    UINT g_lightSnapTransportGeneration{};
     // Entering PiP from fullscreen can expose the restored normal window and
     // half-built PiP layout for a few compositor frames. Keep the top-level
     // player DWM-cloaked across that visual handoff only.
     bool g_pipEntryLayoutTransition{};
+    // While a playlist item changes between timed media and a still image
+    // inside PiP, keep only the transport island hidden until the new XAML
+    // timeline/height state has settled. This is a presentation-only guard: it
+    // never pauses/restarts mpv and never changes the PiP owner window.
+    bool g_pipMediaKindLayoutTransition{};
 
     // Presentation-only bridge for rapid Enter -> fullscreen transitions. It
     // owns a frozen copy of the last visible video frame; no libmpv/D3D11 or
     // fullscreen style state is stored here.
+    struct PipTransitionGeometry
+    {
+        int64_t width{}, height{}, top{}, bottom{}, left{}, right{};
+        bool operator==(PipTransitionGeometry const&) const = default;
+    };
+
     struct FullscreenTransitionSnapshot
     {
         HBITMAP bitmap{};
@@ -193,9 +244,28 @@ namespace
 
         // 34.20.8.19: only the frozen transition bridge uses these fields.
         // They never alter mpv, its HWND, keepaspect, D3D11 or the final
-        // fullscreen geometry. The crop is enabled only when both the current
-        // video and destination monitor are effectively 16:9.
+        // fullscreen geometry. Window -> fullscreen derives the source
+        // content box from mpv's renderer margins instead of an aspect whitelist.
         bool settleMatchingFullscreenVideo{};
+        // PiP-only presentation guard. Other fullscreen paths keep their behavior.
+        bool settlePipFullscreenVideo{};
+        bool fitSnapshotAspect{};
+        // Window -> fullscreen: expected renderer content box at the final
+        // monitor size. These values come from mpv's own pre-transition
+        // osd-dimensions margins, so arbitrary display aspects are supported
+        // without guessing from coded video dimensions.
+        int targetContentWidth{};
+        int targetContentHeight{};
+        // Window -> fullscreen only: after mpv first reports the final VO
+        // geometry, keep the already-proven bridge through one actual DWM
+        // refresh before revealing it. This is refresh-driven, not a fixed
+        // 24 ms hold, and never changes the bridge drawing itself.
+        PipTransitionGeometry matchingLastReadyGeometry{};
+        UINT64 matchingReadyRefresh{};
+        bool matchingReadyRefreshArmed{};
+        double pipCapturedVideoAspect{};
+        PipTransitionGeometry pipLastReadyGeometry{};
+        ULONGLONG pipReadyGeometryTick{};
         int sourceX{};
         int sourceY{};
         int sourceWidth{};
@@ -239,7 +309,20 @@ namespace
     bool g_settingsOpen{};
     bool g_mediaInfoOpen{};
     bool g_playlistOpen{};
+    bool g_youtubeCommentsOpen{};
     bool g_contextMenuOpen{};
+    // While a full-client ContentDialog is open, keyboard input belongs to
+    // XAML controls (TextBox/PasswordBox/etc.), not to HC Player/mpv shortcuts.
+    // The top-level window is also temporarily non-resizable/non-minimizable/
+    // non-maximizable so the modal island never has to chase an interactive
+    // owner resize. Moving the window remains allowed.
+    bool g_modalDialogOpen{};
+    // Freeze the owner size from the instant a modal dialog opens. Windows+D
+    // can temporarily give the HWND an iconic/tiny restore rectangle; using
+    // GetWindowRect() during that transition would accidentally lock the
+    // restored HC Player to title-bar size. Keep only the intended modal size.
+    SIZE g_modalLockedOwnerSize{};
+    bool g_modalLockedOwnerSizeValid{};
     bool g_transportFlyoutOpen{};
     bool g_transportHostVisible{ true };
     bool g_transportCompact{ true };
@@ -259,9 +342,13 @@ namespace
     bool g_suppressNextVideoClickUp{};
     POINT g_videoClickStart{};
     int g_autofitAttemptsRemaining{};
-    bool g_deferredStartupMediaReveal{};
-    HWND g_initialMediaRevealShield{};
-    ULONGLONG g_deferredStartupRevealStartedTick{};
+    // Track the native move/resize loop so shared transport/Snap guards
+    // can distinguish interactive sizing from Windows-driven geometry.
+    bool g_interactiveSizeMove{};
+    bool g_startupMediaEventDriven{};
+    bool g_startupTechnicalPauseActive{};
+    bool g_startupDesiredPaused{};
+    int g_startupShowCommand{ SW_SHOWNORMAL };
     int64_t g_dynamicFitObservedWidth{};
     int64_t g_dynamicFitObservedHeight{};
     int64_t g_dynamicFitAppliedWidth{};
@@ -559,8 +646,11 @@ namespace
     }
 
     std::wstring Trim(std::wstring value);
+    void SynchronizeCurrentPlaylistIdentity();
     std::wstring ResolveInternetShortcut(std::wstring const& path);
     bool IsPlayableFolderFile(std::filesystem::path const& path);
+    std::vector<std::wstring> EnumeratePlayableFolderFiles(
+        std::filesystem::path const& folder);
     int PipResizeEdgesAt(POINT screenPoint);
     int BorderlessResizeEdgesAt(POINT screenPoint);
     HCURSOR PipResizeCursor(int edges);
@@ -711,23 +801,60 @@ namespace
 
     std::vector<std::wstring> ReadDroppedQueueFiles(IDataObject* data)
     {
-        // Queue drops are intentionally narrower than HC Player's global drop
-        // target: only real, supported filesystem media from Explorer may be
-        // appended here. URLs/text keep their established global-open behavior.
+        // Preserve the established Explorer/file path exactly: only real,
+        // supported filesystem media are returned here. A dropped folder
+        // expands only its direct media files in Explorer-like natural order;
+        // subfolders stay out. Web links are handled separately below so they
+        // cannot change the already-validated local-file drag behavior.
         auto items = ReadDroppedMedia(data);
         std::vector<std::wstring> files;
         files.reserve(items.size());
         for (auto& item : items)
         {
-            std::error_code error;
             std::filesystem::path path{ item };
-            if (std::filesystem::is_regular_file(path, error) &&
+            std::error_code fileError;
+            if (std::filesystem::is_regular_file(path, fileError) &&
                 IsPlayableFolderFile(path))
             {
                 files.push_back(std::move(item));
+                continue;
+            }
+
+            std::error_code folderError;
+            if (std::filesystem::is_directory(path, folderError))
+            {
+                auto folderFiles = EnumeratePlayableFolderFiles(path);
+                files.insert(
+                    files.end(),
+                    std::make_move_iterator(folderFiles.begin()),
+                    std::make_move_iterator(folderFiles.end()));
             }
         }
         return files;
+    }
+
+    std::wstring ReadDroppedQueueUrl(IDataObject* data)
+    {
+        // Browser links and Windows .url shortcuts arrive through the same
+        // normalized reader used by HC Player's global drop target. Keep queue
+        // web drops deliberately strict: one HTTP(S) URL only. The actual add
+        // still goes through PlayerAddPlaylistUrl(), which performs the final
+        // validation and preserves the existing yt-dlp/HLS routing.
+        auto items = ReadDroppedMedia(data);
+        if (items.size() != 1) return {};
+
+        std::wstring value = Trim(std::move(items.front()));
+        if (value.empty() ||
+            value.find_first_of(L"\r\n") != std::wstring::npos)
+        {
+            return {};
+        }
+
+        std::wstring lower = value;
+        std::transform(lower.begin(), lower.end(), lower.begin(), towlower);
+        bool const http = lower.starts_with(L"http://") && lower.size() > 7;
+        bool const https = lower.starts_with(L"https://") && lower.size() > 8;
+        return (http || https) ? value : std::wstring{};
     }
 
     class PlaylistDropTarget final : public IDropTarget
@@ -768,7 +895,10 @@ namespace
         HRESULT STDMETHODCALLTYPE DragEnter(
             IDataObject* data, DWORD, POINTL, DWORD* effect) override
         {
-            m_accepts = !ReadDroppedQueueFiles(data).empty();
+            // Check the proven local-file path first. Only when it yields no
+            // queue media do we consider a single HTTP(S) link.
+            m_accepts = !ReadDroppedQueueFiles(data).empty() ||
+                !ReadDroppedQueueUrl(data).empty();
             SetVisual(m_accepts);
             if (effect) *effect = m_accepts ? DROPEFFECT_COPY : DROPEFFECT_NONE;
             return S_OK;
@@ -791,7 +921,19 @@ namespace
             IDataObject* data, DWORD, POINTL, DWORD* effect) override
         {
             auto files = ReadDroppedQueueFiles(data);
-            bool appended = PlayerAddPlaylistFiles(files);
+            bool appended = false;
+            if (!files.empty())
+            {
+                // Keep the existing local Explorer-drop path byte-for-byte in
+                // behavior: it still owns files/folders and their ordering.
+                appended = PlayerAddPlaylistFiles(files);
+            }
+            else
+            {
+                auto url = ReadDroppedQueueUrl(data);
+                if (!url.empty()) appended = PlayerAddPlaylistUrl(url);
+            }
+
             if (effect) *effect = appended ? DROPEFFECT_COPY : DROPEFFECT_NONE;
             m_accepts = false;
             CompleteDrop(appended);
@@ -854,6 +996,40 @@ namespace
         return lower.starts_with(L"http://") || lower.starts_with(L"https://");
     }
 
+    std::wstring NormalizePlaylistMediaSource(std::wstring value)
+    {
+        value = Trim(std::move(value));
+        if (value.starts_with(L"ytdl://"))
+        {
+            value.erase(0, 7);
+        }
+
+        // mpv can expose relative filenames for an auto-created local playlist.
+        // Resolve only that filesystem case against HC Player's last absolute
+        // local source; protocol URLs are deliberately left byte-for-byte intact.
+        if (!value.empty() && value.find(L"://") == std::wstring::npos)
+        {
+            try
+            {
+                std::filesystem::path candidate{ value };
+                if (candidate.is_relative() && !g_currentMediaPath.empty() &&
+                    g_currentMediaPath.find(L"://") == std::wstring::npos)
+                {
+                    std::filesystem::path current{ g_currentMediaPath };
+                    if (current.is_absolute())
+                    {
+                        candidate = current.parent_path() / candidate;
+                        value = candidate.lexically_normal().wstring();
+                    }
+                }
+            }
+            catch (...)
+            {
+            }
+        }
+        return value;
+    }
+
     bool IsYouTubeUrl(std::wstring value)
     {
         if (value.starts_with(L"ytdl://"))
@@ -903,6 +1079,168 @@ namespace
         return isHostOrSubdomain(L"youtube.com") ||
             host == L"youtu.be" ||
             isHostOrSubdomain(L"youtube-nocookie.com");
+    }
+
+    constexpr int64_t YtdlpExpandedPlaylistLimit = 30;
+    constexpr int64_t PlaylistMaximumItems = 1000;
+
+    std::wstring UrlQueryValue(
+        std::wstring const& value, std::wstring const& key)
+    {
+        size_t const queryStart = value.find(L'?');
+        if (queryStart == std::wstring::npos) return {};
+
+        std::wstring lower = value;
+        std::transform(lower.begin(), lower.end(), lower.begin(), towlower);
+
+        size_t cursor = queryStart + 1;
+        while (cursor < lower.size())
+        {
+            size_t const end = lower.find_first_of(L"&#", cursor);
+            size_t const fieldEnd =
+                end == std::wstring::npos ? lower.size() : end;
+            size_t const equals = lower.find(L'=', cursor);
+
+            if (equals != std::wstring::npos && equals < fieldEnd &&
+                lower.substr(cursor, equals - cursor) == key)
+            {
+                return value.substr(equals + 1, fieldEnd - equals - 1);
+            }
+
+            if (end == std::wstring::npos || lower[end] == L'#') break;
+            cursor = end + 1;
+        }
+        return {};
+    }
+
+    bool TryParsePositivePlaylistIndex(
+        std::wstring const& value, int64_t& parsed)
+    {
+        if (value.empty()) return false;
+
+        int64_t result{};
+        constexpr int64_t maximum =
+            (std::numeric_limits<int64_t>::max)() -
+            YtdlpExpandedPlaylistLimit;
+        for (wchar_t character : value)
+        {
+            if (character < L'0' || character > L'9') return false;
+            int64_t const digit = character - L'0';
+            if (result > (maximum - digit) / 10) return false;
+            result = result * 10 + digit;
+        }
+
+        if (result < 1) return false;
+        parsed = result;
+        return true;
+    }
+
+    bool IsYouTubePlaylistPageUrl(std::wstring const& value)
+    {
+        if (!IsYouTubeUrl(value)) return false;
+
+        std::wstring lower = value;
+        std::transform(lower.begin(), lower.end(), lower.begin(), towlower);
+
+        size_t const schemeEnd = lower.find(L"://");
+        if (schemeEnd == std::wstring::npos) return false;
+        size_t const authorityEnd =
+            lower.find_first_of(L"/?#", schemeEnd + 3);
+        if (authorityEnd == std::wstring::npos || lower[authorityEnd] != L'/')
+            return false;
+
+        size_t const pathEnd = lower.find_first_of(L"?#", authorityEnd);
+        std::wstring const path = lower.substr(
+            authorityEnd,
+            pathEnd == std::wstring::npos
+                ? std::wstring::npos
+                : pathEnd - authorityEnd);
+        return path == L"/playlist";
+    }
+
+    std::wstring NormalizeYouTubePlaylistQueueUrl(std::wstring const& value)
+    {
+        // Keep normal YouTube playback untouched. Only the playlist-add path
+        // calls this helper, and only an unambiguous /watch URL carrying a
+        // list= query parameter is canonicalized to YouTube's playlist URL.
+        // Preserve a valid index= as queue-only metadata so the 30-item yt-dlp
+        // window can start at the video the user copied instead of item 1.
+        if (!IsYouTubeUrl(value)) return value;
+
+        std::wstring lower = value;
+        std::transform(lower.begin(), lower.end(), lower.begin(), towlower);
+
+        size_t const schemeEnd = lower.find(L"://");
+        if (schemeEnd == std::wstring::npos) return value;
+
+        size_t const authorityStart = schemeEnd + 3;
+        size_t const authorityEnd = lower.find_first_of(L"/?#", authorityStart);
+        if (authorityEnd == std::wstring::npos || lower[authorityEnd] != L'/')
+            return value;
+
+        size_t const queryStart = lower.find(L'?', authorityEnd);
+        if (queryStart == std::wstring::npos) return value;
+
+        if (lower.substr(authorityEnd, queryStart - authorityEnd) != L"/watch")
+            return value;
+
+        std::wstring const listId = UrlQueryValue(value, L"list");
+        if (listId.empty()) return value;
+
+        std::wstring normalized =
+            L"https://www.youtube.com/playlist?list=" + listId;
+
+        int64_t playlistIndex{};
+        if (TryParsePositivePlaylistIndex(
+            UrlQueryValue(value, L"index"), playlistIndex))
+        {
+            normalized += L"&index=" + std::to_wstring(playlistIndex);
+        }
+        return normalized;
+    }
+
+    void AppendYouTubePlaylistWindowLocalOption(
+        std::wstring const& value,
+        std::vector<std::pair<std::string, std::string>>& localOptions)
+    {
+        // Only canonical/direct YouTube playlist pages can opt into a shifted
+        // window. Normal /watch playback, generic yt-dlp sites, HLS and local
+        // media therefore keep the exact global yt-dlp settings they had before.
+        if (!IsYouTubePlaylistPageUrl(value) ||
+            UrlQueryValue(value, L"list").empty())
+        {
+            return;
+        }
+
+        // Apply the window as a per-file option even for index=1 (or when
+        // index is absent). A queued playlist can sit behind the current media
+        // longer than the host-side expansion guard lifetime; keeping 1:31 on
+        // the playlist entry itself guarantees the 30-item cap when it finally
+        // starts resolving.
+        int64_t startIndex{ 1 };
+        int64_t parsedIndex{};
+        if (TryParsePositivePlaylistIndex(
+            UrlQueryValue(value, L"index"), parsedIndex))
+        {
+            startIndex = parsedIndex;
+        }
+
+        int64_t const lookAheadEnd =
+            startIndex + YtdlpExpandedPlaylistLimit;
+        std::string const range =
+            "yes-playlist=,playlist-items=" +
+            std::to_string(startIndex) + ":" +
+            std::to_string(lookAheadEnd) +
+            ",playlist-end=" + std::to_string(lookAheadEnd);
+
+        // ytdl_hook defaults to --no-playlist. Mark only this explicit YouTube
+        // playlist entry as --yes-playlist so a seed that waited behind local,
+        // HLS or another web item still expands when it finally becomes current.
+        // The option is file-local: ordinary YouTube /watch playback is not
+        // changed. The same local list also replaces the two range keys while
+        // preserving cookies, force-ipv4 and every other global yt-dlp option.
+        // mpv restores the global list when this playlist entry finishes.
+        localOptions.emplace_back("ytdl-raw-options-add", range);
     }
 
     bool IsLikelyHlsSource(std::wstring const& value)
@@ -970,7 +1308,10 @@ namespace
 
     int CurrentControlsHeight()
     {
-        if (g_pictureInPicture) return PictureInPictureControlsHeight;
+        if (g_pictureInPicture)
+            return g_transportImageMode
+                ? PictureInPictureImageControlsHeight
+                : PictureInPictureControlsHeight;
         if (g_transportMinimal) return MinimalControlsHeight;
         if (g_transportCompact) return CompactControlsHeight;
         if (g_transportImageMode)
@@ -1259,6 +1600,7 @@ namespace
         { "taskbar-progress", "yes" },
         { "force-seekable", "yes" },
         { "keep-open", "always" },
+        { "pause", "no" },
         { "reset-on-next-file", "pause" },
         { "autofit", "1216x714" },
         { "autofit-larger", "81%x81%" },
@@ -1268,6 +1610,10 @@ namespace
         { "vo", "gpu-next" },
         { "gpu-api", "d3d11" },
         { "gpu-context", "d3d11" },
+        // Keep mpv's native shader cache enabled. The app supplies a private,
+        // persistent cache directory at engine startup when that directory can
+        // be created safely. Imported config may still override this default.
+        { "gpu-shader-cache", "yes" },
         { "icc-profile-auto", "no" },
         { "hr-seek", "yes" },
         { "scale", "spline36" },
@@ -1403,7 +1749,8 @@ namespace
 
     bool IsSidePanelOpen()
     {
-        return g_settingsOpen || g_mediaInfoOpen || g_playlistOpen;
+        return g_settingsOpen || g_mediaInfoOpen || g_playlistOpen ||
+            g_youtubeCommentsOpen;
     }
 
     void UpdateCursorAutohide()
@@ -1508,6 +1855,34 @@ namespace
     using mpv_terminate_destroy_fn = void (*)(mpv_handle*);
     using mpv_free_node_contents_fn = void (*)(void*);
 
+    struct MpvEvent
+    {
+        int eventId{};
+        int error{};
+        uint64_t replyUserdata{};
+        void* data{};
+    };
+    using mpv_wait_event_fn = MpvEvent* (*)(mpv_handle*, double);
+    using mpv_set_wakeup_callback_fn =
+        void (*)(mpv_handle*, void (*)(void*), void*);
+
+    constexpr int MpvEventNone = 0;
+    constexpr int MpvEventShutdown = 1;
+    constexpr int MpvEventEndFile = 7;
+    constexpr int MpvEventFileLoaded = 8;
+    constexpr int MpvEventVideoReconfig = 17;
+    constexpr int MpvEventAudioReconfig = 18;
+    constexpr int MpvEventPlaybackRestart = 21;
+
+    void MpvStartupWakeupCallback(void*) noexcept
+    {
+        HWND const window = g_mainWindow;
+        if (window)
+        {
+            PostMessageW(window, MpvWakeupMessage, 0, 0);
+        }
+    }
+
     constexpr int MpvFormatString = 1;
     constexpr int MpvFormatInt64 = 4;
     constexpr int MpvFormatDouble = 5;
@@ -1516,6 +1891,9 @@ namespace
     bool BuildRuntimeInputConfig(
         std::filesystem::path const& source,
         std::filesystem::path& generated);
+    bool BuildRuntimeProfileConfig(std::filesystem::path& generated);
+    std::wstring RuntimeProfileNameForImportedProfile(
+        std::wstring const& name);
     constexpr int MpvFormatNode = 6;
     constexpr int MpvFormatNodeArray = 7;
     constexpr int MpvFormatNodeMap = 8;
@@ -1557,6 +1935,8 @@ namespace
         mpv_load_config_file_fn loadConfig{};
         mpv_terminate_destroy_fn destroy{};
         mpv_free_node_contents_fn freeNodeContents{};
+        mpv_wait_event_fn waitEvent{};
+        mpv_set_wakeup_callback_fn setWakeupCallback{};
 
         static int ShaderCommandAdapter(
             void* context,
@@ -1598,6 +1978,10 @@ namespace
             loadConfig = reinterpret_cast<mpv_load_config_file_fn>(GetProcAddress(module, "mpv_load_config_file"));
             destroy = reinterpret_cast<mpv_terminate_destroy_fn>(GetProcAddress(module, "mpv_terminate_destroy"));
             freeNodeContents = reinterpret_cast<mpv_free_node_contents_fn>(GetProcAddress(module, "mpv_free_node_contents"));
+            waitEvent = reinterpret_cast<mpv_wait_event_fn>(
+                GetProcAddress(module, "mpv_wait_event"));
+            setWakeupCallback = reinterpret_cast<mpv_set_wakeup_callback_fn>(
+                GetProcAddress(module, "mpv_set_wakeup_callback"));
 
             if (!create || !initialize || !setOption || !command || !commandString ||
                 !setProperty || !getProperty || !loadConfig || !destroy || !freeNodeContents)
@@ -1654,8 +2038,23 @@ namespace
             }
             wchar_t executablePath[MAX_PATH]{};
             GetModuleFileNameW(nullptr, executablePath, ARRAYSIZE(executablePath));
+            std::filesystem::path const executableDirectory =
+                std::filesystem::path(executablePath).parent_path();
+
+            // Use HC Player's packaged stats.lua when present. Disable only mpv's
+            // built-in stats overlay so a single stats surface owns the binding.
+            // If the script is absent, the normal built-in stats remains the fallback.
+            std::filesystem::path const externalStatsScriptPath =
+                executableDirectory / L"scripts" / L"stats.lua";
+            bool const useExternalStatsScript =
+                std::filesystem::exists(externalStatsScriptPath);
+            if (useExternalStatsScript)
+            {
+                setOption(handle, "load-stats-overlay", "no");
+            }
+
             std::filesystem::path inputPath =
-                std::filesystem::path(executablePath).parent_path() / L"default-input.conf";
+                executableDirectory / L"default-input.conf";
             if (std::filesystem::exists(inputPath))
             {
                 std::filesystem::path runtimeInputPath;
@@ -1687,10 +2086,48 @@ namespace
                 }
             }
 
+            // Persist mpv/libplacebo's native compiled shader cache across HC
+            // Player process restarts. Reuse the application's existing storage
+            // policy so installed builds stay under LocalAppData and Portable
+            // Mode stays under .\Data. This is deliberately best-effort: cache
+            // setup must never block engine startup or alter the video pipeline.
+            try
+            {
+                std::error_code cacheError;
+                auto const shaderCachePath =
+                    hc::storage::UserDataRoot() / L"mpv-cache" / L"gpu-shaders";
+                std::filesystem::create_directories(shaderCachePath, cacheError);
+                if (!cacheError)
+                {
+                    std::string shaderCachePathUtf8 =
+                        winrt::to_string(shaderCachePath.generic_wstring());
+                    setOption(handle, "gpu-shader-cache-dir",
+                        shaderCachePathUtf8.c_str());
+                }
+            }
+            catch (...)
+            {
+                // Fall back to mpv's own cache-directory behavior. A cache
+                // path failure is never allowed to prevent playback.
+            }
+
             if (!g_mpvSettingsManager.ImportedConfigPath().empty())
             {
                 std::string configPath = winrt::to_string(g_mpvSettingsManager.ImportedConfigPath());
                 loadConfig(handle, configPath.c_str());
+
+                // Imported profiles remain byte-for-byte owned by the importer.
+                // A second generated config defines private wrapper profiles
+                // which only add mpv's native copy-equal restore semantics.
+                // This keeps target-peak/HDR/tone-mapping and every other
+                // profile option on the normal apply-profile code path.
+                std::filesystem::path runtimeProfilePath;
+                if (BuildRuntimeProfileConfig(runtimeProfilePath))
+                {
+                    std::string runtimeProfilePathUtf8 =
+                        winrt::to_string(runtimeProfilePath.wstring());
+                    loadConfig(handle, runtimeProfilePathUtf8.c_str());
+                }
             }
 
             // The Win32 host owns the actual taskbar button and cursor. Apply
@@ -1726,14 +2163,27 @@ namespace
             // "filter" keeps the same mixed-media behavior the app already had:
             // video, audio and image extensions recognized by mpv are eligible.
             setOption(handle, "autocreate-playlist", "filter");
+            // mpv's default directory filter also accepts archives, and its
+            // lazy directory mode exposes subfolders as playlist entries. HC
+            // Player's automatic sibling queue is meant for directly playable
+            // media only; playlist files remain eligible, matching the app's
+            // existing supported-folder extension list.
+            setOption(handle, "directory-filter-types",
+                "video,audio,image,playlist");
+            setOption(handle, "directory-mode", "ignore");
 
             // Keep extraction and libavformat on the same address family. On
             // dual-stack Windows connections YouTube may bind a signed media
             // URL to the IPv6 address used by yt-dlp, while FFmpeg opens it via
             // IPv4; YouTube then answers 403. This changes no format/quality.
+            // Ask yt-dlp for at most one entry beyond HC Player's visible web
+            // collection limit. The 31st entry is a cheap look-ahead signal: if
+            // it exists, the host-side guard can trim back to 30 and show an
+            // accurate one-shot notice. Local playlists and direct HLS/media
+            // URLs never pass through this option.
             if (!g_externalToolsManager.ResolveYtdlpPath().empty())
             {
-                std::string rawOption = "force-ipv4=";
+                std::string rawOption = "playlist-items=1:31,playlist-end=31,force-ipv4=";
                 if (auto cookieBrowser = g_mpvSettingsManager.Overrides().find(
                     "ui-ytdl-cookie-browser");
                     cookieBrowser != g_mpvSettingsManager.Overrides().end() &&
@@ -1764,6 +2214,52 @@ namespace
             {
                 Stop();
                 return false;
+            }
+
+            if (useExternalStatsScript)
+            {
+                std::string externalStatsScriptPathUtf8 =
+                    winrt::to_string(externalStatsScriptPath.wstring());
+                const char* args[] = {
+                    "load-script", externalStatsScriptPathUtf8.c_str(), nullptr };
+                command(handle, args);
+            }
+
+            if (g_startupMediaEventDriven && g_mainWindow)
+            {
+                // Event-driven cold start is optional at runtime: older or
+                // incompatible libmpv binaries fail open instead of leaving the
+                // top-level HWND hidden. No polling fallback is introduced.
+                if (!waitEvent || !setWakeupCallback)
+                {
+                    KillTimer(g_mainWindow, StartupMediaFailSafeTimer);
+                    g_startupMediaEventDriven = false;
+                    ShowWindow(g_mainWindow, g_startupShowCommand);
+                    UpdateWindow(g_mainWindow);
+                }
+                else
+                {
+                    int pauseFlag{};
+                    g_startupDesiredPaused =
+                        getProperty(handle, "pause", MpvFormatFlag, &pauseFlag) >= 0
+                            ? pauseFlag != 0
+                            : false;
+
+                    setWakeupCallback(
+                        handle, MpvStartupWakeupCallback, nullptr);
+
+                    // Do NOT set the global/runtime pause property here.
+                    // reset-on-next-file=pause snapshots the current pause value
+                    // when a file starts. A global technical pause at this point
+                    // would therefore be restored after the first file and make
+                    // every later playlist item start paused. The first loadfile
+                    // receives pause=yes as a file-local option instead, after
+                    // mpv has backed up the normal pause=no baseline.
+                    //
+                    // The one 1500 ms fail-safe is already armed by the
+                    // cold-start shell before command-line media handling.
+                    g_startupTechnicalPauseActive = true;
+                }
             }
 
             // HC Player-managed shaders are deliberately applied only after
@@ -1798,10 +2294,25 @@ namespace
             getProperty = nullptr;
             loadConfig = nullptr;
             destroy = nullptr;
+            freeNodeContents = nullptr;
+            waitEvent = nullptr;
+            setWakeupCallback = nullptr;
         }
     };
 
     MpvEngine g_mpv;
+
+    void AppendStartupTechnicalPauseLocalOption(
+        std::vector<std::pair<std::string, std::string>>& localOptions)
+    {
+        if (!g_startupMediaEventDriven || !g_startupTechnicalPauseActive)
+            return;
+
+        // Keep the hidden cold-start pause file-local. This is intentionally
+        // applied by loadfile after reset-on-next-file has backed up pause=no,
+        // preventing the technical startup pause from leaking to later items.
+        localOptions.emplace_back("pause", "yes");
+    }
 
     hc::shaders::RuntimeAccess ManagedShaderRuntime()
     {
@@ -2592,6 +3103,47 @@ namespace
         return extensions.contains(extension);
     }
 
+    std::vector<std::wstring> EnumeratePlayableFolderFiles(
+        std::filesystem::path const& folder)
+    {
+        // Folder drag intentionally matches the established Add Folder behavior:
+        // direct children only, supported media only, no recursive traversal.
+        std::error_code error;
+        if (folder.empty() || !std::filesystem::is_directory(folder, error))
+            return {};
+
+        std::vector<std::wstring> paths;
+        std::filesystem::directory_iterator iterator{
+            folder,
+            std::filesystem::directory_options::skip_permission_denied,
+            error };
+        std::filesystem::directory_iterator end{};
+
+        while (!error && iterator != end)
+        {
+            std::error_code fileError;
+            if (iterator->is_regular_file(fileError) && !fileError)
+            {
+                auto const path = iterator->path();
+                if (IsPlayableFolderFile(path))
+                    paths.push_back(path.wstring());
+            }
+            iterator.increment(error);
+        }
+
+        std::stable_sort(paths.begin(), paths.end(),
+            [](std::wstring const& left, std::wstring const& right)
+            {
+                std::filesystem::path const leftPath{ left };
+                std::filesystem::path const rightPath{ right };
+                int const logical = StrCmpLogicalW(
+                    leftPath.filename().c_str(), rightPath.filename().c_str());
+                if (logical != 0) return logical < 0;
+                return _wcsicmp(left.c_str(), right.c_str()) < 0;
+            });
+        return paths;
+    }
+
     bool TryGetOpticalDiscFolder(
         std::filesystem::path const& selected,
         std::filesystem::path& deviceRoot,
@@ -2690,6 +3242,74 @@ namespace
             searchOffset = quotedStart + replacement.size();
         }
         return line;
+    }
+
+    std::wstring RuntimeProfilePrefix()
+    {
+        // Never extend a user profile accidentally. Repeated profile sections
+        // are additive in mpv, so choose a private prefix which is not even a
+        // prefix of an imported profile name.
+        std::wstring prefix = L"__hc_player_runtime_restore_";
+        auto const profiles = g_mpvSettingsManager.GetImportedProfileNames();
+        auto collides = [&](std::wstring const& candidate)
+        {
+            return std::any_of(
+                profiles.begin(), profiles.end(),
+                [&](std::wstring const& profile)
+                {
+                    return profile.starts_with(candidate);
+                });
+        };
+        while (collides(prefix)) prefix.push_back(L'_');
+        return prefix;
+    }
+
+    std::wstring RuntimeProfileNameForImportedProfile(
+        std::wstring const& name)
+    {
+        auto const profiles = g_mpvSettingsManager.GetImportedProfileNames();
+        auto const found = std::find(profiles.begin(), profiles.end(), name);
+        if (found == profiles.end()) return {};
+
+        auto const index = static_cast<size_t>(
+            std::distance(profiles.begin(), found));
+        return RuntimeProfilePrefix() + std::to_wstring(index);
+    }
+
+    std::string QuoteMpvConfigValue(std::wstring const& value)
+    {
+        // mpv's fixed-length config quoting passes the exact UTF-8 bytes to the
+        // option parser, avoiding comments/quotes/whitespace changing a valid
+        // imported profile name.
+        std::string utf8 = winrt::to_string(value);
+        return "%" + std::to_string(utf8.size()) + "%" + utf8;
+    }
+
+    bool BuildRuntimeProfileConfig(std::filesystem::path& generated)
+    {
+        auto const profiles = g_mpvSettingsManager.GetImportedProfileNames();
+        if (profiles.empty()) return false;
+
+        generated = hc::storage::UserDataRoot() / L"runtime-profiles.conf";
+
+        std::error_code error;
+        std::filesystem::create_directories(generated.parent_path(), error);
+        if (error) return false;
+
+        std::ofstream output(generated, std::ios::binary | std::ios::trunc);
+        if (!output) return false;
+
+        std::wstring const prefix = RuntimeProfilePrefix();
+        for (size_t index = 0; index < profiles.size(); ++index)
+        {
+            output << '[' << winrt::to_string(prefix) << index << "]\n";
+            output << "profile-restore=copy-equal\n";
+            output << "profile=" << QuoteMpvConfigValue(profiles[index])
+                << "\n\n";
+        }
+
+        output.close();
+        return output.good();
     }
 
     bool BuildRuntimeInputConfig(
@@ -3212,11 +3832,21 @@ namespace
         return valid;
     }
 
+    // Shared only with deferred UI cleanup; never retain WindowInfo in a callback.
+    struct ComboBoxCleanupState
+    {
+        bool running{};
+        bool closing{};
+        uint64_t generation{};
+    };
+
     struct WindowInfo;
     void ApplyClientLayout(HWND window, WindowInfo* info, int width, int height);
 
     struct WindowInfo
     {
+        std::shared_ptr<ComboBoxCleanupState> comboBoxCleanup{
+            std::make_shared<ComboBoxCleanupState>() };
         // The stable/classic transport remains hosted directly by the main HWND.
         // Only Minimal mode is rehosted into this owned popup so the DWM can
         // produce native antialiased corners without changing the normal bar.
@@ -3243,16 +3873,182 @@ namespace
         bool emptyStateVisible{};
         winrt::DesktopWindowXamlSource settingsSource{ nullptr };
         winrt::HCPlayer::SettingsPage settingsPage{ nullptr };
+        // OpenSubtitles dialogs live in a small owned popup instead of a
+        // full-client XAML island. This avoids covering the D3D11 video surface
+        // and prevents stale transport-colored bands while the owner is resized.
+        HWND modalDialogHostWindow{};
+        winrt::DesktopWindowXamlSource modalDialogSource{ nullptr };
+        winrt::Microsoft::UI::Xaml::Controls::Grid modalDialogRoot{ nullptr };
         winrt::DesktopWindowXamlSource mediaInfoSource{ nullptr };
         winrt::HCPlayer::MediaInfoPage mediaInfoPage{ nullptr };
         winrt::DesktopWindowXamlSource playlistSource{ nullptr };
         winrt::HCPlayer::PlaylistPage playlistPage{ nullptr };
+        winrt::DesktopWindowXamlSource youtubeCommentsSource{ nullptr };
+        winrt::HCPlayer::YouTubeCommentsPage youtubeCommentsPage{ nullptr };
         HWND settingsHostWindow{};
         HWND settingsTransitionWindow{};
         HBITMAP settingsTransitionBitmap{};
         winrt::DesktopWindowXamlSource contextSource{ nullptr };
         winrt::HCPlayer::ContextMenuPage contextPage{ nullptr };
     };
+
+    void CollectComboBoxes(winrt::DependencyObject const& node,
+        std::vector<winrt::Microsoft::UI::Xaml::Controls::ComboBox>& combos)
+    {
+        using namespace winrt::Microsoft::UI::Xaml;
+        if (!node) return;
+        if (auto combo = node.try_as<Controls::ComboBox>())
+        {
+            if (std::find(combos.begin(), combos.end(), combo) == combos.end())
+                combos.push_back(combo);
+        }
+        int const count = Media::VisualTreeHelper::GetChildrenCount(node);
+        for (int i = 0; i < count; ++i)
+            CollectComboBoxes(Media::VisualTreeHelper::GetChild(node, i), combos);
+    }
+
+    void ReleaseComboBoxPointers(winrt::DependencyObject const& node)
+    {
+        using namespace winrt::Microsoft::UI::Xaml;
+        if (!node) return;
+        // Snapshot children before release, which can synchronously raise events.
+        std::vector<DependencyObject> children;
+        int const count = Media::VisualTreeHelper::GetChildrenCount(node);
+        for (int i = 0; i < count; ++i)
+            children.push_back(Media::VisualTreeHelper::GetChild(node, i));
+        if (auto element = node.try_as<UIElement>())
+            element.ReleasePointerCaptures();
+        for (auto const& child : children) ReleaseComboBoxPointers(child);
+    }
+
+    void CloseComboBoxesForMinimize(WindowInfo* info)
+    {
+        using namespace winrt::Microsoft::UI::Xaml;
+        if (!info) return;
+        auto state = info->comboBoxCleanup;
+        if (state->closing || state->running) return;
+        state->running = true;
+        struct ResetRunning
+        {
+            std::shared_ptr<ComboBoxCleanupState> state;
+            ~ResetRunning() { state->running = false; }
+        } reset{ state };
+
+        // Include each island and ComboBoxes inside open ContentDialogs/flyouts.
+        // Take strong snapshots before closing anything; callbacks may detach UI.
+        std::vector<Controls::ComboBox> combos;
+        auto const sources = { info->xamlSource, info->settingsSource,
+            info->modalDialogSource, info->mediaInfoSource, info->playlistSource,
+            info->youtubeCommentsSource, info->contextSource };
+        for (auto const& source : sources)
+        {
+            if (state->closing) return;
+            try
+            {
+                if (!source) continue;
+                auto root = source.Content();
+                if (!root) continue;
+                CollectComboBoxes(root, combos);
+                if (auto xamlRoot = root.XamlRoot())
+                    for (auto const& popup : Media::VisualTreeHelper::GetOpenPopupsForXamlRoot(xamlRoot))
+                        CollectComboBoxes(popup.Child(), combos);
+            }
+            catch (winrt::hresult_error const&) { /* Island already detached. */ }
+        }
+
+        for (auto const& combo : combos)
+        {
+            if (state->closing) return;
+            FrameworkElement templateRoot{ nullptr };
+            Controls::Primitives::Popup popup{ nullptr };
+            try
+            {
+                if (Media::VisualTreeHelper::GetChildrenCount(combo) > 0)
+                    templateRoot = Media::VisualTreeHelper::GetChild(combo, 0)
+                        .try_as<FrameworkElement>();
+                if (templateRoot)
+                    popup = templateRoot.FindName(L"Popup")
+                        .try_as<Controls::Primitives::Popup>();
+
+                combo.IsDropDownOpen(false);
+                if (state->closing) return;
+                // WinUI 2.3.6's default template has a SplitCloseThemeAnimation
+                // in Closed itself. Disabling transitions alone does not finish it.
+                if (templateRoot && VisualStateManager::GoToState(combo, L"Closed", false))
+                    for (auto const& group : VisualStateManager::GetVisualStateGroups(templateRoot))
+                        if (group.Name() == L"DropDownStates")
+                            for (auto const& visualState : group.States())
+                                if (visualState.Name() == L"Closed")
+                                    if (auto storyboard = visualState.Storyboard())
+                                        storyboard.SkipToFill();
+            }
+            catch (winrt::hresult_error const&) { /* Still attempt popup/capture cleanup. */ }
+            if (state->closing) return;
+            // Only the ComboBox's own template popup; never close its parent dialog.
+            try { if (popup) popup.IsOpen(false); }
+            catch (winrt::hresult_error const&) {}
+            if (state->closing) return;
+            try { if (popup) ReleaseComboBoxPointers(popup.Child()); }
+            catch (winrt::hresult_error const&) {}
+            if (state->closing) return;
+            try { ReleaseComboBoxPointers(combo); }
+            catch (winrt::hresult_error const&) {}
+        }
+    }
+
+    void QueueComboBoxRestoreCleanup(HWND window, WindowInfo* info)
+    {
+        if (!info || info->comboBoxCleanup->closing) return;
+        auto state = info->comboBoxCleanup;
+        auto const generation = ++state->generation;
+        auto dispatcher = winrt::DispatcherQueue::GetForCurrentThread();
+        if (!dispatcher) return;
+        dispatcher.TryEnqueue([window, state, generation]()
+            {
+                if (state->closing || state->generation != generation ||
+                    !IsWindow(window) || IsIconic(window)) return;
+                auto* current = reinterpret_cast<WindowInfo*>(
+                    GetWindowLongPtrW(window, GWLP_USERDATA));
+                if (!current || current->comboBoxCleanup != state) return;
+                CloseComboBoxesForMinimize(current);
+            });
+    }
+
+    void ApplyBufferingAccent(WindowInfo* info)
+    {
+        if (!info || !info->page || !info->bufferingRing) return;
+
+        bool windows11Style{};
+        if (auto saved = g_mpvSettingsManager.Overrides().find(
+                "ui-timeline-style");
+            saved != g_mpvSettingsManager.Overrides().end())
+        {
+            windows11Style = saved->second == "default";
+        }
+
+        winrt::Microsoft::UI::Xaml::Media::Brush accent{ nullptr };
+        if (windows11Style)
+        {
+            // Reuse the very same ThemeResource brush used by the standard
+            // Windows 11 volume track / Settings controls. No hard-coded
+            // accent variants, so Windows remains the single color source.
+            if (auto source = info->page.FindName(L"StandardVolumeValueTrack")
+                    .try_as<winrt::Microsoft::UI::Xaml::Controls::Border>())
+            {
+                accent = source.Background();
+            }
+        }
+
+        if (!accent)
+        {
+            // HC Player style keeps the established SystemAccentColor path.
+            accent = info->page.Resources().Lookup(
+                winrt::box_value(L"TimelineProgressBrush"))
+                .as<winrt::Microsoft::UI::Xaml::Media::Brush>();
+        }
+
+        if (accent) info->bufferingRing.Foreground(accent);
+    }
 
     void CloseMinimalTransportMica(WindowInfo* info)
     {
@@ -3377,6 +4173,58 @@ namespace
         return true;
     }
 
+    void PositionModalDialogHost(
+        HWND owner, WindowInfo* info, int clientWidth, int clientHeight)
+    {
+        if (!owner || !info || !info->modalDialogHostWindow ||
+            !IsWindow(info->modalDialogHostWindow) || !info->modalDialogSource)
+        {
+            return;
+        }
+
+        int const hostWidth = (std::max)(1, clientWidth);
+        int const hostHeight = (std::max)(1, clientHeight);
+
+        // DesktopWindowXamlSource is sized in physical pixels, while the XAML
+        // root itself measures in DIPs. Keep both dimensions explicit. This is
+        // important for ContentDialog: its smoke layer uses the XamlRoot layout
+        // bounds, and a stale measured root is what produced the horizontal
+        // light/dark band after maximize/restore and live resize.
+        UINT dpi = GetDpiForWindow(owner);
+        if (!dpi) dpi = USER_DEFAULT_SCREEN_DPI;
+        double const scale = static_cast<double>(dpi) / 96.0;
+        info->modalDialogRoot.Width(static_cast<double>(hostWidth) / scale);
+        info->modalDialogRoot.Height(static_cast<double>(hostHeight) / scale);
+
+        // Keep modal UI inside a real WS_CHILD host that always matches the
+        // owner's client rectangle. A child moves with the HC Player window
+        // synchronously during live dragging, so there is no detached dialog
+        // lag. It also clips the DesktopWindowXamlSource to the current client
+        // bounds, which prevents the stale light/dark strip seen after resize
+        // or maximize/restore. ContentDialog still owns the full-client dimming
+        // layer, preserving the V1.4 appearance the user approved.
+        SetWindowPos(
+            info->modalDialogHostWindow,
+            HWND_TOP,
+            0, 0, hostWidth, hostHeight,
+            SWP_NOACTIVATE | (g_modalDialogOpen ? SWP_SHOWWINDOW : 0));
+
+        info->modalDialogSource.SiteBridge().MoveAndResize(
+            { 0, 0, hostWidth, hostHeight });
+
+        HWND const islandWindow =
+            winrt::Microsoft::UI::GetWindowFromWindowId(
+                info->modalDialogSource.SiteBridge().WindowId());
+        if (islandWindow && g_modalDialogOpen)
+        {
+            SetWindowPos(
+                islandWindow,
+                HWND_TOP,
+                0, 0, hostWidth, hostHeight,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        }
+    }
+
     bool RehostTransportXaml(HWND window, WindowInfo* info, bool minimal)
     {
         if (!window || !info || !info->page) return false;
@@ -3460,12 +4308,57 @@ namespace
         DwmFlush();
     }
 
+    void BeginLightPipReturnVisualIsolation(HWND window)
+    {
+        // The dark theme already masks the transient frame and its established
+        // behavior is intentionally left byte-for-byte in the normal path.
+        if (!g_lightTheme || g_pipReturnWindowCloaked ||
+            !window || !IsWindow(window))
+        {
+            return;
+        }
+
+        DwmFlush();
+        BOOL cloak = TRUE;
+        HRESULT const result = DwmSetWindowAttribute(
+            window, DWMWA_CLOAK, &cloak, sizeof(cloak));
+        DwmFlush();
+
+        // Fail open: if DWM rejects the visual-only guard, continue with the
+        // already-approved PiP return path and never wait for an uncloak.
+        if (SUCCEEDED(result))
+        {
+            g_pipReturnWindowCloaked = true;
+        }
+    }
+
+    void FinishLightPipReturnVisualIsolation(HWND window)
+    {
+        if (!g_pipReturnWindowCloaked) return;
+
+        // Commit the final normal-window paint/layout while still cloaked, then
+        // expose only that settled representation. No sleep, playback pause or
+        // renderer restart is involved.
+        if (window && IsWindow(window))
+        {
+            UpdateWindow(window);
+            DwmFlush();
+            BOOL cloak = FALSE;
+            DwmSetWindowAttribute(
+                window, DWMWA_CLOAK, &cloak, sizeof(cloak));
+            DwmFlush();
+        }
+
+        g_pipReturnWindowCloaked = false;
+    }
+
     void FinishPipEntryLayoutTransition(HWND window, WindowInfo* info)
     {
         if (!g_pipEntryLayoutTransition) return;
 
         // Allow the final PiP transport to participate in the settled layout,
-        // then expose the already-composed result in one DWM commit.
+        // force WinUI to commit that geometry while the top-level HWND is still
+        // cloaked, then expose only the already-composed result.
         g_pipEntryLayoutTransition = false;
 
         if (info)
@@ -3479,6 +4372,19 @@ namespace
                     client.right - client.left,
                     client.bottom - client.top);
             }
+
+            if (info->page)
+            {
+                try
+                {
+                    info->page.UpdateLayout();
+                }
+                catch (...)
+                {
+                    // Visual synchronization only. Always fail open so PiP can
+                    // never remain hidden because of a one-off XAML layout error.
+                }
+            }
         }
 
         UpdateWindow(window);
@@ -3486,12 +4392,68 @@ namespace
         SetForegroundWindow(window);
     }
 
+    void SchedulePipEntryLayoutReveal(HWND window)
+    {
+        if (!g_pipEntryLayoutTransition) return;
+
+        auto dispatcher =
+            winrt::Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
+        if (!dispatcher)
+        {
+            auto* info = reinterpret_cast<WindowInfo*>(
+                GetWindowLongPtrW(window, GWLP_USERDATA));
+            FinishPipEntryLayoutTransition(window, info);
+            return;
+        }
+
+        bool const queued = dispatcher.TryEnqueue([window]()
+            {
+                if (!IsWindow(window)) return;
+                auto* info = reinterpret_cast<WindowInfo*>(
+                    GetWindowLongPtrW(window, GWLP_USERDATA));
+                FinishPipEntryLayoutTransition(window, info);
+            });
+
+        if (!queued)
+        {
+            auto* info = reinterpret_cast<WindowInfo*>(
+                GetWindowLongPtrW(window, GWLP_USERDATA));
+            FinishPipEntryLayoutTransition(window, info);
+        }
+    }
+
     void ScheduleTransportRehost(HWND window)
     {
         auto dispatcher =
             winrt::Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
-        if (!dispatcher) return;
-        dispatcher.TryEnqueue([window]()
+        if (!dispatcher)
+        {
+            // Any DWM cloak used only for a visual transition must fail open if
+            // the UI dispatcher is unavailable. Never leave PiP hidden.
+            auto* info = reinterpret_cast<WindowInfo*>(
+                GetWindowLongPtrW(window, GWLP_USERDATA));
+            if (g_pipEntryLayoutTransition)
+            {
+                FinishPipEntryLayoutTransition(window, info);
+            }
+            if (g_pipReturnWindowCloaked)
+            {
+                g_pipReturnLayoutTransition = false;
+                if (info)
+                {
+                    RECT client{};
+                    if (GetClientRect(window, &client))
+                    {
+                        ApplyClientLayout(window, info,
+                            client.right - client.left,
+                            client.bottom - client.top);
+                    }
+                }
+                FinishLightPipReturnVisualIsolation(window);
+            }
+            return;
+        }
+        bool const queued = dispatcher.TryEnqueue([window]()
             {
                 if (!IsWindow(window)) return;
                 auto* info = reinterpret_cast<WindowInfo*>(
@@ -3507,6 +4469,17 @@ namespace
                     {
                         FinishPipEntryLayoutTransition(window, info);
                     }
+                    if (g_pipReturnWindowCloaked)
+                    {
+                        RECT client{};
+                        if (GetClientRect(window, &client))
+                        {
+                            ApplyClientLayout(window, info,
+                                client.right - client.left,
+                                client.bottom - client.top);
+                        }
+                        FinishLightPipReturnVisualIsolation(window);
+                    }
                     return;
                 }
 
@@ -3520,10 +4493,10 @@ namespace
                     g_pipReturnLayoutTransition = false;
                 }
 
-                // Fullscreen -> PiP from Minimal mode does the inverse rehost:
-                // the rounded Minimal popup is removed and the compact PiP
-                // transport returns to the player HWND. Uncloak only after that
-                // final host exists.
+                // Entering PiP from Minimal mode does the inverse rehost: the
+                // rounded Minimal popup is removed and the compact PiP transport
+                // returns to the player HWND. Uncloak only after that final host
+                // exists.
                 if (g_pipEntryLayoutTransition &&
                     g_pictureInPicture &&
                     !g_transportMinimal &&
@@ -3540,7 +4513,40 @@ namespace
                         client.right - client.left,
                         client.bottom - client.top);
                 }
+
+                if (g_pipReturnWindowCloaked &&
+                    !g_pipReturnLayoutTransition &&
+                    !g_pictureInPicture)
+                {
+                    FinishLightPipReturnVisualIsolation(window);
+                }
             });
+
+        if (!queued)
+        {
+            // Same fail-open policy as the no-dispatcher case above.
+            auto* info = reinterpret_cast<WindowInfo*>(
+                GetWindowLongPtrW(window, GWLP_USERDATA));
+            if (g_pipEntryLayoutTransition)
+            {
+                FinishPipEntryLayoutTransition(window, info);
+            }
+            if (g_pipReturnWindowCloaked)
+            {
+                g_pipReturnLayoutTransition = false;
+                if (info)
+                {
+                    RECT client{};
+                    if (GetClientRect(window, &client))
+                    {
+                        ApplyClientLayout(window, info,
+                            client.right - client.left,
+                            client.bottom - client.top);
+                    }
+                }
+                FinishLightPipReturnVisualIsolation(window);
+            }
+        }
     }
 
     bool TryGetMinimalTransportPixelRect(
@@ -3610,7 +4616,29 @@ namespace
                 { 0, transportY, width, transportLayoutHeight });
             bool visible = IsWindowVisible(island) != FALSE;
             if (visible != showControls)
+            {
                 ShowWindow(island, showControls ? SW_SHOWNA : SW_HIDE);
+
+                // Light-theme Compact can expose the black video surface
+                // for one compositor frame when the hidden transport HWND
+                // is revealed before its XAML surface has presented. Prime
+                // only this island's already-established light native
+                // backing synchronously on hidden -> visible. This does not
+                // touch Mica/backdrop, the owner HWND, mpv, PiP, fullscreen
+                // or the dark-theme path.
+                if (showControls && g_lightTheme && g_transportCompact &&
+                    !g_fullscreen && !g_pictureInPicture &&
+                    !g_transportMinimal && !g_borderless &&
+                    !g_interactiveSizeMove &&
+                    !g_lightSnapTransportBackingGuard)
+                {
+                    RedrawWindow(
+                        island,
+                        nullptr,
+                        nullptr,
+                        RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+                }
+            }
             if (showControls)
             {
                 SetWindowPos(island, HWND_TOP, 0, 0, 0, 0,
@@ -3985,7 +5013,7 @@ namespace
         opacityAnimation.InsertKeyFrame(
             1.0f, hovered ? 0.86f : 0.0f, easing);
         opacityAnimation.Duration(std::chrono::milliseconds(
-            hovered ? 190 : 280));
+            hovered ? 145 : 260));
         glowVisual.StartAnimation(L"Opacity", opacityAnimation);
 
         auto glowScaleAnimation = compositor.CreateVector3KeyFrameAnimation();
@@ -3996,7 +5024,7 @@ namespace
                 glowScale, glowScale, 1.0f },
             easing);
         glowScaleAnimation.Duration(std::chrono::milliseconds(
-            hovered ? 210 : 300));
+            hovered ? 165 : 285));
         glowVisual.StartAnimation(L"Scale", glowScaleAnimation);
 
         // A 1.2% lift gives the icon a tiny sense of depth while keeping the
@@ -4009,7 +5037,7 @@ namespace
                 iconScale, iconScale, 1.0f },
             easing);
         iconScaleAnimation.Duration(std::chrono::milliseconds(
-            hovered ? 190 : 260));
+            hovered ? 150 : 240));
         iconVisual.StartAnimation(L"Scale", iconScaleAnimation);
     }
 
@@ -4096,12 +5124,13 @@ namespace
 
         AnimateEmptyStateGlow(info, hovered);
 
-        // The native cursor poll already runs every 50 ms for the transport.
-        // Smooth toward the target here instead of creating another timer.
+        // This runs on the idle-only ~16 ms glow timer. A lighter interpolation
+        // keeps the halo fluid at display-like cadence while responding faster
+        // than the old 50 ms shared transport poll.
         double currentX = info->emptyStateGlowTranslate.X();
         double currentY = info->emptyStateGlowTranslate.Y();
-        double nextX = currentX + (targetX - currentX) * 0.34;
-        double nextY = currentY + (targetY - currentY) * 0.34;
+        double nextX = currentX + (targetX - currentX) * 0.22;
+        double nextY = currentY + (targetY - currentY) * 0.22;
         if (std::abs(nextX) < 0.02 && !hovered) nextX = 0.0;
         if (std::abs(nextY) < 0.02 && !hovered) nextY = 0.0;
         info->emptyStateGlowTranslate.X(nextX);
@@ -4115,10 +5144,10 @@ namespace
         // The transport island must be a real hidden HWND while settings are
         // open. A transparent XAML root still owns a composition surface and
         // leaves a grey strip over the video.
-        bool showControls = !g_deferredStartupMediaReveal &&
-            !g_fullscreenLayoutTransition &&
+        bool showControls = !g_fullscreenLayoutTransition &&
             !g_pipReturnLayoutTransition &&
             !g_pipEntryLayoutTransition &&
+            !g_pipMediaKindLayoutTransition &&
             !IsSidePanelOpen() &&
             g_transportHostVisible && info->xamlSource;
         int transportLayoutHeight =
@@ -4132,7 +5161,10 @@ namespace
         // the swap chain adapts to the settings panel width.
         // Settings is a true overlay. The MPV child keeps its exact geometry,
         // so opening the panel never rebuilds or rescales the D3D11 swap chain.
-        MoveWindow(g_videoWindow, 0, 0, width, height, FALSE);
+        if (!g_deferWindowFullscreenVideoResize)
+        {
+            MoveWindow(g_videoWindow, 0, 0, width, height, FALSE);
+        }
 
         ApplyTransportLayoutOnly(
             window, info, width, height,
@@ -4162,8 +5194,7 @@ namespace
                 indicatorSize, indicatorSize });
             HWND bufferingWindow = winrt::Microsoft::UI::GetWindowFromWindowId(
                 info->bufferingSource.SiteBridge().WindowId());
-            bool showBuffering = !g_deferredStartupMediaReveal &&
-                !g_fullscreenLayoutTransition &&
+            bool showBuffering = !g_fullscreenLayoutTransition &&
                 info->bufferingVisible && !IsSidePanelOpen() &&
                 indicatorSize > 0;
             bool bufferingWindowVisible =
@@ -4215,13 +5246,14 @@ namespace
             // Windows to briefly present legacy non-client chrome. Keep the idle
             // island visible and let each WM_SIZE simply recenter it.
             bool showEmptyState =
-                !g_deferredStartupMediaReveal &&
                 g_currentMediaPath.empty() &&
                 !IsSidePanelOpen() &&
                 !g_pictureInPicture &&
                 emptyWidth > 0 &&
                 emptyHeight > 0;
 
+            bool const emptyStateVisibilityChanged =
+                info->emptyStateVisible != showEmptyState;
             bool emptyWindowVisible =
                 IsWindowVisible(emptyWindow) != FALSE;
             if (emptyWindowVisible != showEmptyState)
@@ -4262,6 +5294,21 @@ namespace
 
             info->emptyStateVisible = showEmptyState;
 
+            if (emptyStateVisibilityChanged)
+            {
+                if (showEmptyState)
+                {
+                    // React once immediately so a pointer already over the logo
+                    // does not wait for the first timer tick, then track at ~60 Hz.
+                    UpdateEmptyStateGlow(info);
+                    SetTimer(window, EmptyStateGlowTimer, 16, nullptr);
+                }
+                else
+                {
+                    KillTimer(window, EmptyStateGlowTimer);
+                }
+            }
+
             if (showEmptyState)
             {
                 SetWindowPos(
@@ -4271,6 +5318,14 @@ namespace
                     SWP_NOMOVE | SWP_NOSIZE |
                     SWP_NOACTIVATE | SWP_SHOWWINDOW);
             }
+        }
+
+        if (info->modalDialogSource && g_modalDialogOpen)
+        {
+            // Keep the full-client modal child synchronized on every WM_SIZE.
+            // Because it is a WS_CHILD, moving the owner needs no separate
+            // repositioning path and cannot leave the dialog behind.
+            PositionModalDialogHost(window, info, width, height);
         }
 
         if (info->settingsSource && g_settingsOpen)
@@ -4295,6 +5350,14 @@ namespace
 
             info->playlistSource.SiteBridge().MoveAndResize(
                 { 0, 0, panelWidth, height });
+        }
+
+        if (info->youtubeCommentsSource && g_youtubeCommentsOpen)
+        {
+            int panelWidth = min(DipToPx(window, YouTubeCommentsPanelWidth), width);
+
+            info->youtubeCommentsSource.SiteBridge().MoveAndResize(
+                { max(0, width - panelWidth), 0, panelWidth, height });
         }
 
         if (g_pipBottomResizeWindow)
@@ -4432,9 +5495,28 @@ namespace
         return HTCLIENT;
     }
 
+    bool IsResizeHitTest(LRESULT hit)
+    {
+        switch (hit)
+        {
+        case HTLEFT:
+        case HTRIGHT:
+        case HTTOP:
+        case HTTOPLEFT:
+        case HTTOPRIGHT:
+        case HTBOTTOM:
+        case HTBOTTOMLEFT:
+        case HTBOTTOMRIGHT:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     int BorderlessResizeEdgesAt(POINT screenPoint)
     {
-        if (!g_borderless || !g_mainWindow || IsZoomed(g_mainWindow))
+        if (!g_borderless || g_fullscreen || !g_mainWindow ||
+            IsZoomed(g_mainWindow))
             return PipResizeNone;
         RECT bounds{};
         if (!GetWindowRect(g_mainWindow, &bounds)) return PipResizeNone;
@@ -4860,6 +5942,7 @@ void StopPlaybackAndClearUi()
     g_currentMediaIsDisc = false;
     g_currentDiscIsBluray = false;
     g_shufflePlayback = false;
+    PlayerRefreshWindowTitle({});
 
     if (g_mainWindow)
     {
@@ -4881,9 +5964,99 @@ void StopPlaybackAndClearUi()
     PlayerUpdateWebBufferingIndicator();
 }
 
+static bool TryAddPlaylistClipboardUrl()
+{
+    // Playlist-only paste path. Keep the existing global Ctrl+V open behavior
+    // untouched: this helper is called only while the queue panel is open.
+    // PlayerAddPlaylistUrl() remains the single validator/normalizer, so plain
+    // text, embedded links and non-HTTP(S) schemes are rejected exactly like
+    // the menu and drag-and-drop paths.
+    if (!OpenClipboard(g_mainWindow)) return false;
+
+    HANDLE data = GetClipboardData(CF_UNICODETEXT);
+    if (!data)
+    {
+        CloseClipboard();
+        return false;
+    }
+
+    wchar_t const* text = static_cast<wchar_t const*>(GlobalLock(data));
+    std::wstring value = text ? text : L"";
+    if (text) GlobalUnlock(data);
+    CloseClipboard();
+
+    return PlayerAddPlaylistUrl(value);
+}
+
+void RequestEnterFullscreenToggle()
+{
+    if (!g_mainWindow)
+    {
+        g_enterFullscreenCommitPending = false;
+        g_enterFullscreenQueuedParity = false;
+        return;
+    }
+
+    if (g_enterFullscreenCommitPending)
+    {
+        // Preserve the logical result of rapid distinct taps without launching
+        // overlapping presentation transactions. Two queued taps cancel out,
+        // three become one, etc. Auto-repeat is filtered before this helper.
+        g_enterFullscreenQueuedParity = !g_enterFullscreenQueuedParity;
+        return;
+    }
+
+    g_enterFullscreenCommitPending = true;
+    g_suppressFullscreenEntryTransportReveal = true;
+    PlayerToggleFullscreen();
+
+    HWND const targetWindow = g_mainWindow;
+    auto commit = [targetWindow]()
+        {
+            if (!IsWindow(targetWindow))
+            {
+                g_enterFullscreenCommitPending = false;
+                g_enterFullscreenQueuedParity = false;
+                return;
+            }
+
+            // PlayerToggleFullscreen may enqueue final WinUI geometry (notably
+            // Minimal mode). Run after those already-queued dispatcher items,
+            // then wait for DWM to commit that final presentation. This uses no
+            // fixed delay, timer, polling loop, sleep or playback manipulation.
+            UpdateWindow(targetWindow);
+            DwmFlush();
+            if (!PostMessageW(
+                targetWindow, FullscreenInputCommitMessage, 0, 0))
+            {
+                // Fail open: never leave Enter permanently locked if posting the
+                // private completion message fails during teardown.
+                g_enterFullscreenCommitPending = false;
+                g_enterFullscreenQueuedParity = false;
+            }
+        };
+
+    auto dispatcher =
+        winrt::Microsoft::UI::Dispatching::DispatcherQueue::GetForCurrentThread();
+    if (!dispatcher || !dispatcher.TryEnqueue(commit))
+    {
+        // Fallback keeps the same presentation barrier if the dispatcher is not
+        // available (for example during shutdown).
+        commit();
+    }
+}
+
 bool HandlePlayerKeyMessage(MSG const& message)
 {
     if (message.message != WM_KEYDOWN && message.message != WM_SYSKEYDOWN)
+    {
+        return false;
+    }
+
+    // A modal XAML dialog must receive the raw key message first. Previously
+    // this function consumed letters and Ctrl+V as player/mpv shortcuts before
+    // ContentPreTranslateMessage could deliver them to the focused TextBox.
+    if (g_modalDialogOpen)
     {
         return false;
     }
@@ -4922,6 +6095,44 @@ bool HandlePlayerKeyMessage(MSG const& message)
         }
 
 
+        // Ctrl+Y toggles the native YouTube comments/live-chat panel. Keep the
+        // chord inert when the optional feature is disabled or the current
+        // media is not YouTube. If another side panel owns keyboard focus, do
+        // not steal Ctrl+Y from its XAML controls (for example, TextBox redo).
+        if (message.wParam == 'Y' && ctrl && !alt && !shift)
+        {
+            if (g_youtubeCommentsOpen)
+            {
+                bool const repeated = (message.lParam & (1LL << 30)) != 0;
+                if (!repeated) PlayerCloseYouTubeComments();
+                return true;
+            }
+
+            if (!g_settingsOpen && !g_mediaInfoOpen && !g_playlistOpen)
+            {
+                bool const repeated = (message.lParam & (1LL << 30)) != 0;
+                if (!repeated && g_mainWindow)
+                {
+                    auto* info = reinterpret_cast<WindowInfo*>(
+                        GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA));
+                    if (info && info->page)
+                    {
+                        auto* page = winrt::get_self<
+                            winrt::HCPlayer::implementation::MainPage>(
+                                info->page);
+                        if (page->CanOpenYouTubeComments())
+                        {
+                            PlayerShowYouTubeComments();
+                        }
+                    }
+                }
+                // Reserve the HC Player chord even when the optional feature
+                // is OFF: no panel, no network request and no mpv command.
+                return true;
+            }
+        }
+
+
         // Ctrl+Shift+P owns the visual playback queue. Keep Ctrl+P reserved
         // for Picture-in-Picture and process this chord before the side-panel
         // guard so the same shortcut can close the queue again.
@@ -4937,6 +6148,36 @@ bool HandlePlayerKeyMessage(MSG const& message)
         }
     }
 
+    // While the native queue panel is open, exact Ctrl+V means "append the
+    // copied web URL to this queue". Do this before the normal side-panel
+    // shortcut guard because the panel intentionally owns this chord. A modal
+    // URL dialog was already excluded at the top of this function, so its
+    // TextBox keeps normal paste behavior. Ignore key-repeat to prevent one
+    // held chord from appending the same URL multiple times.
+    if (g_playlistOpen && message.wParam == 'V' && ctrl && !alt && !shift)
+    {
+        bool const repeated = (message.lParam & (1LL << 30)) != 0;
+        if (!repeated && TryAddPlaylistClipboardUrl())
+        {
+            // Refresh the already-open panel immediately rather than waiting
+            // for its periodic read-only snapshot tick. This does not create
+            // a second queue path; mpv has already been updated by the same
+            // PlayerAddPlaylistUrl() used by menu and drag-and-drop.
+            if (g_mainWindow)
+            {
+                auto* info = reinterpret_cast<WindowInfo*>(
+                    GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA));
+                if (info && info->playlistPage)
+                {
+                    winrt::get_self<
+                        winrt::HCPlayer::implementation::PlaylistPage>(
+                            info->playlistPage)->CompleteExternalDrop(true);
+                }
+            }
+        }
+        return true;
+    }
+
     if (IsSidePanelOpen() || g_contextMenuOpen)
     {
         return false;
@@ -4944,6 +6185,22 @@ bool HandlePlayerKeyMessage(MSG const& message)
 
     if (message.wParam == VK_ESCAPE && g_fullscreen)
     {
+        // In fullscreen the host normally owns Escape. Give the active mpv
+        // console first refusal so one press closes only that overlay and a
+        // separate press can still leave fullscreen. Consume key-repeat after
+        // the console closes so holding Escape cannot perform both actions.
+        bool const repeated = (message.lParam & (1LL << 30)) != 0;
+        if (repeated)
+        {
+            return true;
+        }
+
+        if (PlayerIsConsoleOpen())
+        {
+            PlayerSendMpvKey(L"ESC");
+            return true;
+        }
+
         // Keyboard fullscreen exit is immersive too: keep the transport hidden
         // until the user physically moves the pointer back into its hot zone.
         g_suppressFullscreenEntryTransportReveal = true;
@@ -4952,11 +6209,18 @@ bool HandlePlayerKeyMessage(MSG const& message)
     }
     if (message.wParam == VK_RETURN && (!ctrl || alt))
     {
+        // Ignore the keyboard's auto-repeat stream. Rapid *physical* taps are
+        // serialized below and retain their final toggle parity.
+        bool const repeated = (message.lParam & (1LL << 30)) != 0;
+        if (repeated)
+        {
+            return true;
+        }
+
         // Enter owns an immersive transition in both directions. The toolbar
-        // button does not set this one-shot flag and therefore keeps its normal
-        // transport reveal behavior.
-        g_suppressFullscreenEntryTransportReveal = true;
-        PlayerToggleFullscreen();
+        // button does not use this serializer and therefore keeps its established
+        // behavior. No timing threshold is introduced here.
+        RequestEnterFullscreenToggle();
         return true;
     }
     if (message.wParam == 'O' && ctrl && !alt)
@@ -5028,14 +6292,17 @@ bool HandlePlayerKeyMessage(MSG const& message)
         }
     }
 
-    std::wstring key = MpvKeyName(message);
-    if (key.empty()) return false;
-    PlayerSendMpvKey(key);
-
+    // Q/q already belongs to the host's close action. Do not first inject an
+    // unbound mpv keypress. Keep the same modifier conditions and close path.
     if (message.wParam == 'Q' && !ctrl && !alt)
     {
         PostMessageW(g_mainWindow, WM_CLOSE, 0, 0);
+        return true;
     }
+
+    std::wstring key = MpvKeyName(message);
+    if (key.empty()) return false;
+    PlayerSendMpvKey(key);
     return true;
 }
 
@@ -5306,6 +6573,64 @@ LRESULT CALLBACK TransportHostProc(
             if (edges != PipResizeNone) return HTTRANSPARENT;
         }
         return HTCLIENT;
+    default:
+        break;
+    }
+    return DefWindowProcW(window, message, wParam, lParam);
+}
+
+LRESULT CALLBACK ModalDialogHostProc(
+    HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    auto* info = reinterpret_cast<WindowInfo*>(
+        GetWindowLongPtrW(window, GWLP_USERDATA));
+
+    switch (message)
+    {
+    case WM_NCCREATE:
+    {
+        auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
+        SetWindowLongPtrW(window, GWLP_USERDATA,
+            reinterpret_cast<LONG_PTR>(create ? create->lpCreateParams : nullptr));
+        return TRUE;
+    }
+    case WM_SIZE:
+        // Resize the XAML island from the host's own synchronous WM_SIZE too.
+        // This closes the one-frame gap that could otherwise expose stale
+        // transport-colored pixels during fast maximize/live-resize.
+        if (info && info->modalDialogSource)
+        {
+            int const width = (std::max)(1, static_cast<int>(LOWORD(lParam)));
+            int const height = (std::max)(1, static_cast<int>(HIWORD(lParam)));
+            info->modalDialogSource.SiteBridge().MoveAndResize(
+                { 0, 0, width, height });
+        }
+        InvalidateRect(window, nullptr, TRUE);
+        return 0;
+    case WM_ERASEBKGND:
+        if (wParam)
+        {
+            RECT client{};
+            GetClientRect(window, &client);
+            FillRect(reinterpret_cast<HDC>(wParam), &client,
+                static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+        }
+        return 1;
+    case WM_PAINT:
+    {
+        // The island normally covers the host completely. Black is only a
+        // defensive fill for newly exposed pixels while XAML catches up to a
+        // live resize, matching the already-accepted modal blackout behavior.
+        PAINTSTRUCT paint{};
+        HDC dc = BeginPaint(window, &paint);
+        if (dc)
+        {
+            FillRect(dc, &paint.rcPaint,
+                static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+        }
+        EndPaint(window, &paint);
+        return 0;
+    }
     default:
         break;
     }
@@ -5672,6 +6997,54 @@ LRESULT CALLBACK PlaylistPanelSubclassProc(
     return DefSubclassProc(window, message, wParam, lParam);
 }
 
+LRESULT CALLBACK YouTubeCommentsPanelSubclassProc(
+    HWND window, UINT message, WPARAM wParam, LPARAM lParam,
+    UINT_PTR subclassId, DWORD_PTR referenceData)
+{
+    if (message == WM_ERASEBKGND)
+    {
+        RECT client{};
+        GetClientRect(window, &client);
+        HBRUSH surface = CreateSolidBrush(
+            g_lightTheme
+                ? RGB(245, 245, 245)
+                : RGB(32, 35, 40));
+        FillRect(reinterpret_cast<HDC>(wParam), &client, surface);
+        DeleteObject(surface);
+        return 1;
+    }
+
+    auto* page = reinterpret_cast<
+        winrt::HCPlayer::implementation::YouTubeCommentsPage*>(
+            referenceData);
+
+    if (message == WM_MOUSEWHEEL)
+    {
+        if (page)
+        {
+            page->ScrollBy(GET_WHEEL_DELTA_WPARAM(wParam));
+            return 0;
+        }
+    }
+    else if (message == WM_KEYDOWN && wParam == VK_ESCAPE)
+    {
+        if (page)
+        {
+            page->RequestClose();
+            return 0;
+        }
+    }
+    else if (message == WM_NCDESTROY)
+    {
+        RemoveWindowSubclass(
+            window,
+            YouTubeCommentsPanelSubclassProc,
+            subclassId);
+    }
+
+    return DefSubclassProc(window, message, wParam, lParam);
+}
+
 LRESULT CALLBACK TransportPanelSubclassProc(
     HWND window, UINT message, WPARAM wParam, LPARAM lParam,
     UINT_PTR subclassId, DWORD_PTR referenceData)
@@ -5826,8 +7199,16 @@ LRESULT CALLBACK TransportPanelSubclassProc(
         }
         RECT client{};
         GetClientRect(window, &client);
-        HBRUSH background = CreateSolidBrush(g_lightTheme
-            ? RGB(247, 247, 247) : RGB(32, 35, 40));
+        // During the light-theme Snap Assist handoff, paint only the native
+        // backing behind the transport island black. The XAML/Mica content is
+        // untouched; this simply prevents the light fallback surface from
+        // becoming visible for a single compositor frame while the island
+        // catches the snapped geometry.
+        COLORREF const backgroundColor =
+            (g_lightTheme && g_lightSnapTransportBackingGuard)
+                ? RGB(0, 0, 0)
+                : (g_lightTheme ? RGB(247, 247, 247) : RGB(32, 35, 40));
+        HBRUSH background = CreateSolidBrush(backgroundColor);
         FillRect(reinterpret_cast<HDC>(wParam), &client, background);
         DeleteObject(background);
         return 1;
@@ -5868,38 +7249,6 @@ LRESULT CALLBACK FullscreenTransitionShieldProc(
         PAINTSTRUCT paint{};
         HDC dc = BeginPaint(window, &paint);
         FillRect(dc, &paint.rcPaint,
-            static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
-        EndPaint(window, &paint);
-        return 0;
-    }
-    }
-    return DefWindowProcW(window, message, wParam, lParam);
-}
-
-LRESULT CALLBACK InitialMediaRevealShieldProc(
-    HWND window, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-    case WM_NCHITTEST:
-        // Presentation-only cover: never consume pointer input while the
-        // player is becoming ready underneath it.
-        return HTTRANSPARENT;
-    case WM_ERASEBKGND:
-    {
-        RECT client{};
-        GetClientRect(window, &client);
-        FillRect(reinterpret_cast<HDC>(wParam), &client,
-            static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
-        return 1;
-    }
-    case WM_PAINT:
-    {
-        PAINTSTRUCT paint{};
-        HDC dc = BeginPaint(window, &paint);
-        RECT client{};
-        GetClientRect(window, &client);
-        FillRect(dc, &client,
             static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
         EndPaint(window, &paint);
         return 0;
@@ -5956,8 +7305,21 @@ LRESULT CALLBACK MediaFullscreenTransitionShieldProc(
                 // fullscreen. This never changes the live mpv render surface.
                 SetStretchBltMode(dc, HALFTONE);
                 SetBrushOrgEx(dc, 0, 0, nullptr);
+                int drawWidth = targetWidth;
+                int drawHeight = targetHeight;
+                if (snapshot->fitSnapshotAspect)
+                {
+                    double const scale = (std::min)(
+                        static_cast<double>(targetWidth) / sourceWidth,
+                        static_cast<double>(targetHeight) / sourceHeight);
+                    drawWidth = (std::max)(1, (std::min)(targetWidth,
+                        static_cast<int>(std::lround(sourceWidth * scale))));
+                    drawHeight = (std::max)(1, (std::min)(targetHeight,
+                        static_cast<int>(std::lround(sourceHeight * scale))));
+                }
                 StretchBlt(
-                    dc, 0, 0, targetWidth, targetHeight,
+                    dc, (targetWidth - drawWidth) / 2,
+                    (targetHeight - drawHeight) / 2, drawWidth, drawHeight,
                     memoryDc, sourceX, sourceY, sourceWidth, sourceHeight,
                     SRCCOPY);
 
@@ -5983,6 +7345,60 @@ LRESULT CALLBACK MediaFullscreenTransitionShieldProc(
     }
     }
     return DefWindowProcW(window, message, wParam, lParam);
+}
+
+bool ReadPipTransitionGeometry(PipTransitionGeometry& geometry)
+{
+    geometry = {};
+    if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.freeNodeContents) return false;
+    // One map read avoids mixing width/height and margins from different
+    // renderer updates. These are renderer bars, not black pixels in the file.
+    MpvNode node{};
+    if (g_mpv.getProperty(g_mpv.handle, "osd-dimensions", MpvFormatNode, &node) < 0)
+    {
+        if (node.format != 0) g_mpv.freeNodeContents(&node);
+        return false;
+    }
+    bool valid{};
+    if (node.format == MpvFormatNodeMap && node.value.list &&
+        node.value.list->keys && node.value.list->values)
+    {
+        auto* list = node.value.list;
+        char const* keys[] = { "w", "h", "mt", "mb", "ml", "mr" };
+        int64_t values[6]{};
+        unsigned found{};
+        for (int i = 0; i < list->count; ++i)
+        {
+            if (!list->keys[i]) continue;
+            for (int k = 0; k < 6; ++k)
+            {
+                if (strcmp(list->keys[i], keys[k]) != 0) continue;
+                auto const& value = list->values[i];
+                if (value.format == MpvFormatInt64)
+                {
+                    // Screen geometry is bounded to 32-bit pixel coordinates.
+                    if (value.value.integer < -2147483647LL ||
+                        value.value.integer > 2147483647LL) continue;
+                    values[k] = value.value.integer;
+                }
+                else if (value.format == MpvFormatDouble &&
+                    std::isfinite(value.value.number) &&
+                    std::abs(value.value.number) <= 2147483647.0)
+                {
+                    values[k] = static_cast<int64_t>(std::llround(value.value.number));
+                }
+                else continue;
+                found |= 1u << k;
+            }
+        }
+        if (found == 63 && values[0] > 0 && values[1] > 0)
+        {
+            geometry = { values[0], values[1], values[2], values[3], values[4], values[5] };
+            valid = true;
+        }
+    }
+    g_mpv.freeNodeContents(&node);
+    return valid;
 }
 
 FullscreenTransitionSnapshot* CaptureFullscreenTransitionVideoFrame()
@@ -6041,84 +7457,182 @@ FullscreenTransitionSnapshot* CaptureFullscreenTransitionVideoFrame()
     return snapshot;
 }
 
+bool PrepareWindowFullscreenSnapshotForMonitor(
+    FullscreenTransitionSnapshot* snapshot,
+    PipTransitionGeometry const& geometry,
+    RECT const& bounds)
+{
+    if (!snapshot || !snapshot->bitmap) return false;
+    if (geometry.width != snapshot->width ||
+        geometry.height != snapshot->height) return false;
+    if (geometry.top < 0 || geometry.bottom < 0 ||
+        geometry.left < 0 || geometry.right < 0) return false;
+    if (geometry.top >= geometry.height ||
+        geometry.bottom >= geometry.height - geometry.top ||
+        geometry.left >= geometry.width ||
+        geometry.right >= geometry.width - geometry.left) return false;
+
+    int const contentX = static_cast<int>(geometry.left);
+    int const contentY = static_cast<int>(geometry.top);
+    int const contentWidth = static_cast<int>(
+        geometry.width - geometry.left - geometry.right);
+    int const contentHeight = static_cast<int>(
+        geometry.height - geometry.top - geometry.bottom);
+    int const targetWidth = bounds.right - bounds.left;
+    int const targetHeight = bounds.bottom - bounds.top;
+    if (contentWidth <= 0 || contentHeight <= 0 ||
+        targetWidth <= 0 || targetHeight <= 0) return false;
+
+    // Build the bridge in its final monitor geometry up front. WM_PAINT then
+    // keeps using the already-proven full-rectangle StretchBlt path; it does
+    // not opt into fitSnapshotAspect (that experiment was reverted). Only the
+    // renderer-owned bars are removed from the source, and the captured video
+    // content is fitted into a black monitor-sized canvas with its aspect kept.
+    double const scale = (std::min)(
+        static_cast<double>(targetWidth) / contentWidth,
+        static_cast<double>(targetHeight) / contentHeight);
+    int const drawWidth = (std::max)(1, (std::min)(targetWidth,
+        static_cast<int>(std::lround(contentWidth * scale))));
+    int const drawHeight = (std::max)(1, (std::min)(targetHeight,
+        static_cast<int>(std::lround(contentHeight * scale))));
+    int const drawX = (targetWidth - drawWidth) / 2;
+    int const drawY = (targetHeight - drawHeight) / 2;
+
+    HDC screenDc = GetDC(nullptr);
+    if (!screenDc) return false;
+    HDC sourceDc = CreateCompatibleDC(screenDc);
+    HDC targetDc = CreateCompatibleDC(screenDc);
+    HBITMAP targetBitmap = (sourceDc && targetDc)
+        ? CreateCompatibleBitmap(screenDc, targetWidth, targetHeight)
+        : nullptr;
+    bool prepared{};
+
+    if (sourceDc && targetDc && targetBitmap)
+    {
+        HGDIOBJ oldSource = SelectObject(sourceDc, snapshot->bitmap);
+        HGDIOBJ oldTarget = SelectObject(targetDc, targetBitmap);
+        RECT targetRect{ 0, 0, targetWidth, targetHeight };
+        FillRect(targetDc, &targetRect,
+            static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+        SetStretchBltMode(targetDc, HALFTONE);
+        SetBrushOrgEx(targetDc, 0, 0, nullptr);
+        prepared = StretchBlt(
+            targetDc, drawX, drawY, drawWidth, drawHeight,
+            sourceDc, contentX, contentY, contentWidth, contentHeight,
+            SRCCOPY) != FALSE;
+        SelectObject(targetDc, oldTarget);
+        SelectObject(sourceDc, oldSource);
+    }
+
+    if (sourceDc) DeleteDC(sourceDc);
+    if (targetDc) DeleteDC(targetDc);
+    ReleaseDC(nullptr, screenDc);
+
+    if (!prepared)
+    {
+        if (targetBitmap) DeleteObject(targetBitmap);
+        return false;
+    }
+
+    DeleteObject(snapshot->bitmap);
+    snapshot->bitmap = targetBitmap;
+    snapshot->width = targetWidth;
+    snapshot->height = targetHeight;
+    snapshot->sourceX = 0;
+    snapshot->sourceY = 0;
+    snapshot->sourceWidth = targetWidth;
+    snapshot->sourceHeight = targetHeight;
+    snapshot->fitSnapshotAspect = false;
+    snapshot->targetWidth = targetWidth;
+    snapshot->targetHeight = targetHeight;
+    snapshot->targetContentWidth = drawWidth;
+    snapshot->targetContentHeight = drawHeight;
+    return true;
+}
+
 HWND ShowMediaFullscreenTransitionShield(
-    RECT const& bounds, bool enteringFullscreen = false)
+    RECT const& bounds, bool enteringFullscreen = false,
+    bool settleFullscreenVideo = true, bool pipFullscreen = false,
+    bool requireMatchingFullscreenVideo = false)
 {
     // Fail-open design: if the temporary bridge cannot be created, do nothing
     // and run the frozen 34.20.8.13 fullscreen path exactly as before.
+    PipTransitionGeometry captureGeometry{};
+    bool const needStableCaptureGeometry = pipFullscreen || enteringFullscreen;
+    if (needStableCaptureGeometry &&
+        !ReadPipTransitionGeometry(captureGeometry)) return nullptr;
+
     FullscreenTransitionSnapshot* snapshot =
         CaptureFullscreenTransitionVideoFrame();
     if (!snapshot) return nullptr;
 
-    if (enteringFullscreen && g_mpv.handle && g_mpv.getProperty)
+    if (needStableCaptureGeometry)
     {
-        int64_t videoWidth{};
-        int64_t videoHeight{};
-        bool const haveVideoAspect =
-            g_mpv.getProperty(
-                g_mpv.handle, "video-out-params/dw",
-                MpvFormatInt64, &videoWidth) >= 0 &&
-            g_mpv.getProperty(
-                g_mpv.handle, "video-out-params/dh",
-                MpvFormatInt64, &videoHeight) >= 0 &&
-            videoWidth > 0 && videoHeight > 0;
-
-        int const monitorWidth = bounds.right - bounds.left;
-        int const monitorHeight = bounds.bottom - bounds.top;
-        if (haveVideoAspect && monitorWidth > 0 && monitorHeight > 0)
+        PipTransitionGeometry afterCapture{};
+        if (!ReadPipTransitionGeometry(afterCapture) ||
+            !(captureGeometry == afterCapture) ||
+            captureGeometry.width != snapshot->width ||
+            captureGeometry.height != snapshot->height)
         {
-            double constexpr aspect169 = 16.0 / 9.0;
-            double const videoAspect =
-                static_cast<double>(videoWidth) /
-                static_cast<double>(videoHeight);
-            double const monitorAspect =
-                static_cast<double>(monitorWidth) /
-                static_cast<double>(monitorHeight);
-
-            // Deliberately narrow scope: this experiment does not run for
-            // 2.40:1, 4:3, portrait, 16:10 or any other aspect. A ~0.35%
-            // tolerance only absorbs rounding/coded-size differences around
-            // true 16:9 media and 16:9 displays.
-            bool const matching169 =
-                std::abs(videoAspect - aspect169) <= 0.006 &&
-                std::abs(monitorAspect - aspect169) <= 0.006 &&
-                std::abs(videoAspect - monitorAspect) <= 0.006;
-
-            if (matching169)
-            {
-                snapshot->settleMatchingFullscreenVideo = true;
-                snapshot->targetWidth = monitorWidth;
-                snapshot->targetHeight = monitorHeight;
-
-                // The screen-side capture contains the whole windowed video
-                // child, including any keepaspect bars that belong only to the
-                // old window shape. Crop the frozen bridge to the destination
-                // 16:9 aspect. This affects only the temporary bitmap.
-                double const sourceAspect =
-                    static_cast<double>(snapshot->width) /
-                    static_cast<double>(snapshot->height);
-                if (sourceAspect > monitorAspect)
-                {
-                    int const croppedWidth = (std::max)(1, (std::min)(
-                        snapshot->width, static_cast<int>(std::lround(
-                            static_cast<double>(snapshot->height) *
-                            monitorAspect))));
-                    snapshot->sourceX =
-                        (snapshot->width - croppedWidth) / 2;
-                    snapshot->sourceWidth = croppedWidth;
-                }
-                else if (sourceAspect < monitorAspect)
-                {
-                    int const croppedHeight = (std::max)(1, (std::min)(
-                        snapshot->height, static_cast<int>(std::lround(
-                            static_cast<double>(snapshot->width) /
-                            monitorAspect))));
-                    snapshot->sourceY =
-                        (snapshot->height - croppedHeight) / 2;
-                    snapshot->sourceHeight = croppedHeight;
-                }
-            }
+            // Do not combine a screen bitmap with geometry from another resize.
+            DeleteObject(snapshot->bitmap);
+            delete snapshot;
+            return nullptr;
         }
+    }
+
+    if (pipFullscreen)
+    {
+        snapshot->fitSnapshotAspect = true;
+        snapshot->settlePipFullscreenVideo = true;
+        snapshot->targetWidth = bounds.right - bounds.left;
+        snapshot->targetHeight = bounds.bottom - bounds.top;
+
+        // Remove only bars reported by the renderer. Embedded black bars stay
+        // inside this rectangle and remain part of the captured 16:9 frame.
+        auto const& geometry = captureGeometry;
+        if (geometry.top >= 0 && geometry.bottom >= 0 &&
+            geometry.left >= 0 && geometry.right >= 0 &&
+            geometry.top < geometry.height &&
+            geometry.bottom < geometry.height - geometry.top &&
+            geometry.left < geometry.width &&
+            geometry.right < geometry.width - geometry.left)
+        {
+            snapshot->sourceX = static_cast<int>(geometry.left);
+            snapshot->sourceY = static_cast<int>(geometry.top);
+            snapshot->sourceWidth = static_cast<int>(
+                geometry.width - geometry.left - geometry.right);
+            snapshot->sourceHeight = static_cast<int>(
+                geometry.height - geometry.top - geometry.bottom);
+            snapshot->pipCapturedVideoAspect =
+                static_cast<double>(snapshot->sourceWidth) / snapshot->sourceHeight;
+        }
+    }
+
+    bool matchingFullscreenVideo{};
+    if (!pipFullscreen && enteringFullscreen)
+    {
+        // General window -> fullscreen bridge: use mpv's own current renderer
+        // margins to isolate only the visible video content, then pre-compose
+        // that content into a monitor-sized black bitmap. This supports 1.98:1,
+        // 2.39:1, 4:3, 16:10, portrait and other aspects without changing the
+        // live mpv surface or relying on a coded-size/aspect whitelist.
+        if (PrepareWindowFullscreenSnapshotForMonitor(
+            snapshot, captureGeometry, bounds))
+        {
+            matchingFullscreenVideo = true;
+            snapshot->settleMatchingFullscreenVideo = settleFullscreenVideo;
+        }
+    }
+
+    if (requireMatchingFullscreenVideo && !matchingFullscreenVideo)
+    {
+        // The generic bridge requires one coherent renderer geometry around
+        // the screen capture. If that cannot be proven, fail open and leave
+        // the established live transition untouched.
+        if (snapshot->bitmap) DeleteObject(snapshot->bitmap);
+        delete snapshot;
+        return nullptr;
     }
 
     HWND shield = CreateWindowExW(
@@ -6190,7 +7704,48 @@ bool FullscreenVideoViewportSettled(HWND shield)
 
     auto* snapshot = reinterpret_cast<FullscreenTransitionSnapshot*>(
         GetWindowLongPtrW(shield, GWLP_USERDATA));
-    if (!snapshot || !snapshot->settleMatchingFullscreenVideo) return true;
+    if (!snapshot || (!snapshot->settleMatchingFullscreenVideo &&
+        !snapshot->settlePipFullscreenVideo)) return true;
+
+    if (snapshot->settlePipFullscreenVideo)
+    {
+        PipTransitionGeometry geometry{};
+        bool ready = ReadPipTransitionGeometry(geometry) &&
+            geometry.width == snapshot->targetWidth &&
+            geometry.height == snapshot->targetHeight;
+        if (ready && snapshot->pipCapturedVideoAspect > 0.0 &&
+            geometry.top >= 0 && geometry.bottom >= 0 &&
+            geometry.left >= 0 && geometry.right >= 0)
+        {
+            int64_t const contentWidth = geometry.width - geometry.left - geometry.right;
+            int64_t const contentHeight = geometry.height - geometry.top - geometry.bottom;
+            ready = contentWidth > 0 && contentHeight > 0;
+            if (ready)
+            {
+                double const aspect = static_cast<double>(contentWidth) / contentHeight;
+                // Allow pixel rounding in the small PiP rectangle, but reject
+                // a transient compressed viewport. No pixel-color bar detection.
+                ready = std::abs(aspect / snapshot->pipCapturedVideoAspect - 1.0) <= 0.015;
+            }
+        }
+        if (!ready)
+        {
+            snapshot->pipReadyGeometryTick = 0;
+            return false;
+        }
+
+        ULONGLONG const now = GetTickCount64();
+        if (snapshot->pipReadyGeometryTick == 0 ||
+            !(geometry == snapshot->pipLastReadyGeometry))
+        {
+            snapshot->pipLastReadyGeometry = geometry;
+            snapshot->pipReadyGeometryTick = now;
+            return false;
+        }
+        // Paused video may redraw after the reported dimensions change. Keep
+        // the existing cover for a short stable interval, within the same cap.
+        return now - snapshot->pipReadyGeometryTick >= 24;
+    }
 
     int64_t width{};
     int64_t height{};
@@ -6227,10 +7782,81 @@ bool FullscreenVideoViewportSettled(HWND shield)
     bool const sizeReady =
         nearTarget(width, snapshot->targetWidth) &&
         nearTarget(height, snapshot->targetHeight);
-    bool const marginsReady =
-        marginTop <= 2 && marginBottom <= 2 &&
-        marginLeft <= 2 && marginRight <= 2;
-    return sizeReady && marginsReady;
+    bool contentReady{};
+    if (marginTop >= 0 && marginBottom >= 0 &&
+        marginLeft >= 0 && marginRight >= 0 &&
+        marginTop + marginBottom < height &&
+        marginLeft + marginRight < width)
+    {
+        int64_t const contentWidth = width - marginLeft - marginRight;
+        int64_t const contentHeight = height - marginTop - marginBottom;
+        auto const nearContentTarget = [](int64_t value, int target)
+            {
+                int64_t delta = value - static_cast<int64_t>(target);
+                if (delta < 0) delta = -delta;
+                // mpv/GPU viewport rounding can differ by a few pixels at the
+                // two bar edges while already representing the final frame.
+                return delta <= 4;
+            };
+        contentReady = snapshot->targetContentWidth > 0 &&
+            snapshot->targetContentHeight > 0 &&
+            nearContentTarget(contentWidth, snapshot->targetContentWidth) &&
+            nearContentTarget(contentHeight, snapshot->targetContentHeight);
+    }
+    bool const ready = sizeReady && contentReady;
+
+    // The previous frame-in-the-corner fix already keeps this frozen bridge
+    // above the live player. Do not alter, refit or replace that bridge here.
+    // The remaining artifact happens when osd-dimensions reaches the final
+    // size just before the resized D3D surface is actually presented. For
+    // window -> fullscreen only, arm on the first ready geometry, commit it
+    // through DWM, then require the same ready geometry after DWM has advanced
+    // by one real refresh. This is monitor-refresh-driven rather than a fixed
+    // 24 ms PiP-style delay. The existing 120 ms fail-open ceiling remains.
+    if (snapshot->settleMatchingFullscreenVideo)
+    {
+        if (!ready)
+        {
+            snapshot->matchingReadyRefreshArmed = false;
+            snapshot->matchingReadyRefresh = 0;
+            return false;
+        }
+
+        PipTransitionGeometry const geometry{
+            width, height, marginTop, marginBottom, marginLeft, marginRight };
+        if (!snapshot->matchingReadyRefreshArmed ||
+            !(geometry == snapshot->matchingLastReadyGeometry))
+        {
+            snapshot->matchingLastReadyGeometry = geometry;
+            snapshot->matchingReadyRefreshArmed = true;
+
+            DWM_TIMING_INFO timing{ sizeof(timing) };
+            snapshot->matchingReadyRefresh =
+                SUCCEEDED(DwmGetCompositionTimingInfo(nullptr, &timing))
+                ? timing.cRefresh
+                : 0;
+
+            // Finish the compositor work associated with the first final VO
+            // geometry, but deliberately keep the shield visible.
+            DwmFlush();
+            return false;
+        }
+
+        if (snapshot->matchingReadyRefresh != 0)
+        {
+            DWM_TIMING_INFO timing{ sizeof(timing) };
+            if (SUCCEEDED(DwmGetCompositionTimingInfo(nullptr, &timing)))
+            {
+                return timing.cRefresh > snapshot->matchingReadyRefresh;
+            }
+        }
+
+        // Timing-info failure is fail-open, but only on a later poll after
+        // the DwmFlush above; never extend the bridge indefinitely.
+        return true;
+    }
+
+    return ready;
 }
 
 void PollFullscreenVideoSettle()
@@ -6244,8 +7870,9 @@ void PollFullscreenVideoSettle()
     }
 
     // Never let a presentation shield survive a state change. 120 ms is only
-    // a fail-open ceiling for unavailable/stale VO properties; the normal path
-    // removes the shield as soon as mpv reports the final 16:9 viewport.
+    // a fail-open ceiling for unavailable/stale VO properties. Window entry
+    // removes it after final VO geometry survives one real DWM refresh; PiP
+    // keeps its established 24 ms stability rule unchanged.
     bool const timedOut = g_fullscreenVideoSettleStartedTick != 0 &&
         GetTickCount64() - g_fullscreenVideoSettleStartedTick >= 120;
     if (!g_fullscreen || FullscreenVideoViewportSettled(shield) || timedOut)
@@ -6274,7 +7901,8 @@ void FinishMediaFullscreenTransitionShield(HWND shield)
     auto* snapshot = reinterpret_cast<FullscreenTransitionSnapshot*>(
         GetWindowLongPtrW(shield, GWLP_USERDATA));
     bool const deferForMatching169 =
-        g_fullscreen && snapshot && snapshot->settleMatchingFullscreenVideo;
+        g_fullscreen && snapshot && (snapshot->settleMatchingFullscreenVideo ||
+            snapshot->settlePipFullscreenVideo);
     if (deferForMatching169)
     {
         DestroyPendingFullscreenVideoSettleShield();
@@ -6365,6 +7993,266 @@ void FinishIdleFullscreenTransitionShield(HWND shield)
     DestroyWindow(shield);
 }
 
+namespace
+{
+    bool SnapCoordinateNearGridLineForTransport(
+        int value, int origin, int extent, int tolerance) noexcept
+    {
+        if (extent <= 0) return false;
+
+        constexpr int numerators[] = { 0, 1, 1, 1, 2, 3, 1 };
+        constexpr int denominators[] = { 1, 4, 3, 2, 3, 4, 1 };
+        for (size_t index = 0; index < 7; ++index)
+        {
+            int const line = origin + MulDiv(
+                extent, numerators[index], denominators[index]);
+            if (std::abs(value - line) <= tolerance)
+                return true;
+        }
+        return false;
+    }
+
+    bool LooksLikeWindowsSnapTargetForTransport(
+        HWND window, WINDOWPOS const* position)
+    {
+        if (!window || !position ||
+            (position->flags & SWP_NOSIZE) != 0 ||
+            g_interactiveSizeMove || g_fullscreen || g_pictureInPicture ||
+            g_borderless || IsIconic(window))
+        {
+            return false;
+        }
+
+        RECT current{};
+        if (!GetWindowRect(window, &current)) return false;
+
+        int const targetLeft = (position->flags & SWP_NOMOVE) != 0
+            ? current.left : position->x;
+        int const targetTop = (position->flags & SWP_NOMOVE) != 0
+            ? current.top : position->y;
+        RECT target{
+            targetLeft,
+            targetTop,
+            targetLeft + position->cx,
+            targetTop + position->cy };
+        if (position->cx <= 0 || position->cy <= 0) return false;
+
+        UINT dpi = GetDpiForWindow(window);
+        if (!dpi) dpi = USER_DEFAULT_SCREEN_DPI;
+        int const tolerance = (std::max)(
+            8, MulDiv(16, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI));
+
+        int const currentWidth = current.right - current.left;
+        int const currentHeight = current.bottom - current.top;
+        if (std::abs(position->cx - currentWidth) <= tolerance &&
+            std::abs(position->cy - currentHeight) <= tolerance)
+        {
+            return false;
+        }
+
+        HMONITOR monitor = MonitorFromRect(&target, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO monitorInfo{ sizeof(monitorInfo) };
+        if (!monitor || !GetMonitorInfoW(monitor, &monitorInfo)) return false;
+
+        RECT const& work = monitorInfo.rcWork;
+        int const workWidth = work.right - work.left;
+        int const workHeight = work.bottom - work.top;
+        if (workWidth <= 0 || workHeight <= 0) return false;
+
+        bool const horizontalGrid =
+            SnapCoordinateNearGridLineForTransport(
+                target.left, work.left, workWidth, tolerance) &&
+            SnapCoordinateNearGridLineForTransport(
+                target.right, work.left, workWidth, tolerance);
+        bool const verticalGrid =
+            SnapCoordinateNearGridLineForTransport(
+                target.top, work.top, workHeight, tolerance) &&
+            SnapCoordinateNearGridLineForTransport(
+                target.bottom, work.top, workHeight, tolerance);
+        if (!horizontalGrid || !verticalGrid) return false;
+
+        bool const touchesWorkArea =
+            std::abs(target.left - work.left) <= tolerance ||
+            std::abs(target.right - work.right) <= tolerance ||
+            std::abs(target.top - work.top) <= tolerance ||
+            std::abs(target.bottom - work.bottom) <= tolerance;
+        if (!touchesWorkArea) return false;
+
+        bool const effectivelyFullWorkArea =
+            std::abs((target.right - target.left) - workWidth) <= tolerance &&
+            std::abs((target.bottom - target.top) - workHeight) <= tolerance;
+        return !effectivelyFullWorkArea;
+    }
+
+    void PaintLightSnapTransportBacking(HWND window)
+    {
+        if (!window) return;
+        auto* info = reinterpret_cast<WindowInfo*>(
+            GetWindowLongPtrW(window, GWLP_USERDATA));
+        if (!info || !info->xamlSource) return;
+
+        HWND const transportWindow = winrt::Microsoft::UI::GetWindowFromWindowId(
+            info->xamlSource.SiteBridge().WindowId());
+        if (!transportWindow) return;
+
+        // Repaint only the native host backing synchronously. Do not invalidate
+        // the XAML tree or libmpv child; their composition surfaces remain
+        // exactly as they were.
+        RedrawWindow(
+            transportWindow,
+            nullptr,
+            nullptr,
+            RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+    }
+
+    void BeginLightSnapTransportBackingGuard(
+        HWND window, WINDOWPOS const* position)
+    {
+        if (!g_lightTheme || window != g_mainWindow || !position)
+        {
+            return;
+        }
+
+        bool const geometryChanging =
+            (position->flags & SWP_NOSIZE) == 0 ||
+            (position->flags & SWP_NOMOVE) == 0;
+        if (!geometryChanging) return;
+
+        bool const snapTarget =
+            LooksLikeWindowsSnapTargetForTransport(window, position);
+
+        // Once the Snap guard is active, every later owner-geometry mutation
+        // invalidates any completion that was queued for an older layout. This
+        // includes a late shell adjustment that no longer independently looks
+        // like a canonical Snap grid rectangle. The guard is released only by
+        // the completion associated with the newest geometry generation.
+        if (g_lightSnapTransportBackingGuard)
+        {
+            ++g_lightSnapTransportGeneration;
+            if (snapTarget)
+            {
+                PaintLightSnapTransportBacking(window);
+                DwmFlush();
+            }
+            return;
+        }
+
+        if (!snapTarget) return;
+
+        ++g_lightSnapTransportGeneration;
+        g_lightSnapTransportBackingGuard = true;
+        PaintLightSnapTransportBacking(window);
+
+        // Commit only this black native backing before the shell consumes the
+        // redirected window surface for its snap-in animation. Mica/backdrop is
+        // deliberately left active and unchanged.
+        DwmFlush();
+    }
+
+    void FinishLightSnapTransportBackingGuard(HWND window, UINT generation)
+    {
+        if (!g_lightSnapTransportBackingGuard || window != g_mainWindow ||
+            generation != g_lightSnapTransportGeneration)
+        {
+            return;
+        }
+
+        // This is deliberately a second native turn after the queued XAML
+        // settlement below. Keep the black backing through the presentation of
+        // that already-final layout, then restore the established theme backing
+        // for future natural erases. No delay, timer or polling is involved.
+        DwmFlush();
+        g_lightSnapTransportBackingGuard = false;
+    }
+
+    void QueueLightSnapTransportCommit(
+        HWND window, WINDOWPOS const* position)
+    {
+        if (!g_lightSnapTransportBackingGuard || window != g_mainWindow ||
+            !position ||
+            ((position->flags & SWP_NOSIZE) != 0 &&
+             (position->flags & SWP_NOMOVE) != 0))
+        {
+            return;
+        }
+
+        UINT const generation = g_lightSnapTransportGeneration;
+        auto settleAndCommit = [window, generation]()
+            {
+                if (!g_lightSnapTransportBackingGuard ||
+                    window != g_mainWindow || !IsWindow(window) ||
+                    generation != g_lightSnapTransportGeneration)
+                {
+                    return;
+                }
+
+                auto* info = reinterpret_cast<WindowInfo*>(
+                    GetWindowLongPtrW(window, GWLP_USERDATA));
+                if (!info) return;
+
+                // WM_WINDOWPOSCHANGED/WM_SIZE has already installed the native
+                // Snap geometry. Reassert the current client geometry once on
+                // the WinUI dispatcher, then force pending measure/arrange work
+                // to complete while the native transport backing is still black.
+                // This closes the occasional one-frame race where DWM could
+                // outpace the transport island after the first native commit.
+                RECT client{};
+                if (GetClientRect(window, &client))
+                {
+                    ApplyClientLayout(
+                        window, info,
+                        client.right - client.left,
+                        client.bottom - client.top);
+                }
+
+                if (info->page)
+                {
+                    try
+                    {
+                        info->page.UpdateLayout();
+                    }
+                    catch (...)
+                    {
+                        // Presentation-only hardening must never alter normal
+                        // player behavior if WinUI rejects a one-off layout
+                        // flush during shutdown or another transient state.
+                    }
+                }
+
+                if (!g_lightSnapTransportBackingGuard ||
+                    generation != g_lightSnapTransportGeneration)
+                {
+                    return;
+                }
+
+                PaintLightSnapTransportBacking(window);
+                DwmFlush();
+
+                if (!PostMessageW(
+                    window,
+                    LightSnapTransportCommitMessage,
+                    static_cast<WPARAM>(generation),
+                    0))
+                {
+                    // Fail open on teardown: do not leave the backing guard
+                    // latched if the owner can no longer accept messages.
+                    if (generation == g_lightSnapTransportGeneration)
+                        g_lightSnapTransportBackingGuard = false;
+                }
+            };
+
+        auto dispatcher =
+            winrt::Microsoft::UI::Dispatching::DispatcherQueue::
+            GetForCurrentThread();
+        if (!dispatcher || !dispatcher.TryEnqueue(settleAndCommit))
+        {
+            // Same event-driven transaction, executed synchronously only when
+            // WinUI has no dispatcher available (normally teardown).
+            settleAndCommit();
+        }
+    }
+}
+
 void ApplyWindows11Visual(HWND window)
 {
     BOOL dark = PlayerIsLightTheme() ? FALSE : TRUE;
@@ -6374,7 +8262,15 @@ void ApplyWindows11Visual(HWND window)
         &dark,
         sizeof(dark));
 
-    DWM_SYSTEMBACKDROP_TYPE backdrop = DWMSBT_MAINWINDOW;
+    // Borderless and PiP main-window modes have no native caption to receive
+    // Mica. Keeping DWMSBT_MAINWINDOW active there can expose the light-theme
+    // backdrop during compositor transitions or live resize. Disable the main
+    // HWND backdrop in those modes only; the independent XAML/Mica transport
+    // backdrop is unaffected, and normal window mode restores MAINWINDOW.
+    DWM_SYSTEMBACKDROP_TYPE backdrop =
+        (window == g_mainWindow && (g_borderless || g_pictureInPicture))
+            ? DWMSBT_NONE
+            : DWMSBT_MAINWINDOW;
     DwmSetWindowAttribute(
         window,
         DWMWA_SYSTEMBACKDROP_TYPE,
@@ -6476,10 +8372,19 @@ namespace
         // Work in client pixels so the client itself follows the video's
         // display aspect ratio. Account for the current non-client frame before
         // deciding how much of the monitor is really available.
-        RECT sample{ 0, 0, 100, 100 };
-        AdjustWindowRectExForDpi(&sample, style, FALSE, exStyle, dpi);
-        int nonClientWidth = (sample.right - sample.left) - 100;
-        int nonClientHeight = (sample.bottom - sample.top) - 100;
+        int nonClientWidth{};
+        int nonClientHeight{};
+        if (!g_borderless)
+        {
+            RECT sample{ 0, 0, 100, 100 };
+            AdjustWindowRectExForDpi(&sample, style, FALSE, exStyle, dpi);
+            nonClientWidth = (sample.right - sample.left) - 100;
+            nonClientHeight = (sample.bottom - sample.top) - 100;
+        }
+        // Borderless mode keeps WS_THICKFRAME only for native resize input,
+        // while WM_NCCALCSIZE makes the entire window rectangle client area.
+        // Treat its non-client size as zero so autofit preserves the intended
+        // video aspect instead of budgeting for a frame that is not visible.
 
         int workWidth = monitor.rcWork.right - monitor.rcWork.left;
         int workHeight = monitor.rcWork.bottom - monitor.rcWork.top;
@@ -6536,11 +8441,16 @@ namespace
         int clientHeight = (std::max)(1,
             static_cast<int>(std::round(videoHeight * scale)));
 
-        RECT windowRect{ 0, 0, clientWidth, clientHeight };
-        AdjustWindowRectExForDpi(
-            &windowRect, style, FALSE, exStyle, dpi);
-        int outerWidth = windowRect.right - windowRect.left;
-        int outerHeight = windowRect.bottom - windowRect.top;
+        int outerWidth = clientWidth;
+        int outerHeight = clientHeight;
+        if (!g_borderless)
+        {
+            RECT windowRect{ 0, 0, clientWidth, clientHeight };
+            AdjustWindowRectExForDpi(
+                &windowRect, style, FALSE, exStyle, dpi);
+            outerWidth = windowRect.right - windowRect.left;
+            outerHeight = windowRect.bottom - windowRect.top;
+        }
 
         RECT current{};
         GetWindowRect(g_mainWindow, &current);
@@ -6591,7 +8501,12 @@ namespace
 
     bool RememberWindowSizeEnabled()
     {
-        return ConfiguredNativeToggle("ui-window-remember-size", false);
+        return ConfiguredNativeToggle("ui-window-remember-size", true);
+    }
+
+    bool RememberWindowPositionEnabled()
+    {
+        return ConfiguredNativeToggle("ui-window-remember-position", false);
     }
 
     bool ParseRememberedWindowSize(
@@ -6764,6 +8679,150 @@ namespace
             SWP_NOZORDER | SWP_NOACTIVATE) != FALSE;
     }
 
+    bool ParseRememberedWindowPosition(
+        std::string const& value, int& x, int& y)
+    {
+        x = 0;
+        y = 0;
+        auto const separator = value.find(',');
+        if (separator == std::string::npos) return false;
+
+        try
+        {
+            std::string const xText = value.substr(0, separator);
+            std::string const yText = value.substr(separator + 1);
+            if (xText.empty() || yText.empty()) return false;
+
+            long long const parsedX = std::stoll(xText);
+            long long const parsedY = std::stoll(yText);
+            if (parsedX < (std::numeric_limits<int>::min)() ||
+                parsedX > (std::numeric_limits<int>::max)() ||
+                parsedY < (std::numeric_limits<int>::min)() ||
+                parsedY > (std::numeric_limits<int>::max)())
+            {
+                return false;
+            }
+
+            x = static_cast<int>(parsedX);
+            y = static_cast<int>(parsedY);
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+
+    bool CaptureRememberedWindowPosition(bool saveImmediately)
+    {
+        if (!g_mainWindow || !RememberWindowPositionEnabled() ||
+            g_fullscreen || g_pictureInPicture ||
+            IsIconic(g_mainWindow) || IsZoomed(g_mainWindow))
+        {
+            return false;
+        }
+
+        RECT rect{};
+        if (!GetWindowRect(g_mainWindow, &rect)) return false;
+
+        std::string const value =
+            std::to_string(rect.left) + "," + std::to_string(rect.top);
+
+        auto& overrides = g_mpvSettingsManager.Overrides();
+        auto const found = overrides.find("ui-window-last-position");
+        if (found != overrides.end() && found->second == value)
+        {
+            return true;
+        }
+
+        overrides["ui-window-last-position"] = value;
+        g_mpvSettingsManager.MarkDirty();
+
+        if (saveImmediately)
+        {
+            if (g_mainWindow)
+                KillTimer(g_mainWindow, NativeSettingsSaveTimer);
+            return g_mpvSettingsManager.SaveNativeOptions();
+        }
+
+        ScheduleNativeOptionsSave();
+        return true;
+    }
+
+    bool ApplyRememberedWindowPosition()
+    {
+        if (!g_mainWindow || !RememberWindowPositionEnabled())
+        {
+            return false;
+        }
+
+        auto const found =
+            g_mpvSettingsManager.Overrides().find("ui-window-last-position");
+        if (found == g_mpvSettingsManager.Overrides().end())
+        {
+            return false;
+        }
+
+        int savedX{};
+        int savedY{};
+        if (!ParseRememberedWindowPosition(found->second, savedX, savedY))
+        {
+            return false;
+        }
+
+        RECT current{};
+        if (!GetWindowRect(g_mainWindow, &current)) return false;
+        int const width = current.right - current.left;
+        int const height = current.bottom - current.top;
+        if (width <= 0 || height <= 0) return false;
+
+        RECT target{
+            savedX, savedY,
+            savedX + width, savedY + height };
+        HMONITOR monitor = MonitorFromRect(
+            &target, MONITOR_DEFAULTTONEAREST);
+        if (!monitor) return false;
+
+        MONITORINFO info{ sizeof(info) };
+        if (!GetMonitorInfoW(monitor, &info)) return false;
+
+        RECT const& work = info.rcWork;
+        int const intersectionLeft = (std::max)(target.left, work.left);
+        int const intersectionTop = (std::max)(target.top, work.top);
+        int const intersectionRight = (std::min)(target.right, work.right);
+        int const intersectionBottom = (std::min)(target.bottom, work.bottom);
+        int const visibleWidth =
+            (std::max)(0, intersectionRight - intersectionLeft);
+        int const visibleHeight =
+            (std::max)(0, intersectionBottom - intersectionTop);
+        int const requiredVisibleWidth = (std::min)(width, 64);
+        int const requiredVisibleHeight = (std::min)(height, 32);
+
+        int x = savedX;
+        int y = savedY;
+        if (visibleWidth < requiredVisibleWidth ||
+            visibleHeight < requiredVisibleHeight)
+        {
+            // The monitor arrangement changed or the saved coordinates are no
+            // longer usable. Move only enough to make the normal window
+            // reachable again on the nearest available work area.
+            int const minX = work.left - width + requiredVisibleWidth;
+            int const maxX = work.right - requiredVisibleWidth;
+            int const minY = work.top;
+            int const maxY = work.bottom - requiredVisibleHeight;
+            x = minX <= maxX
+                ? (std::max)(minX, (std::min)(savedX, maxX))
+                : work.left;
+            y = minY <= maxY
+                ? (std::max)(minY, (std::min)(savedY, maxY))
+                : work.top;
+        }
+
+        return SetWindowPos(
+            g_mainWindow, nullptr, x, y, 0, 0,
+            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE) != FALSE;
+    }
+
     bool CenterMainWindowOnPrimaryWorkArea()
     {
         if (!g_mainWindow)
@@ -6841,7 +8900,8 @@ namespace
             return false;
         }
 
-        if (!ResizeMainWindowForVideo(videoWidth, videoHeight))
+        bool const resized = ResizeMainWindowForVideo(videoWidth, videoHeight);
+        if (!resized)
         {
             return true;
         }
@@ -6943,14 +9003,142 @@ namespace
     void ScheduleConfiguredAutofit()
     {
         if (!g_mainWindow) return;
+        if (g_startupMediaEventDriven)
+        {
+            // Cold-start media is resolved from libmpv events. Do not arm the
+            // normal retry timers until the event-driven startup has finished.
+            KillTimer(g_mainWindow, AutofitWindowTimer);
+            KillTimer(g_mainWindow, DynamicWindowFitTimer);
+            g_autofitAttemptsRemaining = 0;
+            ResetDynamicWindowFitTracking();
+            return;
+        }
         g_autofitAttemptsRemaining = 40;
         SetTimer(g_mainWindow, AutofitWindowTimer, 100, nullptr);
         UpdateDynamicWindowFitMonitoring(false);
     }
 
-    bool StartupAudioOnlyPresentationReady()
+    bool ReadStartupSelectedTrackKinds(bool& hasVideo, bool& hasAudio)
     {
-        if (!g_mpv.handle || !g_mpv.getProperty) return false;
+        hasVideo = false;
+        hasAudio = false;
+        if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.freeNodeContents)
+            return false;
+
+        MpvNode trackList{};
+        if (g_mpv.getProperty(
+            g_mpv.handle, "track-list", MpvFormatNode, &trackList) < 0)
+        {
+            return false;
+        }
+
+        bool validList =
+            trackList.format == MpvFormatNodeArray && trackList.value.list;
+        if (validList)
+        {
+            for (int index = 0; index < trackList.value.list->count; ++index)
+            {
+                auto const& entry = trackList.value.list->values[index];
+                if (entry.format != MpvFormatNodeMap || !entry.value.list)
+                    continue;
+
+                std::string type;
+                bool selected{};
+                for (int field = 0; field < entry.value.list->count; ++field)
+                {
+                    char const* key = entry.value.list->keys
+                        ? entry.value.list->keys[field] : nullptr;
+                    if (!key) continue;
+                    auto const& value = entry.value.list->values[field];
+                    if (strcmp(key, "type") == 0 &&
+                        value.format == MpvFormatString && value.value.string)
+                    {
+                        type = value.value.string;
+                    }
+                    else if (strcmp(key, "selected") == 0 &&
+                        value.format == MpvFormatFlag)
+                    {
+                        selected = value.value.flag != 0;
+                    }
+                }
+
+                if (!selected) continue;
+                if (type == "video") hasVideo = true;
+                else if (type == "audio") hasAudio = true;
+            }
+        }
+
+        g_mpv.freeNodeContents(&trackList);
+        return validList;
+    }
+
+    void FinishEventDrivenStartupMediaReveal(
+        bool failOpen, bool videoGeometryReady)
+    {
+        if (!g_startupMediaEventDriven || !g_mainWindow) return;
+
+        KillTimer(g_mainWindow, StartupMediaFailSafeTimer);
+        bool const desiredPaused = g_startupDesiredPaused;
+        bool const technicalPauseActive = g_startupTechnicalPauseActive;
+
+        if (g_mpv.handle && g_mpv.setWakeupCallback)
+        {
+            g_mpv.setWakeupCallback(g_mpv.handle, nullptr, nullptr);
+        }
+        g_startupMediaEventDriven = false;
+
+        // Position is independent from size/autofit. If event-driven video
+        // sizing changed the outer rectangle, put the saved normal X/Y back
+        // before the first visible frame.
+        if (RememberWindowPositionEnabled())
+        {
+            ApplyRememberedWindowPosition();
+        }
+
+        if (auto* info = reinterpret_cast<WindowInfo*>(
+            GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA)))
+        {
+            RECT client{};
+            if (GetClientRect(g_mainWindow, &client))
+            {
+                ApplyClientLayout(
+                    g_mainWindow, info,
+                    client.right - client.left,
+                    client.bottom - client.top);
+            }
+        }
+
+        // Reveal only after final hidden layout. The captured real pause state
+        // is restored immediately afterward, exactly as requested.
+        ShowWindow(g_mainWindow, g_startupShowCommand);
+        UpdateWindow(g_mainWindow);
+
+        if (technicalPauseActive && g_mpv.handle && g_mpv.setProperty)
+        {
+            g_mpv.setProperty(
+                g_mpv.handle, "pause", desiredPaused ? "yes" : "no");
+        }
+        g_startupTechnicalPauseActive = false;
+
+        if (videoGeometryReady)
+        {
+            UpdateDynamicWindowFitMonitoring(false);
+        }
+        else if (failOpen && !g_currentMediaPath.empty())
+        {
+            // After a fail-open the normal, already-existing autofit retry path
+            // may continue visibly. The hidden startup itself never polled.
+            ScheduleConfiguredAutofit();
+        }
+    }
+
+    bool TryCompleteEventDrivenStartupMediaReveal()
+    {
+        if (!g_startupMediaEventDriven || !g_mpv.handle ||
+            !g_mpv.getProperty)
+        {
+            return false;
+        }
 
         int idleActive{ 1 };
         if (g_mpv.getProperty(
@@ -6960,165 +9148,697 @@ namespace
             return false;
         }
 
-        // A video item must wait for video-out-params so the normal autofit can
-        // establish its final client aspect before the temporary black cover is
-        // removed. Audio has no video geometry to wait for and can be revealed
-        // as soon as its selected track exists. These are read-only properties.
-        int64_t videoId{ -1 };
-        if (g_mpv.getProperty(
-            g_mpv.handle, "current-tracks/video/id",
-            MpvFormatInt64, &videoId) >= 0 && videoId >= 0)
+        bool hasVideo{};
+        bool hasAudio{};
+        if (!ReadStartupSelectedTrackKinds(hasVideo, hasAudio))
         {
             return false;
         }
 
-        int64_t audioId{ -1 };
-        return g_mpv.getProperty(
-            g_mpv.handle, "current-tracks/audio/id",
-            MpvFormatInt64, &audioId) >= 0 && audioId >= 0;
-    }
-
-    void ResizeInitialMediaRevealShield()
-    {
-        if (!g_initialMediaRevealShield || !g_mainWindow ||
-            !IsWindow(g_initialMediaRevealShield))
+        if (hasVideo)
         {
-            return;
-        }
-
-        RECT client{};
-        if (!GetClientRect(g_mainWindow, &client)) return;
-        int const width = (std::max)(1, static_cast<int>(client.right - client.left));
-        int const height = (std::max)(1, static_cast<int>(client.bottom - client.top));
-        SetWindowPos(
-            g_initialMediaRevealShield, HWND_TOP,
-            0, 0, width, height,
-            SWP_NOACTIVATE | SWP_SHOWWINDOW);
-    }
-
-    void DestroyInitialMediaRevealShield()
-    {
-        HWND shield = std::exchange(g_initialMediaRevealShield, nullptr);
-        if (shield && IsWindow(shield))
-        {
-            DestroyWindow(shield);
-        }
-    }
-
-    void FinishDeferredStartupMediaReveal()
-    {
-        if (!g_deferredStartupMediaReveal || !g_mainWindow) return;
-
-        KillTimer(g_mainWindow, InitialMediaRevealTimer);
-        g_deferredStartupMediaReveal = false;
-        g_deferredStartupRevealStartedTick = 0;
-
-        // Restore the final overlay visibility while the black child is still
-        // the visible presentation. Any island that becomes visible here is
-        // immediately placed back underneath the shield before DWM commits.
-        if (auto* info = reinterpret_cast<WindowInfo*>(
-            GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA)))
-        {
-            RECT client{};
-            if (GetClientRect(g_mainWindow, &client))
+            int64_t videoWidth{};
+            int64_t videoHeight{};
+            if (!ReadCurrentVideoDisplaySize(videoWidth, videoHeight))
             {
-                ApplyClientLayout(g_mainWindow, info,
-                    client.right - client.left, client.bottom - client.top);
-                ResizeInitialMediaRevealShield();
+                return false;
+            }
+
+            // FILE_LOADED alone is not sufficient for video: only usable
+            // video-out geometry permits the hidden autofit/layout to finish.
+            if (!TryApplyConfiguredAutofit())
+            {
+                return false;
+            }
+
+            FinishEventDrivenStartupMediaReveal(false, true);
+            return true;
+        }
+
+        if (hasAudio)
+        {
+            // Audio-only startup intentionally does not wait for video-out-params.
+            FinishEventDrivenStartupMediaReveal(false, false);
+            return true;
+        }
+
+        return false;
+    }
+
+    void HandleMpvWakeupOnUiThread()
+    {
+        if (!g_startupMediaEventDriven || !g_mpv.handle || !g_mpv.waitEvent)
+            return;
+
+        for (;;)
+        {
+            MpvEvent* const event = g_mpv.waitEvent(g_mpv.handle, 0.0);
+            if (!event || event->eventId == MpvEventNone) break;
+
+            if (!g_startupMediaEventDriven) break;
+
+            if (event->error < 0 ||
+                event->eventId == MpvEventEndFile ||
+                event->eventId == MpvEventShutdown)
+            {
+                FinishEventDrivenStartupMediaReveal(true, false);
+                break;
+            }
+
+            switch (event->eventId)
+            {
+            case MpvEventFileLoaded:
+            case MpvEventVideoReconfig:
+            case MpvEventAudioReconfig:
+            case MpvEventPlaybackRestart:
+                if (TryCompleteEventDrivenStartupMediaReveal())
+                    return;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+
+    // Web collection safety tracking. Each yt-dlp-backed queue entry owns its
+    // own watch keyed by mpv's stable playlist ID instead of sharing a timeout-
+    // based global guard. A queued collection can therefore wait indefinitely,
+    // survive ordinary playlist mutations, and coexist safely with another
+    // pending web URL without losing the 30-item cap.
+    struct NativePlaylistIdentity
+    {
+        int64_t index{};
+        int64_t id{};
+    };
+
+    struct YtdlpExpansionWatch
+    {
+        int64_t originId{ -1 };
+        bool started{};
+        bool limitNoticeShown{};
+        bool collectionAdopted{};
+        bool knownCollection{};
+        std::set<int64_t> registrationBaselineIds;
+        std::set<int64_t> baselineIds;
+        std::set<int64_t> observedIds;
+    };
+
+    std::vector<YtdlpExpansionWatch> g_ytdlpExpansionWatches;
+    std::set<int64_t> g_activeYtdlpCollectionIds;
+    std::set<int64_t> g_staleYtdlpCollectionIds;
+    void* g_ytdlpCollectionCore{};
+    std::atomic_bool g_playlistWebLimitNoticePending{ false };
+    std::atomic_bool g_playlistMaximumNoticePending{ false };
+    ULONGLONG g_lastPlaylistMaximumGuardTick{};
+
+    void EnsureYtdlpCollectionCore()
+    {
+        void* const currentCore = g_mpv.handle;
+        if (g_ytdlpCollectionCore == currentCore) return;
+
+        // mpv playlist IDs are unique for the lifetime of one core instance.
+        // A rebuilt core starts a new ID namespace, so never carry identities
+        // or pending expansion watches across engine instances.
+        g_ytdlpCollectionCore = currentCore;
+        g_ytdlpExpansionWatches.clear();
+        g_activeYtdlpCollectionIds.clear();
+        g_staleYtdlpCollectionIds.clear();
+        g_playlistWebLimitNoticePending.store(false);
+    }
+
+    std::vector<NativePlaylistIdentity> NativePlaylistIdentities()
+    {
+        std::vector<NativePlaylistIdentity> result;
+        if (!g_mpv.handle || !g_mpv.getProperty) return result;
+
+        int64_t playlistCount{};
+        if (g_mpv.getProperty(
+            g_mpv.handle, "playlist-count", MpvFormatInt64,
+            &playlistCount) < 0 || playlistCount <= 0)
+        {
+            return result;
+        }
+
+        result.reserve(static_cast<size_t>(playlistCount));
+        for (int64_t index = 0; index < playlistCount; ++index)
+        {
+            int64_t id{};
+            std::string property =
+                "playlist/" + std::to_string(index) + "/id";
+            if (g_mpv.getProperty(
+                g_mpv.handle, property.c_str(), MpvFormatInt64, &id) >= 0)
+            {
+                result.push_back({ index, id });
+            }
+        }
+        return result;
+    }
+
+    std::set<int64_t> NativePlaylistIdSet()
+    {
+        std::set<int64_t> result;
+        for (auto const& entry : NativePlaylistIdentities())
+            result.insert(entry.id);
+        return result;
+    }
+
+    int64_t NativePlaylistCount()
+    {
+        if (!g_mpv.handle || !g_mpv.getProperty) return 0;
+
+        int64_t count{};
+        if (g_mpv.getProperty(
+            g_mpv.handle, "playlist-count", MpvFormatInt64, &count) < 0)
+        {
+            return 0;
+        }
+        return (std::max)(int64_t{}, count);
+    }
+
+    size_t PlaylistAvailableSlots()
+    {
+        int64_t const count = NativePlaylistCount();
+        if (count >= PlaylistMaximumItems) return 0;
+        return static_cast<size_t>(PlaylistMaximumItems - count);
+    }
+
+    int64_t ProtectedCurrentPlaylistId()
+    {
+        if (!g_mpv.handle || !g_mpv.getProperty) return -1;
+
+        int64_t position{ -1 };
+        if (g_mpv.getProperty(
+            g_mpv.handle, "playlist-playing-pos", MpvFormatInt64,
+            &position) < 0 || position < 0)
+        {
+            if (g_mpv.getProperty(
+                g_mpv.handle, "playlist-current-pos", MpvFormatInt64,
+                &position) < 0 || position < 0)
+            {
+                return -1;
             }
         }
 
-        // Commit the final client geometry and overlays together. Removing only
-        // the shield then reveals the already-running, fully laid-out player
-        // without ever hiding/re-showing the top-level HWND.
-        UpdateWindow(g_mainWindow);
-        DwmFlush();
-        DestroyInitialMediaRevealShield();
-        DwmFlush();
+        int64_t id{};
+        std::string property =
+            "playlist/" + std::to_string(position) + "/id";
+        if (g_mpv.getProperty(
+            g_mpv.handle, property.c_str(), MpvFormatInt64, &id) < 0)
+        {
+            return -1;
+        }
+        return id;
     }
 
-    void BeginDeferredStartupMediaReveal(int showCommand)
+    void RemovePlaylistIds(
+        std::set<int64_t> const& ids,
+        int64_t protectedId = -1)
     {
-        if (!g_mainWindow) return;
+        if (ids.empty() || !g_mpv.handle || !g_mpv.command) return;
 
-        RECT client{};
-        GetClientRect(g_mainWindow, &client);
-        int const width = (std::max)(1, static_cast<int>(client.right - client.left));
-        int const height = (std::max)(1, static_cast<int>(client.bottom - client.top));
-
-        g_initialMediaRevealShield = CreateWindowExW(
-            WS_EX_NOACTIVATE,
-            InitialMediaRevealShieldClassName,
-            L"",
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
-            0, 0, width, height,
-            g_mainWindow,
-            nullptr,
-            g_instance,
-            nullptr);
-
-        // Fail open: if Windows cannot create the tiny presentation shield,
-        // preserve the established fast startup rather than delaying the app.
-        if (!g_initialMediaRevealShield)
+        auto const entries = NativePlaylistIdentities();
+        for (auto it = entries.rbegin(); it != entries.rend(); ++it)
         {
-            ShowWindow(g_mainWindow, showCommand);
-            UpdateWindow(g_mainWindow);
-            return;
+            if (it->id == protectedId || !ids.contains(it->id)) continue;
+            std::string value = std::to_string(it->index);
+            const char* remove[] = {
+                "playlist-remove", value.c_str(), nullptr };
+            g_mpv.command(g_mpv.handle, remove);
+        }
+    }
+
+    void EnforcePlaylistMaximumGuard()
+    {
+        if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.command) return;
+
+        int64_t const count = NativePlaylistCount();
+        if (count <= PlaylistMaximumItems) return;
+
+        auto const entries = NativePlaylistIdentities();
+        if (entries.size() <= static_cast<size_t>(PlaylistMaximumItems)) return;
+
+        int64_t const protectedId = ProtectedCurrentPlaylistId();
+        auto const protectedEntry = std::find_if(
+            entries.begin(), entries.end(),
+            [protectedId](NativePlaylistIdentity const& entry)
+            {
+                return protectedId >= 0 && entry.id == protectedId;
+            });
+
+        bool const protectedBeyondLimit =
+            protectedEntry != entries.end() &&
+            protectedEntry->index >= PlaylistMaximumItems;
+        size_t const prefixToKeep = static_cast<size_t>(
+            protectedBeyondLimit ? PlaylistMaximumItems - 1
+                                 : PlaylistMaximumItems);
+
+        std::set<int64_t> overflowIds;
+        for (size_t index = prefixToKeep; index < entries.size(); ++index)
+        {
+            if (entries[index].id != protectedId)
+                overflowIds.insert(entries[index].id);
         }
 
-        g_deferredStartupMediaReveal = true;
-        g_deferredStartupRevealStartedTick = GetTickCount64();
+        if (overflowIds.empty()) return;
 
-        // DesktopWindowXamlSource can reinsert its child composition surface at
-        // the top of the sibling stack when the hidden owner is first shown.
-        // Hide every startup overlay through the normal layout path before that
-        // first presentation, then reassert the black shield as the top child.
-        if (auto* info = reinterpret_cast<WindowInfo*>(
-            GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA)))
+        RemovePlaylistIds(overflowIds, protectedId);
+        g_playlistMaximumNoticePending.store(true);
+    }
+
+    void IntersectTrackedIdsWithPlaylist(
+        std::set<int64_t>& ids,
+        std::set<int64_t> const& existingIds)
+    {
+        for (auto it = ids.begin(); it != ids.end();)
         {
-            RECT currentClient{};
-            if (GetClientRect(g_mainWindow, &currentClient))
+            if (!existingIds.contains(*it))
+                it = ids.erase(it);
+            else
+                ++it;
+        }
+    }
+
+    void CleanupStaleYtdlpCollectionEntries()
+    {
+        if (g_staleYtdlpCollectionIds.empty()) return;
+        EnsureYtdlpCollectionCore();
+        if (g_staleYtdlpCollectionIds.empty()) return;
+
+        int64_t const protectedId = ProtectedCurrentPlaylistId();
+        RemovePlaylistIds(g_staleYtdlpCollectionIds, protectedId);
+
+        // Keep at most the one old collection entry that is still the active
+        // playback anchor. Once playback moves away, the next snapshot removes
+        // it too without interrupting the user.
+        if (protectedId >= 0 && g_staleYtdlpCollectionIds.contains(protectedId))
+            g_staleYtdlpCollectionIds = { protectedId };
+        else
+            g_staleYtdlpCollectionIds.clear();
+    }
+
+    void RetireActiveYtdlpCollection(int64_t protectedId)
+    {
+        g_staleYtdlpCollectionIds.insert(
+            g_activeYtdlpCollectionIds.begin(),
+            g_activeYtdlpCollectionIds.end());
+        RemovePlaylistIds(g_staleYtdlpCollectionIds, protectedId);
+
+        if (protectedId >= 0 &&
+            g_staleYtdlpCollectionIds.contains(protectedId))
+        {
+            g_staleYtdlpCollectionIds = { protectedId };
+        }
+        else
+        {
+            g_staleYtdlpCollectionIds.clear();
+        }
+    }
+
+    void ResetYtdlpCollectionTrackingForReplace()
+    {
+        EnsureYtdlpCollectionCore();
+        g_ytdlpExpansionWatches.clear();
+        g_activeYtdlpCollectionIds.clear();
+        g_staleYtdlpCollectionIds.clear();
+        g_playlistWebLimitNoticePending.store(false);
+    }
+
+    void ProtectExplicitPlaylistAdditions(
+        std::set<int64_t> const& beforeIds)
+    {
+        if (g_ytdlpExpansionWatches.empty()) return;
+        EnsureYtdlpCollectionCore();
+        if (g_ytdlpExpansionWatches.empty()) return;
+
+        auto const afterIds = NativePlaylistIdSet();
+        std::set<int64_t> addedIds;
+        for (auto const id : afterIds)
+        {
+            if (!beforeIds.contains(id)) addedIds.insert(id);
+        }
+        if (addedIds.empty()) return;
+
+        // Explicit local/HLS/single-entry additions are never children of a
+        // collection that happened to be resolving at the same moment. Teach
+        // every existing watch to ignore those stable mpv IDs.
+        for (auto& watch : g_ytdlpExpansionWatches)
+        {
+            watch.registrationBaselineIds.insert(
+                addedIds.begin(), addedIds.end());
+            if (watch.started)
+                watch.baselineIds.insert(addedIds.begin(), addedIds.end());
+        }
+    }
+
+    void RegisterYtdlpExpansionWatch(
+        std::set<int64_t> const& beforeIds,
+        bool knownCollection = false)
+    {
+        EnsureYtdlpCollectionCore();
+
+        auto const afterEntries = NativePlaylistIdentities();
+        std::vector<NativePlaylistIdentity> addedEntries;
+        for (auto const& entry : afterEntries)
+        {
+            if (!beforeIds.contains(entry.id))
+                addedEntries.push_back(entry);
+        }
+
+        // A newly queued yt-dlp origin is an explicit entry from the point of
+        // view of any older watch. Otherwise a collection that is currently
+        // expanding could accidentally adopt the next queued URL as a child.
+        if (!addedEntries.empty())
+        {
+            std::set<int64_t> addedIds;
+            for (auto const& entry : addedEntries) addedIds.insert(entry.id);
+            for (auto& watch : g_ytdlpExpansionWatches)
             {
-                ApplyClientLayout(g_mainWindow, info,
-                    currentClient.right - currentClient.left,
-                    currentClient.bottom - currentClient.top);
+                watch.registrationBaselineIds.insert(
+                    addedIds.begin(), addedIds.end());
+                if (watch.started)
+                    watch.baselineIds.insert(addedIds.begin(), addedIds.end());
             }
         }
-        ResizeInitialMediaRevealShield();
 
-        // This is the key .36 change: the app window becomes visible now. Only
-        // the client presentation stays black while mpv prepares video-out-params.
-        ShowWindow(g_mainWindow, showCommand);
-        UpdateWindow(g_mainWindow);
-        if (SetTimer(g_mainWindow, InitialMediaRevealTimer, 50, nullptr) == 0)
+        YtdlpExpansionWatch watch;
+        watch.registrationBaselineIds = beforeIds;
+        watch.knownCollection = knownCollection;
+
+        if (addedEntries.size() == 1)
         {
-            FinishDeferredStartupMediaReveal();
+            // Normal append path: mpv creates one stable seed entry immediately
+            // and yt-dlp resolves it only when that entry becomes current.
+            watch.originId = addedEntries.front().id;
+        }
+        else if (addedEntries.size() > 1)
+        {
+            // Defensive synchronous-expansion fallback. Treat every entry that
+            // appeared during the command as output of this URL.
+            watch.started = true;
+            watch.baselineIds = beforeIds;
+        }
+
+        g_ytdlpExpansionWatches.push_back(std::move(watch));
+    }
+
+    bool CurrentPlaybackOwnedByAnotherYtdlpWatch(
+        size_t watchIndex,
+        int64_t currentId)
+    {
+        if (currentId < 0) return false;
+
+        for (size_t index = 0;
+            index < g_ytdlpExpansionWatches.size(); ++index)
+        {
+            if (index == watchIndex) continue;
+
+            auto const& other = g_ytdlpExpansionWatches[index];
+            if (other.originId == currentId ||
+                other.observedIds.contains(currentId))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void EnforceYtdlpExpansionGuard()
+    {
+        if (g_ytdlpExpansionWatches.empty()) return;
+        if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.command) return;
+        EnsureYtdlpCollectionCore();
+        if (g_ytdlpExpansionWatches.empty()) return;
+
+        auto entries = NativePlaylistIdentities();
+        std::set<int64_t> currentIds;
+        for (auto const& entry : entries) currentIds.insert(entry.id);
+        int64_t const currentId = ProtectedCurrentPlaylistId();
+
+        IntersectTrackedIdsWithPlaylist(
+            g_activeYtdlpCollectionIds, currentIds);
+        IntersectTrackedIdsWithPlaylist(
+            g_staleYtdlpCollectionIds, currentIds);
+
+        for (size_t watchIndex = 0;
+            watchIndex < g_ytdlpExpansionWatches.size();)
+        {
+            auto& watch = g_ytdlpExpansionWatches[watchIndex];
+
+            if (!watch.started)
+            {
+                if (watch.originId >= 0)
+                {
+                    if (currentIds.contains(watch.originId))
+                    {
+                        if (currentId != watch.originId)
+                        {
+                            ++watchIndex;
+                            continue;
+                        }
+
+                        // Snapshot the whole queue at the exact moment this seed
+                        // starts playback. Anything appended while it waited is
+                        // therefore baseline, not part of its future expansion.
+                        watch.started = true;
+                        watch.baselineIds = currentIds;
+                    }
+                    else
+                    {
+                        // The seed vanished before we observed it current. This
+                        // can mean either a very fast yt-dlp expansion or a user
+                        // removal. Start from the registration snapshot; an empty
+                        // delta below safely distinguishes the removal case.
+                        watch.started = true;
+                        watch.baselineIds = watch.registrationBaselineIds;
+                        watch.baselineIds.insert(watch.originId);
+                    }
+                }
+                else
+                {
+                    std::vector<NativePlaylistIdentity> candidates;
+                    for (auto const& entry : entries)
+                    {
+                        if (!watch.registrationBaselineIds.contains(entry.id))
+                            candidates.push_back(entry);
+                    }
+
+                    if (candidates.empty())
+                    {
+                        ++watchIndex;
+                        continue;
+                    }
+
+                    if (candidates.size() == 1)
+                    {
+                        watch.originId = candidates.front().id;
+                        if (currentId != watch.originId)
+                        {
+                            ++watchIndex;
+                            continue;
+                        }
+                        watch.started = true;
+                        watch.baselineIds = currentIds;
+                    }
+                    else
+                    {
+                        // Another defensive synchronous-expansion path for a
+                        // custom/old libmpv that does not expose the seed first.
+                        watch.started = true;
+                        watch.baselineIds = watch.registrationBaselineIds;
+                    }
+                }
+            }
+
+            // If playback has already handed off to another explicitly
+            // registered yt-dlp entry, this watch no longer owns future
+            // playlist mutations. Retire it before looking at the delta so a
+            // finished standalone URL cannot adopt the next queued playlist's
+            // expansion. This applies equally to manual Next and natural
+            // continuous-playback transitions because both are identified by
+            // mpv's stable current playlist ID.
+            if (watch.started &&
+                CurrentPlaybackOwnedByAnotherYtdlpWatch(
+                    watchIndex, currentId))
+            {
+                g_ytdlpExpansionWatches.erase(
+                    g_ytdlpExpansionWatches.begin() + watchIndex);
+                continue;
+            }
+
+            std::vector<NativePlaylistIdentity> newEntries;
+            newEntries.reserve(entries.size());
+            for (auto const& entry : entries)
+            {
+                if (!watch.baselineIds.contains(entry.id))
+                    newEntries.push_back(entry);
+            }
+
+            if (newEntries.empty())
+            {
+                bool const originStillExists =
+                    watch.originId >= 0 && currentIds.contains(watch.originId);
+                bool const playbackLeftOrigin =
+                    watch.started && originStillExists && currentId >= 0 &&
+                    currentId != watch.originId;
+
+                if (watch.knownCollection && !watch.collectionAdopted &&
+                    originStillExists && currentId == watch.originId)
+                {
+                    // A one-item YouTube playlist can resolve in-place without
+                    // changing mpv's entry ID. It is still a collection from the
+                    // user's point of view, so retire the prior expanded window
+                    // as soon as this known playlist becomes current.
+                    RetireActiveYtdlpCollection(currentId);
+                    watch.collectionAdopted = true;
+                    g_activeYtdlpCollectionIds = { watch.originId };
+                }
+
+                if (!originStillExists || playbackLeftOrigin)
+                {
+                    // A resolved single web item can keep the same mpv playlist
+                    // ID for its whole lifetime. Once playback moves elsewhere,
+                    // retire its watch so a later collection can never be
+                    // mistaken for output of this already-finished URL.
+                    g_ytdlpExpansionWatches.erase(
+                        g_ytdlpExpansionWatches.begin() + watchIndex);
+                    continue;
+                }
+
+                ++watchIndex;
+                continue;
+            }
+
+            // The 31st generated entry is only a look-ahead signal. Trim by
+            // stable mpv entry ID so unrelated local/HLS/explicit web entries
+            // never count against this collection's 30-item window.
+            if (newEntries.size() >
+                static_cast<size_t>(YtdlpExpandedPlaylistLimit))
+            {
+                if (!watch.limitNoticeShown)
+                {
+                    watch.limitNoticeShown = true;
+                    g_playlistWebLimitNoticePending.store(true);
+                }
+
+                std::set<int64_t> overflowIds;
+                for (size_t index =
+                    static_cast<size_t>(YtdlpExpandedPlaylistLimit);
+                    index < newEntries.size(); ++index)
+                {
+                    overflowIds.insert(newEntries[index].id);
+                }
+                RemovePlaylistIds(overflowIds);
+                newEntries.resize(
+                    static_cast<size_t>(YtdlpExpandedPlaylistLimit));
+
+                // Refresh the queue snapshot after removal so later watches in
+                // this same pass never reason from IDs we just deleted.
+                entries = NativePlaylistIdentities();
+                currentIds.clear();
+                for (auto const& entry : entries) currentIds.insert(entry.id);
+                IntersectTrackedIdsWithPlaylist(
+                    g_activeYtdlpCollectionIds, currentIds);
+                IntersectTrackedIdsWithPlaylist(
+                    g_staleYtdlpCollectionIds, currentIds);
+            }
+
+            watch.observedIds.clear();
+            for (auto const& entry : newEntries)
+                watch.observedIds.insert(entry.id);
+
+            // One result is an ordinary web item. Two or more results prove a
+            // collection. Adopt only once; later incremental additions update
+            // the same active ID set instead of replacing it with itself.
+            if (newEntries.size() > 1 || watch.knownCollection)
+            {
+                if (!watch.collectionAdopted)
+                {
+                    int64_t const protectedId = ProtectedCurrentPlaylistId();
+                    RetireActiveYtdlpCollection(protectedId);
+                    watch.collectionAdopted = true;
+                }
+
+                g_activeYtdlpCollectionIds = watch.observedIds;
+            }
+
+            // Once playback has moved completely away from this resolved URL,
+            // its watch has no more work. Pending watches for later queue items
+            // remain dormant until their own stable origin ID becomes current.
+            bool const currentBelongsToWatch =
+                (watch.originId >= 0 && currentId == watch.originId) ||
+                watch.observedIds.contains(currentId);
+            if (currentId >= 0 && !currentBelongsToWatch)
+            {
+                g_ytdlpExpansionWatches.erase(
+                    g_ytdlpExpansionWatches.begin() + watchIndex);
+                continue;
+            }
+
+            ++watchIndex;
         }
     }
 
-    void PollDeferredStartupMediaReveal()
+    void SynchronizeCurrentPlaylistIdentity()
     {
-        if (!g_deferredStartupMediaReveal || !g_mainWindow)
+        // Optical-disc sessions intentionally keep a user-facing source that
+        // differs from mpv's internal dvd/bd path. Never replace that identity
+        // from the native mpv playlist.
+        if (g_currentMediaIsDisc ||
+            !g_mpv.handle || !g_mpv.getProperty || !g_mpv.freeNodeContents)
         {
-            if (g_mainWindow) KillTimer(g_mainWindow, InitialMediaRevealTimer);
             return;
         }
 
-        // Same read-only geometry/autofit proof from .35, but the top-level
-        // HWND is already visible. The black child only masks transitional
-        // keepaspect bars until the final client geometry has been applied.
-        bool const geometryReady = TryApplyConfiguredAutofit();
-        bool const audioReady = !geometryReady &&
-            StartupAudioOnlyPresentationReady();
-        bool const timedOut = g_deferredStartupRevealStartedTick != 0 &&
-            GetTickCount64() - g_deferredStartupRevealStartedTick >=
-                InitialMediaRevealTimeoutMs;
-
-        if (geometryReady || audioReady || timedOut)
+        int64_t position{ -1 };
+        if (g_mpv.getProperty(
+            g_mpv.handle,
+            "playlist-playing-pos",
+            MpvFormatInt64,
+            &position) < 0 || position < 0)
         {
-            FinishDeferredStartupMediaReveal();
+            if (g_mpv.getProperty(
+                g_mpv.handle,
+                "playlist-pos",
+                MpvFormatInt64,
+                &position) < 0 || position < 0)
+            {
+                return;
+            }
         }
+
+        std::string const property =
+            "playlist/" + std::to_string(position) + "/filename";
+        MpvNode node{};
+        if (g_mpv.getProperty(
+            g_mpv.handle, property.c_str(), MpvFormatNode, &node) < 0)
+        {
+            return;
+        }
+
+        std::wstring activeSource;
+        if (node.format == MpvFormatString && node.value.string)
+        {
+            activeSource = NormalizePlaylistMediaSource(
+                winrt::to_hstring(node.value.string).c_str());
+        }
+        g_mpv.freeNodeContents(&node);
+
+        if (activeSource.empty() || activeSource == g_currentMediaPath) return;
+
+        // Leave the already-proven local-to-local playlist behavior untouched.
+        // Identity synchronization is needed only when entering, leaving or
+        // switching a web source added through the queue.
+        if (!IsWebUrl(activeSource) && !IsWebUrl(g_currentMediaPath)) return;
+
+        // This changes identity only; mpv already owns playback and the queue.
+        // Keeping the host identity in sync makes badges, YouTube comments and
+        // later app actions follow the item actually selected in the playlist.
+        g_currentMediaPath = std::move(activeSource);
+        g_currentMediaIsDisc = false;
+        g_currentDiscIsBluray = false;
     }
+
 
 }
 
@@ -7140,12 +9860,15 @@ bool PlayerLoadOpticalDisc(
         bluray ? "bluray-device" : "dvd-device", utf8.c_str());
     std::string target = bluray ? "bd://" : "dvd://";
     if (title >= 0) target += std::to_string(title);
-    const char* load[] = { "loadfile", target.c_str(), "replace", nullptr };
-    if (g_mpv.command(g_mpv.handle, load) < 0) return false;
+    std::vector<std::pair<std::string, std::string>> localOptions;
+    AppendStartupTechnicalPauseLocalOption(localOptions);
+    if (LoadFileWithLocalOptions(target, "replace", localOptions) < 0)
+        return false;
 
     g_currentMediaPath = path;
     g_currentMediaIsDisc = true;
     g_currentDiscIsBluray = bluray;
+    PlayerRefreshWindowTitle({});
     RefreshCurrentClientLayout();
     if (addToRecent) AddRecentFile(path);
     ScheduleConfiguredAutofit();
@@ -7183,7 +9906,10 @@ bool PlayerLoadFile(std::wstring const& path)
     bool bluray{};
     if (TryGetOpticalDiscFolder(path, discRoot, bluray))
     {
-        return PlayerLoadOpticalDisc(discRoot.wstring(), bluray);
+        bool const loadedDisc =
+            PlayerLoadOpticalDisc(discRoot.wstring(), bluray);
+        if (loadedDisc) ResetYtdlpCollectionTrackingForReplace();
+        return loadedDisc;
     }
 
     if (!g_mpv.Start(g_videoWindow))
@@ -7202,25 +9928,27 @@ bool PlayerLoadFile(std::wstring const& path)
     g_mpv.setProperty(g_mpv.handle, "start", "none");
 
     // Normal single-file opens use mpv's native --autocreate-playlist=filter.
-    // Explicit multi-file operations already build an exact playlist below, so
-    // suppress native directory expansion only for that one load command.
-    bool restoreNativeAutocreate = false;
-    if (g_suppressAutoload && g_mpv.setProperty)
-    {
-        restoreNativeAutocreate =
-            g_mpv.setProperty(
-                g_mpv.handle,
-                "autocreate-playlist",
-                "no") >= 0;
-    }
+    // Explicit multi-file operations attach a file-local override to the
+    // load command below, keeping native expansion disabled for that exact
+    // asynchronous load without changing the global single-file behavior.
 
-    std::string utf8 = winrt::to_string(MpvLoadTarget(path));
+    std::wstring const loadTarget = MpvLoadTarget(path);
+    bool const ytdlBacked = loadTarget.starts_with(L"ytdl://");
+    std::set<int64_t> const ytdlBeforeIds =
+        ytdlBacked ? NativePlaylistIdSet() : std::set<int64_t>{};
+    std::string utf8 = winrt::to_string(loadTarget);
     std::vector<std::pair<std::string, std::string>> localOptions;
+    if (g_suppressAutoload)
+    {
+        localOptions.emplace_back("autocreate-playlist", "no");
+    }
 
     if (IsLikelyHlsSource(path))
     {
         localOptions = HlsFileLocalOptions();
     }
+    AppendYouTubePlaylistWindowLocalOption(path, localOptions);
+    AppendStartupTechnicalPauseLocalOption(localOptions);
 
     double resumePosition{};
     if (TryGetResumePosition(path, resumePosition))
@@ -7244,21 +9972,32 @@ bool PlayerLoadFile(std::wstring const& path)
     bool const loaded =
         LoadFileWithLocalOptions(utf8, "replace", localOptions) >= 0;
 
-    if (!loaded) ClearPendingResumeSeek();
-
-    if (restoreNativeAutocreate)
+    if (!loaded)
     {
-        g_mpv.setProperty(
-            g_mpv.handle,
-            "autocreate-playlist",
-            "filter");
+        ClearPendingResumeSeek();
+        if (g_startupMediaEventDriven)
+        {
+            FinishEventDrivenStartupMediaReveal(true, false);
+        }
     }
+    else
+    {
+        // Only a successful replace retires collection state from the outgoing
+        // queue. A failed/disabled open must not silently forget which web
+        // entries belong to the playlist that is still playing.
+        ResetYtdlpCollectionTrackingForReplace();
+        if (ytdlBacked)
+            RegisterYtdlpExpansionWatch(
+                ytdlBeforeIds, IsYouTubePlaylistPageUrl(path));
+    }
+
 
     if (loaded)
     {
         g_currentMediaPath = path;
         g_currentMediaIsDisc = false;
         g_currentDiscIsBluray = false;
+        PlayerRefreshWindowTitle({});
         RefreshCurrentClientLayout();
         AddRecentFile(path);
         ScheduleConfiguredAutofit();
@@ -7270,6 +10009,13 @@ bool PlayerLoadFile(std::wstring const& path)
 
 void PlayerTogglePause()
 {
+    if (g_startupTechnicalPauseActive)
+    {
+        // During the hidden cold start, Play/Pause changes only the desired
+        // user state. The technical pause remains armed until reveal.
+        g_startupDesiredPaused = !g_startupDesiredPaused;
+        return;
+    }
     if (!g_mpv.handle)
     {
         return;
@@ -7291,6 +10037,16 @@ bool PlayerGetPlaybackState(bool& paused, bool& eofReached)
     paused = false;
     eofReached = false;
     if (!g_mpv.handle || !g_mpv.getProperty) return false;
+
+    if (g_startupTechnicalPauseActive)
+    {
+        // Publish only the user's desired pause state while the hidden
+        // technical pause owns libmpv. Treat startup as non-EOF so a system
+        // Play command cannot route through Replay() and release that pause.
+        paused = g_startupDesiredPaused;
+        eofReached = false;
+        return true;
+    }
 
     int pauseFlag{};
     int eofFlag{};
@@ -7449,6 +10205,7 @@ void PlayerChangePlaylistItem(int delta)
     }
 
     int64_t playlistPosition{ -1 };
+    bool recoveredFailedItemByIdentity{};
 
     // Prefer the item that is actually playing. During normal playback this
     // is the most precise index; fall back to playlist-pos outside that state.
@@ -7463,16 +10220,52 @@ void PlayerChangePlaylistItem(int delta)
             g_mpv.handle,
             "playlist-pos",
             MpvFormatInt64,
-            &playlistPosition) < 0)
+            &playlistPosition) < 0 ||
+            playlistPosition < 0)
         {
-            return;
+            // A failed web load can leave both mpv position properties at -1
+            // even though HC Player still knows which queue item was selected.
+            // Recover that index only for manual transport navigation so the
+            // Previous/Next buttons never become trapped on a broken URL.
+            std::wstring const currentSource =
+                NormalizePlaylistMediaSource(g_currentMediaPath);
+            if (!currentSource.empty())
+            {
+                auto const playlist = PlayerGetPlaylistItems();
+                auto const selected = std::find_if(
+                    playlist.begin(), playlist.end(),
+                    [&currentSource](MediaPlaylistItem const& item)
+                    {
+                        std::wstring const candidate =
+                            NormalizePlaylistMediaSource(item.filename);
+                        if (candidate.empty()) return false;
+                        if (IsWebUrl(currentSource) || IsWebUrl(candidate))
+                            return candidate == currentSource;
+                        return _wcsicmp(
+                            candidate.c_str(), currentSource.c_str()) == 0;
+                    });
+                if (selected != playlist.end())
+                {
+                    playlistPosition = selected->index;
+                    recoveredFailedItemByIdentity = true;
+                }
+            }
         }
     }
 
     if (playlistPosition < 0) return;
 
-    if (delta < 0 && playlistPosition == 0) return;
-    if (delta > 0 && playlistPosition >= playlistCount - 1) return;
+    int64_t const targetPosition =
+        playlistPosition + (delta > 0 ? 1 : -1);
+    if (targetPosition < 0 || targetPosition >= playlistCount) return;
+
+    if (recoveredFailedItemByIdentity)
+    {
+        // playlist-next/prev has no usable anchor after a failed load. Select the
+        // bounded adjacent row directly; normal playback keeps the old command.
+        PlayerPlayPlaylistItem(targetPosition);
+        return;
+    }
 
     PlayerExecuteMpvCommand(delta > 0
         ? L"no-osd playlist-next"
@@ -7482,6 +10275,21 @@ void PlayerChangePlaylistItem(int delta)
 void PlayerChangeChapter(int delta)
 {
     if (!g_mpv.handle || delta == 0) return;
+
+    int idleActive{};
+    if (g_mpv.getProperty &&
+        g_mpv.getProperty(
+            g_mpv.handle,
+            "idle-active",
+            MpvFormatFlag,
+            &idleActive) >= 0 &&
+        idleActive)
+    {
+        // A failed URL has no active chapter context. Do not let stale chapter
+        // metadata swallow the toolbar navigation; move through the queue.
+        PlayerChangePlaylistItem(delta);
+        return;
+    }
 
     if (PlayerGetMediaChapters().empty())
     {
@@ -7529,18 +10337,6 @@ bool PlayerAdvanceContinuousPlayback()
             return !value.empty();
         };
 
-    // Current item must be an actual local file.
-    std::wstring currentPath;
-    if (!readStringNode("path", currentPath))
-        currentPath = g_currentMediaPath;
-
-    std::error_code currentError;
-    if (currentPath.empty() ||
-        !std::filesystem::is_regular_file(currentPath, currentError))
-    {
-        return false;
-    }
-
     int64_t playlistCount{};
     if (g_mpv.getProperty(
         g_mpv.handle,
@@ -7570,45 +10366,42 @@ bool PlayerAdvanceContinuousPlayback()
         }
     }
 
-    // Same bounded policy as the existing Previous/Next logic.
+    // Same bounded policy as the existing Previous/Next logic. Reaching the
+    // final row still parks at EOF; continuous playback never wraps the queue.
     if (playlistPosition < 0 ||
         playlistPosition >= playlistCount - 1)
     {
         return false;
     }
 
-    std::wstring nextPath;
+    std::wstring nextSource;
     std::string const nextProperty =
         "playlist/" +
         std::to_string(playlistPosition + 1) +
         "/filename";
-
-    if (!readStringNode(nextProperty, nextPath))
-        return false;
-
-    std::filesystem::path nextFile{ nextPath };
-    if (nextFile.is_relative())
-    {
-        nextFile =
-            std::filesystem::path{ currentPath }.parent_path() /
-            nextFile;
-    }
-
-    std::error_code nextError;
-    if (!std::filesystem::is_regular_file(nextFile, nextError))
-    {
-        // Mixed local/web playlists never auto-cross into a web source.
-        return false;
-    }
+    if (readStringNode(nextProperty, nextSource))
+        nextSource = NormalizePlaylistMediaSource(std::move(nextSource));
 
     // A preserved engine restart may leave a runtime --start value behind.
-    // Clear it so every automatic next file begins at 00:00.
+    // Clear it so every automatic next item begins at 00:00.
     if (g_mpv.setProperty)
         g_mpv.setProperty(g_mpv.handle, "start", "none");
 
-    return g_mpv.commandString(
+    bool const advanced = g_mpv.commandString(
         g_mpv.handle,
         "no-osd playlist-next") >= 0;
+
+    if (advanced && !nextSource.empty() &&
+        (IsWebUrl(nextSource) || IsWebUrl(g_currentMediaPath)))
+    {
+        // Keep the same source-identity rule used by explicit playlist clicks.
+        // Local-to-local remains untouched; web transitions update immediately.
+        g_currentMediaPath = std::move(nextSource);
+        g_currentMediaIsDisc = false;
+        g_currentDiscIsBluray = false;
+    }
+
+    return advanced;
 }
 
 void PlayerSetVolume(double volume)
@@ -7993,49 +10786,44 @@ void PlayerUpdateWebBufferingIndicator()
         client.right - client.left, client.bottom - client.top);
 }
 
-bool PlayerGetMediaInfoReport(
-    std::wstring& report,
+bool PlayerGetMediaInfoSourcePath(
+    std::wstring& currentPath,
     std::wstring& error)
 {
-    report.clear();
+    currentPath.clear();
     error.clear();
-
-    if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.freeNodeContents)
-    {
-        error = L"No media is currently open.";
-        return false;
-    }
-
-    // Ask mpv for the CURRENT playlist item's path rather than trusting the
-    // path originally opened by the user. This keeps MediaInfo correct after
-    // Previous, Next, playlist navigation and Shuffle.
-    std::wstring currentPath;
-
-    MpvNode pathNode{};
-    if (g_mpv.getProperty(
-        g_mpv.handle,
-        "path",
-        MpvFormatNode,
-        &pathNode) >= 0)
-    {
-        if (pathNode.format == MpvFormatString && pathNode.value.string)
-        {
-            currentPath =
-                winrt::to_hstring(pathNode.value.string).c_str();
-        }
-
-        g_mpv.freeNodeContents(&pathNode);
-    }
-
-    if (currentPath.empty())
-    {
-        currentPath = g_currentMediaPath;
-    }
 
     if (g_currentMediaIsDisc)
     {
         error = L"Detailed MediaInfo information is not available for optical discs.";
         return false;
+    }
+
+    // Capture the CURRENT playlist item while still on HC Player's UI thread.
+    // MediaInfo can then analyze this stable path in the background without
+    // touching a live libmpv handle that settings may rebuild.
+    if (g_mpv.handle && g_mpv.getProperty && g_mpv.freeNodeContents)
+    {
+        MpvNode pathNode{};
+        if (g_mpv.getProperty(
+            g_mpv.handle,
+            "path",
+            MpvFormatNode,
+            &pathNode) >= 0)
+        {
+            if (pathNode.format == MpvFormatString && pathNode.value.string)
+            {
+                currentPath =
+                    winrt::to_hstring(pathNode.value.string).c_str();
+            }
+
+            g_mpv.freeNodeContents(&pathNode);
+        }
+    }
+
+    if (currentPath.empty())
+    {
+        currentPath = g_currentMediaPath;
     }
 
     if (currentPath.empty())
@@ -8047,9 +10835,24 @@ bool PlayerGetMediaInfoReport(
     // MediaInfo's direct file API is used only for real local files.
     // Protocol sources (dvd://, bd://, http(s)://, ytdl://, etc.) remain
     // outside this path and can receive a dedicated implementation later.
-    std::error_code fileError;
-    std::filesystem::path const filePath{ currentPath };
+    std::filesystem::path filePath{ currentPath };
 
+    // An mpv auto-created local playlist may expose sibling entries as relative
+    // paths. Resolve that one filesystem case against the last absolute local
+    // source before validating it; protocol sources remain untouched.
+    if (filePath.is_relative() &&
+        currentPath.find(L"://") == std::wstring::npos &&
+        !g_currentMediaPath.empty() &&
+        g_currentMediaPath.find(L"://") == std::wstring::npos)
+    {
+        std::filesystem::path const openedPath{ g_currentMediaPath };
+        if (openedPath.is_absolute())
+        {
+            filePath = openedPath.parent_path() / filePath;
+        }
+    }
+
+    std::error_code fileError;
     if (!std::filesystem::is_regular_file(filePath, fileError))
     {
         error =
@@ -8057,8 +10860,24 @@ bool PlayerGetMediaInfoReport(
         return false;
     }
 
+    currentPath = filePath.lexically_normal().wstring();
+    return true;
+}
+
+bool PlayerGetMediaInfoReport(
+    std::wstring& report,
+    std::wstring& error)
+{
+    report.clear();
+
+    std::wstring currentPath;
+    if (!PlayerGetMediaInfoSourcePath(currentPath, error))
+    {
+        return false;
+    }
+
     return MediaInfoBridge::AnalyzeFile(
-        filePath.wstring(),
+        currentPath,
         report,
         error);
 }
@@ -8068,63 +10887,14 @@ bool PlayerGetMediaInfoAnalysis(
     std::wstring& error)
 {
     analysis = {};
-    error.clear();
-
-    if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.freeNodeContents)
-    {
-        error = L"No media is currently open.";
-        return false;
-    }
-
-    // Query mpv for the CURRENT playlist item, so Previous / Next / Shuffle
-    // always analyze the media that is actually playing.
     std::wstring currentPath;
-
-    MpvNode pathNode{};
-    if (g_mpv.getProperty(
-        g_mpv.handle,
-        "path",
-        MpvFormatNode,
-        &pathNode) >= 0)
+    if (!PlayerGetMediaInfoSourcePath(currentPath, error))
     {
-        if (pathNode.format == MpvFormatString && pathNode.value.string)
-        {
-            currentPath =
-                winrt::to_hstring(pathNode.value.string).c_str();
-        }
-
-        g_mpv.freeNodeContents(&pathNode);
-    }
-
-    if (currentPath.empty())
-    {
-        currentPath = g_currentMediaPath;
-    }
-
-    if (g_currentMediaIsDisc)
-    {
-        error = L"Detailed MediaInfo information is not available for optical discs.";
-        return false;
-    }
-
-    if (currentPath.empty())
-    {
-        error = L"No media file is available for analysis.";
-        return false;
-    }
-
-    std::error_code fileError;
-    std::filesystem::path const filePath{ currentPath };
-
-    if (!std::filesystem::is_regular_file(filePath, fileError))
-    {
-        error =
-            L"As informações detalhadas do MediaInfo estão disponíveis apenas para arquivos locais.";
         return false;
     }
 
     return MediaInfoBridge::AnalyzeFileStructured(
-        filePath.wstring(),
+        currentPath,
         analysis,
         error);
 }
@@ -8231,6 +11001,85 @@ std::wstring PlayerGetMediaTitle()
         if (!title.empty()) return title;
     }
     return {};
+}
+
+
+void PlayerRefreshWindowTitle(std::wstring const& resolvedMediaTitle)
+{
+    if (!g_mainWindow) return;
+
+    std::wstring desiredTitle = L"HC Player";
+    if (ConfiguredNativeToggle("ui-show-media-title", false) &&
+        !g_currentMediaPath.empty())
+    {
+        std::wstring mediaLabel = Trim(resolvedMediaTitle);
+
+        // During online resolution mpv may temporarily expose the URL itself as
+        // media-title. Keep the application title clean until real metadata
+        // arrives instead of flashing a long URL in the native caption.
+        if (IsWebUrl(mediaLabel) || mediaLabel.starts_with(L"ytdl://"))
+        {
+            mediaLabel.clear();
+        }
+
+        if (mediaLabel.empty())
+        {
+            std::wstring activePath;
+            if (g_mpv.handle && g_mpv.getProperty && g_mpv.freeNodeContents)
+            {
+                MpvNode node{};
+                if (g_mpv.getProperty(
+                    g_mpv.handle, "path", MpvFormatNode, &node) >= 0)
+                {
+                    if (node.format == MpvFormatString && node.value.string)
+                    {
+                        activePath =
+                            Trim(winrt::to_hstring(node.value.string).c_str());
+                    }
+                    g_mpv.freeNodeContents(&node);
+                }
+            }
+
+            if (g_currentMediaIsDisc || activePath.empty())
+            {
+                activePath = g_currentMediaPath;
+            }
+            if (!activePath.empty() &&
+                !IsWebUrl(activePath) &&
+                !activePath.starts_with(L"ytdl://"))
+            {
+                try
+                {
+                    auto const filename =
+                        std::filesystem::path(activePath).filename().wstring();
+                    mediaLabel = filename.empty() ? activePath : filename;
+                }
+                catch (...)
+                {
+                    mediaLabel = activePath;
+                }
+            }
+        }
+
+        constexpr size_t MaximumCaptionMediaLength = 160;
+        if (mediaLabel.size() > MaximumCaptionMediaLength)
+        {
+            mediaLabel.resize(MaximumCaptionMediaLength - 1);
+            mediaLabel += L"\u2026";
+        }
+
+        if (!mediaLabel.empty())
+        {
+            desiredTitle = mediaLabel + L" \u2014 HC Player";
+        }
+    }
+
+    wchar_t currentTitle[512]{};
+    GetWindowTextW(g_mainWindow, currentTitle, ARRAYSIZE(currentTitle));
+    if (desiredTitle != currentTitle)
+    {
+        SetWindowTextW(g_mainWindow, desiredTitle.c_str());
+    }
 }
 
 std::vector<MediaChapterOption> PlayerGetMediaChapters()
@@ -8432,11 +11281,49 @@ bool PlayerSelectMediaEdition(bool discTitle, int64_t id)
     return selected;
 }
 
+bool PlayerTakePlaylistWebLimitNotice()
+{
+    return g_playlistWebLimitNoticePending.exchange(false);
+}
+
+bool PlayerTakePlaylistMaximumNotice()
+{
+    return g_playlistMaximumNoticePending.exchange(false);
+}
+
+void PlayerMaintainPlaylistLimits()
+{
+    if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.command) return;
+
+    ULONGLONG const now = GetTickCount64();
+    if (g_lastPlaylistMaximumGuardTick != 0 &&
+        now - g_lastPlaylistMaximumGuardTick < 1000)
+    {
+        return;
+    }
+    g_lastPlaylistMaximumGuardTick = now;
+
+    // Preserve the established web-collection ownership/cleanup order before
+    // applying the universal queue cap. This prevents a resolving YouTube
+    // collection from losing entries that would have been freed by retiring
+    // the previous collection first.
+    CleanupStaleYtdlpCollectionEntries();
+    EnforceYtdlpExpansionGuard();
+    EnforcePlaylistMaximumGuard();
+}
+
 std::vector<MediaPlaylistItem> PlayerGetPlaylistItems()
 {
     std::vector<MediaPlaylistItem> result;
     if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.freeNodeContents)
         return result;
+
+    // Retire any old collection entry that had to be kept temporarily because
+    // it was still playing, then apply the active yt-dlp expansion safety cap
+    // before the UI materializes the complete playlist node.
+    CleanupStaleYtdlpCollectionEntries();
+    EnforceYtdlpExpansionGuard();
+    EnforcePlaylistMaximumGuard();
 
     int64_t currentPosition{ -1 };
     g_mpv.getProperty(g_mpv.handle, "playlist-pos",
@@ -8498,6 +11385,18 @@ std::vector<MediaPlaylistItem> PlayerGetPlaylistItems()
                     item.format.begin(), towupper);
             }
             catch (...) {}
+
+            // Playlist source labels are presentation-only. Keep local file
+            // extensions exactly as before, but identify the web sources users
+            // can meaningfully distinguish without maintaining a site catalog.
+            // ytdl:// is normalized back to its original HTTP(S) URL first.
+            auto const source = NormalizePlaylistMediaSource(item.filename);
+            if (IsYouTubeUrl(source))
+                item.format = L"YOUTUBE";
+            else if (IsLikelyHlsSource(source))
+                item.format = L"M3U8";
+            else if (IsWebUrl(source))
+                item.format = L"WEB";
         }
         if (item.title.empty()) item.title = item.filename;
         if (item.title.empty()) item.title = L"Item " + std::to_wstring(index + 1);
@@ -8510,10 +11409,36 @@ std::vector<MediaPlaylistItem> PlayerGetPlaylistItems()
 bool PlayerPlayPlaylistItem(int64_t index)
 {
     if (!g_mpv.handle || index < 0) return false;
+
+    std::wstring selectedSource;
+    auto const playlist = PlayerGetPlaylistItems();
+    auto const selected = std::find_if(
+        playlist.begin(), playlist.end(),
+        [index](MediaPlaylistItem const& item) { return item.index == index; });
+    if (selected != playlist.end())
+    {
+        selectedSource = NormalizePlaylistMediaSource(selected->filename);
+    }
+
     std::string value = std::to_string(index);
     const char* command[] = { "playlist-play-index", value.c_str(), nullptr };
-    if (g_mpv.command(g_mpv.handle, command) >= 0) return true;
-    return g_mpv.setProperty(g_mpv.handle, "playlist-pos", value.c_str()) >= 0;
+    bool const changed = g_mpv.command(g_mpv.handle, command) >= 0 ||
+        g_mpv.setProperty(g_mpv.handle, "playlist-pos", value.c_str()) >= 0;
+    if (!changed) return false;
+
+    // playlist-play-index is asynchronous, so mpv can still expose the outgoing
+    // path for a short interval. Use the queue entry we just selected to update
+    // HC Player's public media identity immediately without touching playback.
+    if (!selectedSource.empty() &&
+        (IsWebUrl(selectedSource) || IsWebUrl(g_currentMediaPath)))
+    {
+        // Do not perturb the established local-to-local queue semantics. The
+        // immediate identity handoff is needed only when web media is involved.
+        g_currentMediaPath = std::move(selectedSource);
+        g_currentMediaIsDisc = false;
+        g_currentDiscIsBluray = false;
+    }
+    return true;
 }
 
 bool PlayerRemovePlaylistItem(int64_t index)
@@ -8617,6 +11542,25 @@ bool PlayerAddPlaylistFiles(std::vector<std::wstring> const& droppedFiles)
         return PlayerOpenDroppedMedia(paths);
     }
 
+    EnforcePlaylistMaximumGuard();
+    size_t const availableSlots = PlaylistAvailableSlots();
+    if (availableSlots == 0)
+    {
+        g_playlistMaximumNoticePending.store(true);
+        return false;
+    }
+    if (paths.size() > availableSlots)
+    {
+        paths.resize(availableSlots);
+        g_playlistMaximumNoticePending.store(true);
+    }
+
+    bool const protectFromPendingCollection =
+        !g_ytdlpExpansionWatches.empty();
+    std::set<int64_t> const beforeIds = protectFromPendingCollection
+        ? NativePlaylistIdSet()
+        : std::set<int64_t>{};
+
     bool appendedAny = false;
     for (auto const& path : paths)
     {
@@ -8629,7 +11573,91 @@ bool PlayerAddPlaylistFiles(std::vector<std::wstring> const& droppedFiles)
             AddRecentFile(path);
         }
     }
+
+    if (appendedAny && protectFromPendingCollection)
+        ProtectExplicitPlaylistAdditions(beforeIds);
     return appendedAny;
+}
+
+bool PlayerAddPlaylistUrl(std::wstring const& input)
+{
+    std::wstring url = Trim(input);
+    if (url.empty() ||
+        url.find_first_of(L"\r\n") != std::wstring::npos)
+    {
+        return false;
+    }
+
+    std::wstring lower = url;
+    std::transform(lower.begin(), lower.end(), lower.begin(), towlower);
+    bool const http = lower.starts_with(L"http://") && lower.size() > 7;
+    bool const https = lower.starts_with(L"https://") && lower.size() > 8;
+    if (!http && !https)
+    {
+        return false;
+    }
+
+    // A copied YouTube video URL can also carry &list=. mpv's ytdl hook
+    // intentionally prefers the single video in that ambiguous form. For the
+    // explicit Add-to-queue path only, canonicalize it to /playlist?list= so
+    // the existing yt-dlp collection path can expand it under the 30-item guard.
+    url = NormalizeYouTubePlaylistQueueUrl(url);
+
+    // Match the existing file-add behavior when the queue is genuinely empty:
+    // the first item becomes current through HC Player's normal Open path.
+    if (!g_mpv.handle || PlayerGetPlaylistItems().empty())
+    {
+        return PlayerOpenRecentFile(url);
+    }
+
+    // Existing playback is never replaced. Mpv remains the single queue owner;
+    // HLS stays direct while normal web pages are routed through MpvLoadTarget
+    // and the already-configured yt-dlp hook. Do not resolve the URL at add time.
+    if (!g_mpv.command) return false;
+
+    EnforcePlaylistMaximumGuard();
+    if (PlaylistAvailableSlots() == 0)
+    {
+        g_playlistMaximumNoticePending.store(true);
+        return false;
+    }
+
+    std::wstring const loadTarget = MpvLoadTarget(url);
+    bool const ytdlBacked = loadTarget.starts_with(L"ytdl://");
+    bool const protectFromPendingCollection =
+        ytdlBacked || !g_ytdlpExpansionWatches.empty();
+    std::set<int64_t> const beforeIds = protectFromPendingCollection
+        ? NativePlaylistIdSet()
+        : std::set<int64_t>{};
+
+    std::string target = winrt::to_string(loadTarget);
+    std::vector<std::pair<std::string, std::string>> localOptions;
+    AppendYouTubePlaylistWindowLocalOption(url, localOptions);
+
+    bool appended{};
+    if (localOptions.empty())
+    {
+        // Preserve the proven V1.11 append path byte-for-byte for every URL
+        // that does not request a shifted YouTube playlist window.
+        const char* append[] = {
+            "loadfile", target.c_str(), "append", nullptr };
+        appended = g_mpv.command(g_mpv.handle, append) >= 0;
+    }
+    else
+    {
+        appended =
+            LoadFileWithLocalOptions(target, "append", localOptions) >= 0;
+    }
+
+    if (appended)
+    {
+        if (ytdlBacked)
+            RegisterYtdlpExpansionWatch(
+                beforeIds, IsYouTubePlaylistPageUrl(url));
+        else if (protectFromPendingCollection)
+            ProtectExplicitPlaylistAdditions(beforeIds);
+    }
+    return appended;
 }
 
 bool PlayerAddPlaylistFilesFromDialog()
@@ -9014,9 +12042,132 @@ void PlayerClosePlaylist()
     }
 }
 
+void PlayerShowYouTubeComments()
+{
+    if (g_pictureInPicture)
+    {
+        // Keep the full-height comments panel as a normal-window feature,
+        // matching Settings, MediaInfo and Playlist.
+        PlayerTogglePictureInPicture();
+    }
+
+    if (g_mainWindow)
+    {
+        PostMessageW(g_mainWindow, ShowYouTubeCommentsMessage, 0, 0);
+    }
+}
+
+void PlayerCloseYouTubeComments()
+{
+    if (g_mainWindow)
+    {
+        PostMessageW(g_mainWindow, CloseYouTubeCommentsMessage, 0, 0);
+    }
+}
+
 void* PlayerGetMainWindowHandle()
 {
     return g_mainWindow;
+}
+
+winrt::Microsoft::UI::Xaml::XamlRoot PlayerBeginModalDialogHost()
+{
+    if (!g_mainWindow) return nullptr;
+
+    auto* info = reinterpret_cast<WindowInfo*>(
+        GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA));
+    if (!info || !info->modalDialogHostWindow ||
+        !info->modalDialogSource || !info->modalDialogRoot)
+    {
+        return nullptr;
+    }
+
+    HWND const dialogWindow = winrt::Microsoft::UI::GetWindowFromWindowId(
+        info->modalDialogSource.SiteBridge().WindowId());
+    if (!dialogWindow) return nullptr;
+
+    // Reassert HC Player's own app theme every time the separate island is
+    // shown. This keeps the dialog consistent even if Windows uses the opposite
+    // light/dark mode.
+    info->modalDialogRoot.RequestedTheme(
+        g_lightTheme
+            ? winrt::Microsoft::UI::Xaml::ElementTheme::Light
+            : winrt::Microsoft::UI::Xaml::ElementTheme::Dark);
+
+    // Snapshot the intended owner size before the shell can minimize it.
+    // WM_GETMINMAXINFO uses this stable size for the whole modal lifetime, so
+    // Windows+D -> taskbar restore cannot inherit the tiny iconic rectangle.
+    RECT ownerRect{};
+    g_modalLockedOwnerSizeValid = GetWindowRect(g_mainWindow, &ownerRect) != FALSE;
+    if (g_modalLockedOwnerSizeValid)
+    {
+        g_modalLockedOwnerSize.cx =
+            (std::max)(1L, ownerRect.right - ownerRect.left);
+        g_modalLockedOwnerSize.cy =
+            (std::max)(1L, ownerRect.bottom - ownerRect.top);
+    }
+
+    // Mark modal state before showing the island. MainWindowProc now keeps
+    // the owner at its current size (resize/maximize/minimize/restore blocked)
+    // until PlayerEndModalDialogHost, while normal window movement remains free.
+    g_modalDialogOpen = true;
+
+    RECT client{};
+    if (!GetClientRect(g_mainWindow, &client))
+    {
+        g_modalDialogOpen = false;
+        g_modalLockedOwnerSizeValid = false;
+        return nullptr;
+    }
+    int const width = max(1L, client.right - client.left);
+    int const height = max(1L, client.bottom - client.top);
+
+    PositionModalDialogHost(g_mainWindow, info, width, height);
+
+    ShowWindow(info->modalDialogHostWindow, SW_SHOW);
+    SetWindowPos(dialogWindow, HWND_TOP, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+
+    // From this point until PlayerEndModalDialogHost, the message loop leaves
+    // keyboard input to XAML so TextBox/PasswordBox typing and Ctrl+V work.
+    SetFocus(dialogWindow);
+
+    return info->modalDialogRoot.XamlRoot();
+}
+
+void PlayerEndModalDialogHost()
+{
+    // Clear first so even an early-return path cannot leave HC Player's global
+    // shortcuts disabled after a dialog closes.
+    g_modalDialogOpen = false;
+    g_modalLockedOwnerSizeValid = false;
+
+    if (!g_mainWindow) return;
+
+    auto* info = reinterpret_cast<WindowInfo*>(
+        GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA));
+    if (!info || !info->modalDialogSource) return;
+
+    HWND const dialogWindow = winrt::Microsoft::UI::GetWindowFromWindowId(
+        info->modalDialogSource.SiteBridge().WindowId());
+    if (dialogWindow) ShowWindow(dialogWindow, SW_HIDE);
+    if (info->modalDialogHostWindow)
+        ShowWindow(info->modalDialogHostWindow, SW_HIDE);
+
+    info->modalDialogSource.SiteBridge().MoveAndResize({ 0, 0, 1, 1 });
+    SetFocus(g_mainWindow);
+}
+
+void PlayerConfigureOpenSubtitles()
+{
+    if (!g_mainWindow) return;
+
+    auto* info = reinterpret_cast<WindowInfo*>(
+        GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA));
+    if (!info || !info->page) return;
+
+    winrt::get_self<winrt::HCPlayer::implementation::MainPage>(info->page)
+        ->ConfigureOpenSubtitlesFromSettings();
 }
 
 void PlayerShowOpenDialog()
@@ -9064,6 +12215,17 @@ void PlayerShowAddExternalSubtitleDialog()
     }
 }
 
+std::wstring PlayerGetCurrentMediaPath()
+{
+    SynchronizeCurrentPlaylistIdentity();
+    return g_currentMediaPath;
+}
+
+bool PlayerLoadExternalSubtitle(std::wstring const& path)
+{
+    return AddExternalTrack(path, false);
+}
+
 bool PlayerOpenClipboardMedia()
 {
     if (!OpenClipboard(g_mainWindow)) return false;
@@ -9087,7 +12249,7 @@ bool PlayerOpenClipboardMedia()
     bool recognized = value.starts_with(L"http://") ||
         value.starts_with(L"https://") || value.starts_with(L"rtsp://") ||
         value.starts_with(L"rtmp://") || value.starts_with(L"rtmps://") ||
-        value.starts_with(L"ftp://") || value.starts_with(L"magnet:") ||
+        value.starts_with(L"ftp://") ||
         (value.size() > 2 && iswalpha(value[0]) && value[1] == L':') ||
         value.starts_with(L"\\\\");
     if (!recognized) return false;
@@ -9103,12 +12265,40 @@ bool PlayerOpenDroppedMedia(std::vector<std::wstring> const& droppedItems)
         bool url = value.starts_with(L"http://") ||
             value.starts_with(L"https://") || value.starts_with(L"rtsp://") ||
             value.starts_with(L"rtmp://") || value.starts_with(L"rtmps://") ||
-            value.starts_with(L"ftp://") || value.starts_with(L"magnet:");
-        std::error_code error;
-        bool file = !url && std::filesystem::is_regular_file(value, error);
-        if (url || file) items.push_back(std::move(value));
+            value.starts_with(L"ftp://");
+        if (url)
+        {
+            items.push_back(std::move(value));
+            continue;
+        }
+
+        std::filesystem::path path{ value };
+        std::error_code fileError;
+        if (std::filesystem::is_regular_file(path, fileError))
+        {
+            // Preserve the established global-drop behavior for individual
+            // files: mpv remains free to accept formats beyond our folder list.
+            items.push_back(std::move(value));
+            continue;
+        }
+
+        std::error_code folderError;
+        if (std::filesystem::is_directory(path, folderError))
+        {
+            auto folderFiles = EnumeratePlayableFolderFiles(path);
+            items.insert(
+                items.end(),
+                std::make_move_iterator(folderFiles.begin()),
+                std::make_move_iterator(folderFiles.end()));
+        }
     }
     if (items.empty()) return false;
+
+    if (items.size() > static_cast<size_t>(PlaylistMaximumItems))
+    {
+        items.resize(static_cast<size_t>(PlaylistMaximumItems));
+        g_playlistMaximumNoticePending.store(true);
+    }
 
     g_suppressAutoload = items.size() > 1;
     bool opened = PlayerOpenRecentFile(items.front());
@@ -9158,8 +12348,7 @@ std::vector<RecentMediaItem> PlayerGetRecentFiles()
     std::vector<RecentMediaItem> result;
     for (auto const& item : recentItems)
     {
-        bool protocol = item.path.find(L"://") != std::wstring::npos ||
-            item.path.starts_with(L"magnet:");
+        bool protocol = item.path.find(L"://") != std::wstring::npos;
         std::filesystem::path path{ item.path };
         std::wstring title = protocol
             ? (item.title.empty() ? item.path : item.title)
@@ -9313,10 +12502,41 @@ void PlayerOpenScreenshotDirectory()
 
 bool PlayerDeactivateImportedProfile()
 {
-    // MPV profiles are a collection of assignments and have no inverse
-    // command. Rebuilding the engine is the only reliable way to remove every
-    // option a profile may have changed; playback state is restored afterward.
-    std::wstring previous = g_mpvSettingsManager.ActiveImportedProfile();
+    if (!g_mpv.handle || !g_mpv.command) return false;
+
+    std::wstring const previous =
+        g_mpvSettingsManager.ActiveImportedProfile();
+    if (previous.empty())
+    {
+        PlayerExecuteMpvCommand(
+            L"show-text \"" +
+            PlayerUiString(L"OsdProfileDisabled", L"Perfil desativado") +
+            L"\"");
+        return true;
+    }
+
+    std::wstring const runtime =
+        RuntimeProfileNameForImportedProfile(previous);
+    if (!runtime.empty())
+    {
+        std::string runtimeUtf8 = winrt::to_string(runtime);
+        const char* restore[] = {
+            "apply-profile", runtimeUtf8.c_str(), "restore", nullptr };
+        if (g_mpv.command(g_mpv.handle, restore) >= 0)
+        {
+            g_mpvSettingsManager.ClearActiveImportedProfile();
+            PlayerExecuteMpvCommand(
+                L"show-text \"" +
+                PlayerUiString(L"OsdProfileDisabled", L"Perfil desativado") +
+                L"\"");
+            return true;
+        }
+    }
+
+    // Restore is the normal path. Keep the proven full-engine rebuild only as
+    // a defensive fallback if the private profile is missing or mpv rejects
+    // the restore command. Clearing the tracked profile makes that restart
+    // rebuild the baseline rather than reapplying the profile being removed.
     g_mpvSettingsManager.ClearActiveImportedProfile();
     if (RestartEnginePreservingPlayback())
     {
@@ -9326,21 +12546,104 @@ bool PlayerDeactivateImportedProfile()
             L"\"");
         return true;
     }
-    g_mpvSettingsManager.SetActiveImportedProfile(std::move(previous));
+
+    g_mpvSettingsManager.SetActiveImportedProfile(previous);
     return false;
 }
 
 bool PlayerApplyImportedProfile(std::wstring const& name)
 {
-    if (!g_mpv.handle || name.empty()) return false;
-    auto profiles = PlayerGetImportedProfileNames();
+    if (!g_mpv.handle || !g_mpv.command || name.empty()) return false;
+    auto const profiles = PlayerGetImportedProfileNames();
     if (std::find(profiles.begin(), profiles.end(), name) == profiles.end())
     {
         return false;
     }
-    std::string utf8 = winrt::to_string(name);
-    const char* command[] = { "apply-profile", utf8.c_str(), nullptr };
-    if (g_mpv.command(g_mpv.handle, command) < 0) return false;
+
+    std::wstring const previous =
+        g_mpvSettingsManager.ActiveImportedProfile();
+
+    // Reapplying the same runtime profile is not only redundant: mpv profiles
+    // may contain ordered/additive options. Treat an already-active profile as
+    // a true no-op while still acknowledging the user's selection in the OSD.
+    if (previous == name)
+    {
+        PlayerExecuteMpvCommand(
+            L"show-text \"" +
+            PlayerUiString(L"OsdProfilePrefix", L"Perfil: ") +
+            name + L"\"");
+        return true;
+    }
+
+    std::wstring const nextRuntime =
+        RuntimeProfileNameForImportedProfile(name);
+    if (nextRuntime.empty()) return false;
+
+    // Normal transition: restore exactly the state captured before A, then let
+    // mpv apply B normally. No individual video/HDR/tone-mapping property is
+    // interpreted or rewritten by HC Player.
+    if (!previous.empty())
+    {
+        std::wstring const previousRuntime =
+            RuntimeProfileNameForImportedProfile(previous);
+        if (previousRuntime.empty())
+        {
+            // Fall through to the clean rebuild path below.
+        }
+        else
+        {
+            std::string previousUtf8 = winrt::to_string(previousRuntime);
+            const char* restore[] = {
+                "apply-profile", previousUtf8.c_str(), "restore", nullptr };
+            if (g_mpv.command(g_mpv.handle, restore) >= 0)
+            {
+                std::string nextUtf8 = winrt::to_string(nextRuntime);
+                const char* apply[] = {
+                    "apply-profile", nextUtf8.c_str(), nullptr };
+                if (g_mpv.command(g_mpv.handle, apply) >= 0)
+                {
+                    g_mpvSettingsManager.SetActiveImportedProfile(name);
+                    PlayerExecuteMpvCommand(
+                        L"show-text \"" +
+                        PlayerUiString(L"OsdProfilePrefix", L"Perfil: ") +
+                        name + L"\"");
+                    return true;
+                }
+
+                // B may have been partially processed before an error. Rebuild
+                // the previous known-good state instead of trying to reverse an
+                // unknown partial application, but still report B as failed.
+                g_mpvSettingsManager.SetActiveImportedProfile(previous);
+                RestartEnginePreservingPlayback();
+                return false;
+            }
+        }
+
+        // If A could not be restored, rebuild a clean baseline first. This is
+        // deliberately exceptional; successful profile changes never restart.
+        g_mpvSettingsManager.ClearActiveImportedProfile();
+        if (!RestartEnginePreservingPlayback())
+        {
+            g_mpvSettingsManager.SetActiveImportedProfile(previous);
+            return false;
+        }
+    }
+
+    std::string nextUtf8 = winrt::to_string(nextRuntime);
+    const char* apply[] = { "apply-profile", nextUtf8.c_str(), nullptr };
+    if (g_mpv.command(g_mpv.handle, apply) < 0)
+    {
+        // Even a failed apply can have processed some earlier profile entries.
+        // Rebuild either the previous profile or a clean baseline so a failed
+        // selection can never leave a half-applied runtime state behind.
+        if (!previous.empty())
+            g_mpvSettingsManager.SetActiveImportedProfile(previous);
+        else
+            g_mpvSettingsManager.ClearActiveImportedProfile();
+        RestartEnginePreservingPlayback();
+        return false;
+    }
+
     g_mpvSettingsManager.SetActiveImportedProfile(name);
     PlayerExecuteMpvCommand(
         L"show-text \"" +
@@ -9369,6 +12672,25 @@ void PlayerSetTransportHostVisible(bool visible)
 {
     if (!g_mainWindow) return;
     SendMessageW(g_mainWindow, TransportVisibilityMessage, visible ? TRUE : FALSE, 0);
+}
+
+void PlayerSetPipMediaKindVisualTransition(bool active)
+{
+    if (!g_mainWindow) return;
+    if (g_pipMediaKindLayoutTransition == active) return;
+
+    g_pipMediaKindLayoutTransition = active;
+
+    auto* info = reinterpret_cast<WindowInfo*>(
+        GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA));
+    if (!info) return;
+
+    RECT client{};
+    if (GetClientRect(g_mainWindow, &client))
+    {
+        ApplyClientLayout(g_mainWindow, info,
+            client.right - client.left, client.bottom - client.top);
+    }
 }
 
 void PlayerRefreshTransportLayout()
@@ -9545,8 +12867,15 @@ void PlayerSetLightTheme(bool light)
             }
             if (info->settingsPage) info->settingsPage.RequestedTheme(theme);
             if (info->mediaInfoPage) info->mediaInfoPage.RequestedTheme(theme);
+            if (info->youtubeCommentsPage)
+                info->youtubeCommentsPage.RequestedTheme(theme);
             if (info->contextPage) info->contextPage.RequestedTheme(theme);
-            if (info->bufferingRing) info->bufferingRing.RequestedTheme(theme);
+            if (info->bufferingRing)
+            {
+                info->bufferingRing.RequestedTheme(theme);
+                ApplyBufferingAccent(info);
+            }
+            if (info->modalDialogRoot) info->modalDialogRoot.RequestedTheme(theme);
             if (info->transportHostedInPopup && info->transportMicaConfiguration)
             {
                 UpdateMinimalTransportMica(
@@ -9650,6 +12979,10 @@ std::vector<MediaTrackOption> PlayerGetMediaTracks()
 MediaBadgeInfo PlayerGetMediaBadgeInfo()
 {
     MediaBadgeInfo info{};
+
+    // Playlist navigation can change the active URL/file without going through
+    // PlayerLoadFile(). Keep source-only UI metadata aligned with mpv first.
+    SynchronizeCurrentPlaylistIdentity();
 
     if (!g_currentMediaPath.empty())
     {
@@ -9906,30 +13239,77 @@ MediaBadgeInfo PlayerGetMediaBadgeInfo()
         }
     }
 
-    // Direct HLS live classification. Our diagnostic pass showed the important
-    // distinction reported by mpv itself: the tested VOD is fully seekable
-    // (partially-seekable=no), while the live HLS is seekable only through the
-    // active demuxer cache (partially-seekable=yes). Restrict this signal to the
-    // original direct-HLS source and wait for selected A/V media to be ready so
-    // normal startup cannot create a transient LIVE badge. Presentation only:
-    // no mpv option, network/cache policy, seeking or demuxer state is changed.
+    // Direct HLS live classification for newer libmpv builds.
+    // `partially-seekable` is no longer a reliable LIVE discriminator:
+    // the current libmpv reports `no` for both the tested LIVE and VOD.
+    //
+    // Instead, use only an already-exposed demuxer fact observed by the
+    // existing badge refresh: a LIVE HLS timeline keeps extending while
+    // a completed HLS VOD duration remains stable. This is presentation
+    // only: no mpv option/property is set, no command is issued, and no
+    // network/cache/demuxer/seek behavior is changed.
     if (info.source == MediaSourceBadge::HLS &&
         (info.videoReady || info.audioReady))
     {
-        int partiallySeekable{};
-        bool const hasPartiallySeekable =
-            g_mpv.getProperty(
-                g_mpv.handle,
-                "partially-seekable",
-                MpvFormatFlag,
-                &partiallySeekable) >= 0;
+        struct HlsLiveBadgeObservation
+        {
+            std::wstring source;
+            double baselineDuration{ -1.0 };
+            double latestDuration{ -1.0 };
+            bool liveConfirmed{};
+        };
 
-        if (hasPartiallySeekable && partiallySeekable != 0)
+        static HlsLiveBadgeObservation observation;
+
+        if (observation.source != g_currentMediaPath)
+        {
+            observation = {};
+            observation.source = g_currentMediaPath;
+        }
+
+        double duration{};
+        if (!observation.liveConfirmed &&
+            getDoubleProperty("duration", duration) &&
+            std::isfinite(duration) &&
+            duration > 0.0)
+        {
+            if (observation.baselineDuration <= 0.0)
+            {
+                observation.baselineDuration = duration;
+                observation.latestDuration = duration;
+            }
+            else
+            {
+                // A discontinuity/reload can move the reported duration
+                // backwards. Re-baseline instead of carrying state across it.
+                if (duration + 1.0 < observation.latestDuration)
+                {
+                    observation.baselineDuration = duration;
+                    observation.latestDuration = duration;
+                }
+                else
+                {
+                    if (duration > observation.latestDuration)
+                    {
+                        observation.latestDuration = duration;
+                    }
+
+                    // Require meaningful timeline growth so tiny metadata
+                    // rounding changes cannot turn a VOD into LIVE.
+                    if (observation.latestDuration -
+                        observation.baselineDuration >= 1.5)
+                    {
+                        observation.liveConfirmed = true;
+                    }
+                }
+            }
+        }
+
+        if (observation.liveConfirmed)
         {
             info.source = MediaSourceBadge::HLSLive;
         }
     }
-
     return info;
 }
 
@@ -10158,8 +13538,12 @@ bool PlayerImportCustomBadgeSet(
         return false;
     }
 
-    RefreshCustomBadgeVisuals();
     return true;
+}
+
+void PlayerRefreshCustomBadgeVisuals()
+{
+    RefreshCustomBadgeVisuals();
 }
 
 bool PlayerResetCustomBadgeSet(std::wstring& error)
@@ -10678,8 +14062,11 @@ bool RestartEngineFromSnapshot(EnginePlaybackSnapshot const& snapshot)
     // across engine restarts caused by settings that require rebuilding MPV.
     if (!g_mpvSettingsManager.ActiveImportedProfile().empty())
     {
-        std::string activeProfile = winrt::to_string(
+        std::wstring runtimeProfile = RuntimeProfileNameForImportedProfile(
             g_mpvSettingsManager.ActiveImportedProfile());
+        if (runtimeProfile.empty()) return false;
+
+        std::string activeProfile = winrt::to_string(runtimeProfile);
         const char* profileCommand[] = {
             "apply-profile", activeProfile.c_str(), nullptr };
         if (g_mpv.command(g_mpv.handle, profileCommand) < 0) return false;
@@ -11038,6 +14425,20 @@ bool PlayerApplyMpvOptions(
                 // This helper performs its own tiny persistence write. Run it
                 // only after the main transaction has committed successfully.
                 CaptureRememberedWindowSize(true);
+                return;
+            }
+            if (name == L"ui-window-remember-position" && value == L"yes")
+            {
+                // Capture the current normal position at activation time so a
+                // stale coordinate from an older session can never surprise
+                // the user on the next launch.
+                CaptureRememberedWindowPosition(true);
+                return;
+            }
+            if (name == L"ui-show-media-title")
+            {
+                PlayerRefreshWindowTitle(PlayerGetMediaTitle());
+                return;
             }
         };
 
@@ -11147,8 +14548,8 @@ bool PlayerApplyMpvOptions(
     }
 
     // Commit shell-side effects only after the settings transaction has
-    // succeeded. ui-window-remember-size may perform its own follow-up write
-    // for ui-window-last-size, just as it did before this transaction layer.
+    // succeeded. Window size/position toggles may perform their own tiny
+    // follow-up write for the current normal geometry after this transaction.
     for (auto const& [name, value] : effectiveOptions)
     {
         if (name.starts_with(L"ui-"))
@@ -11168,6 +14569,7 @@ bool PlayerApplyMpvOptions(
         {
             winrt::get_self<winrt::HCPlayer::implementation::MainPage>(
                 info->page)->RefreshInterfacePreferences();
+            ApplyBufferingAccent(info);
         }
     }
     return true;
@@ -11176,6 +14578,12 @@ bool PlayerApplyMpvOptions(
 bool PlayerTryGetMpvRuntimeOption(
     std::wstring const& name, std::wstring& value)
 {
+    if (name == L"pause" && g_startupTechnicalPauseActive)
+    {
+        value = g_startupDesiredPaused ? L"yes" : L"no";
+        return true;
+    }
+
     if (!g_mpv.handle || !g_mpv.getProperty || !g_mpv.freeNodeContents)
     {
         return false;
@@ -11670,14 +15078,32 @@ void PlayerToggleFullscreen()
         return;
     }
 
-    // If the user toggles again before the read-only 16:9 settle probe has
-    // completed, remove only its temporary shield. The real player is already
-    // uncloaked and fully owns its current state.
-    DestroyPendingFullscreenVideoSettleShield();
-
     bool const suppressTransitionTransport =
         g_suppressFullscreenEntryTransportReveal;
     g_suppressFullscreenEntryTransportReveal = false;
+
+    // A rapid immersive fullscreen exit can arrive while the short-lived 16:9
+    // entry-settle bridge is still covering the monitor. Do not tear that
+    // already-committed bridge down before the exit bridge is ready: doing so
+    // opens a tiny compositor gap where the desktop can be presented between
+    // the two transitions. Detach it from the settle timer and keep it alive
+    // only long enough to hand off atomically to the normal exit shield below.
+    // Toolbar/normal fullscreen callers and every transition without a pending
+    // settle shield keep the established path unchanged.
+    HWND retainedFullscreenSettleShield{};
+    if (g_fullscreen && suppressTransitionTransport &&
+        g_pendingFullscreenVideoSettleShield &&
+        IsWindow(g_pendingFullscreenVideoSettleShield))
+    {
+        KillTimer(g_mainWindow, FullscreenVideoSettleTimer);
+        retainedFullscreenSettleShield = std::exchange(
+            g_pendingFullscreenVideoSettleShield, nullptr);
+        g_fullscreenVideoSettleStartedTick = 0;
+    }
+    else
+    {
+        DestroyPendingFullscreenVideoSettleShield();
+    }
 
     SendMessageW(g_mainWindow, CloseSettingsMessage, 0, 0);
     SendMessageW(g_mainWindow, CloseContextMenuMessage, 0, 0);
@@ -11808,6 +15234,7 @@ void PlayerToggleFullscreen()
         if (haveWindowedRestoreState)
         {
             bool layoutTransitionStarted{};
+            HWND pipTransitionShield{};
 
             if (transitionFromPip)
             {
@@ -11817,6 +15244,45 @@ void PlayerToggleFullscreen()
                 // visible; the final fullscreen layout is committed below.
                 beginLayoutTransition();
                 layoutTransitionStarted = true;
+                // Keep PiP video geometry unchanged while capturing. Screen-side
+                // capture includes DWM's rounded clipping unless it is disabled
+                // and committed first; enlarging those pixels exposes corner arcs.
+                {
+                    struct ScopedCaptureCorners
+                    {
+                        HWND window{};
+                        DWM_WINDOW_CORNER_PREFERENCE previous{};
+                        bool changed{};
+                        ~ScopedCaptureCorners()
+                        {
+                            if (changed && IsWindow(window))
+                            {
+                                DwmSetWindowAttribute(window,
+                                    DWMWA_WINDOW_CORNER_PREFERENCE,
+                                    &previous, sizeof(previous));
+                            }
+                        }
+                    } captureCorners{ g_mainWindow };
+
+                    DWM_WINDOW_CORNER_PREFERENCE square = DWMWCP_DONOTROUND;
+                    if (SUCCEEDED(DwmGetWindowAttribute(g_mainWindow,
+                        DWMWA_WINDOW_CORNER_PREFERENCE,
+                        &captureCorners.previous, sizeof(captureCorners.previous))))
+                    {
+                        captureCorners.changed = SUCCEEDED(DwmSetWindowAttribute(
+                            g_mainWindow, DWMWA_WINDOW_CORNER_PREFERENCE,
+                            &square, sizeof(square)));
+                    }
+                    if (captureCorners.changed && SUCCEEDED(DwmFlush()))
+                    {
+                        pipTransitionShield = ShowMediaFullscreenTransitionShield(
+                            monitor.rcMonitor, true, false, true);
+                    }
+                    // Always restore the saved preference, including capture
+                    // failures. With a cover, the real window is already cloaked.
+                    // The established fullscreen path sets square corners below.
+                }
+                // If corner preparation or synchronization fails, use no cover.
                 g_pictureInPicture = false;
 
                 if (info && info->page)
@@ -11875,15 +15341,41 @@ void PlayerToggleFullscreen()
                 idleTransitionShield =
                     ShowIdleFullscreenTransitionShield(monitor.rcMonitor);
             }
-            else if (suppressTransitionTransport && !transitionFromPip)
+            else if (transitionFromPip)
             {
-                // Scope this experiment to the immersive Enter/double-click
-                // media entry path only. PiP -> fullscreen and any normal
-                // toolbar caller stay byte-for-byte on their established path.
-                mediaTransitionShield =
-                    ShowMediaFullscreenTransitionShield(
-                        monitor.rcMonitor, true);
+                // Reuse the existing bounded 120 ms settle timer and cleanup.
+                mediaTransitionShield = pipTransitionShield;
             }
+            else if (suppressTransitionTransport)
+            {
+                // Window -> fullscreen with Enter/double-click: keep the last
+                // correctly presented frame over the monitor while the
+                // real mpv child receives its one final fullscreen size below.
+                // The bridge is removed as soon as mpv reports the final VO
+                // geometry; the existing 120 ms limit remains fail-open only.
+                mediaTransitionShield = ShowMediaFullscreenTransitionShield(
+                    monitor.rcMonitor, true, true, false, true);
+            }
+
+            // Let only the final client rectangle reach the video child during
+            // immersive window entry. Other islands still receive their layout.
+            // If the media bridge above is active, it covers only this
+            // presentation handoff; no playback/render setting is changed.
+            struct ScopedWindowFullscreenVideoResize
+            {
+                bool previous{ g_deferWindowFullscreenVideoResize };
+                explicit ScopedWindowFullscreenVideoResize(bool active)
+                {
+                    g_deferWindowFullscreenVideoResize = previous || active;
+                }
+                void Restore() const
+                {
+                    g_deferWindowFullscreenVideoResize = previous;
+                }
+                ~ScopedWindowFullscreenVideoResize() { Restore(); }
+            } videoResizeTransaction{
+                suppressTransitionTransport && !transitionFromPip &&
+                !g_currentMediaPath.empty() };
 
             // Prime DWM with the final fullscreen chrome state before Win32
             // rebuilds the non-client frame. On a rapid idle-screen transition,
@@ -11915,6 +15407,9 @@ void PlayerToggleFullscreen()
                 monitor.rcMonitor.bottom - monitor.rcMonitor.top,
                 SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
+            // SetWindowPos has returned; read the actual final client rectangle
+            // through endLayoutTransition instead of assuming the monitor size.
+            videoResizeTransaction.Restore();
             endLayoutTransition();
             FinishMediaFullscreenTransitionShield(mediaTransitionShield);
             FinishIdleFullscreenTransitionShield(idleTransitionShield);
@@ -11950,6 +15445,37 @@ void PlayerToggleFullscreen()
             // half-restored intermediate frame.
             mediaTransitionShield =
                 ShowMediaFullscreenTransitionShield(currentMonitor.rcMonitor);
+
+            if (retainedFullscreenSettleShield)
+            {
+                if (mediaTransitionShield)
+                {
+                    // The fresh exit bridge is already visible and the real
+                    // player is cloaked. Retire the older entry bridge only
+                    // after that presentation handoff is committed, so there is
+                    // never a frame where neither bridge covers the monitor.
+                    DestroyWindow(retainedFullscreenSettleShield);
+                    retainedFullscreenSettleShield = nullptr;
+                    DwmFlush();
+                }
+                else
+                {
+                    // Extremely narrow fail-open path: if a fresh screen-side
+                    // capture cannot be created, reuse the still-visible entry
+                    // bridge instead of dropping to the desktop. It is already
+                    // an ownerless topmost fullscreen snapshot; cloak the real
+                    // HWND when possible and let the established finish routine
+                    // perform the final reveal/destruction after the restore.
+                    mediaTransitionShield = retainedFullscreenSettleShield;
+                    retainedFullscreenSettleShield = nullptr;
+                    UpdateWindow(mediaTransitionShield);
+                    DwmFlush();
+                    BOOL cloak = TRUE;
+                    DwmSetWindowAttribute(
+                        g_mainWindow, DWMWA_CLOAK, &cloak, sizeof(cloak));
+                    DwmFlush();
+                }
+            }
         }
 
         g_fullscreen = false;
@@ -12008,6 +15534,17 @@ void PlayerToggleFullscreen()
         FinishMediaFullscreenTransitionShield(mediaTransitionShield);
         FinishIdleFullscreenTransitionShield(idleTransitionShield);
     }
+
+    // Safety net for any unexpected early/fallback path. In normal operation
+    // the retained bridge is either handed to the fresh exit shield or reused
+    // as that shield; never allow a detached topmost bridge to survive the
+    // fullscreen transaction.
+    if (retainedFullscreenSettleShield &&
+        IsWindow(retainedFullscreenSettleShield))
+    {
+        DestroyWindow(retainedFullscreenSettleShield);
+        DwmFlush();
+    }
     g_lastCursorActivityTick = GetTickCount64();
     SetApplicationCursorHidden(false);
     UpdateCursorAutohide();
@@ -12045,6 +15582,14 @@ void PlayerToggleBorderless()
         g_borderedExStyle = GetWindowLongPtrW(g_mainWindow, GWL_EXSTYLE);
         g_borderless = true;
 
+        // Prime DWM with the final borderless visual state before Win32
+        // rebuilds the non-client frame. Otherwise SWP_FRAMECHANGED can present
+        // one frame with the old native border/backdrop around the new client.
+        constexpr DWORD noBorderColor = 0xFFFFFFFE; // DWMWA_COLOR_NONE
+        DwmSetWindowAttribute(g_mainWindow, DWMWA_BORDER_COLOR,
+            &noBorderColor, sizeof(noBorderColor));
+        ApplyWindows11Visual(g_mainWindow);
+
         LONG_PTR style = (g_borderedStyle &
             ~(WS_CAPTION | WS_BORDER | WS_DLGFRAME | WS_SYSMENU |
                 WS_MINIMIZEBOX | WS_MAXIMIZEBOX)) |
@@ -12076,13 +15621,36 @@ void PlayerToggleBorderless()
         ApplyClientLayout(g_mainWindow, info,
             client.right - client.left, client.bottom - client.top);
     }
-    ApplyWindows11Visual(g_mainWindow);
 
+    // Restore/suppress the native DWM frame before reapplying the Windows 11
+    // visual attributes. In particular, a session that *started* borderless
+    // first acquired Mica while it had no caption; restoring B therefore needs
+    // a full native-frame refresh so the standard icon and translucent caption
+    // are rebuilt just like a normal HC Player startup.
     constexpr DWORD noBorderColor = 0xFFFFFFFE; // DWMWA_COLOR_NONE
     constexpr DWORD defaultBorderColor = 0xFFFFFFFF;
     DWORD borderColor = g_borderless ? noBorderColor : defaultBorderColor;
     DwmSetWindowAttribute(g_mainWindow, DWMWA_BORDER_COLOR,
         &borderColor, sizeof(borderColor));
+    ApplyWindows11Visual(g_mainWindow);
+
+    if (!g_borderless)
+    {
+        HICON const largeIcon = reinterpret_cast<HICON>(
+            GetClassLongPtrW(g_mainWindow, GCLP_HICON));
+        HICON const smallIcon = reinterpret_cast<HICON>(
+            GetClassLongPtrW(g_mainWindow, GCLP_HICONSM));
+        if (largeIcon)
+            SendMessageW(g_mainWindow, WM_SETICON, ICON_BIG,
+                reinterpret_cast<LPARAM>(largeIcon));
+        if (smallIcon)
+            SendMessageW(g_mainWindow, WM_SETICON, ICON_SMALL,
+                reinterpret_cast<LPARAM>(smallIcon));
+
+        RedrawWindow(g_mainWindow, nullptr, nullptr,
+            RDW_INVALIDATE | RDW_FRAME | RDW_UPDATENOW);
+        DwmFlush();
+    }
 
     if (g_mpv.handle)
     {
@@ -12108,16 +15676,16 @@ void PlayerTogglePictureInPicture()
     auto* info = reinterpret_cast<WindowInfo*>(
         GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA));
 
-    bool const transitionFromFullscreen =
-        g_fullscreen && !g_pictureInPicture;
+    bool const enteringPictureInPicture = !g_pictureInPicture;
 
-    if (transitionFromFullscreen)
+    if (enteringPictureInPicture)
     {
-        // Keep the established fullscreen -> window -> PiP state logic exactly
-        // as-is, but make those intermediate top-level frames unpresentable.
-        // This is visual isolation only; playback and the D3D11 child are not
-        // paused, recreated or reconfigured.
+        // Build every PiP entry off-screen and expose it only after the final
+        // compact transport geometry has settled. This generalizes the visual
+        // isolation that previously covered fullscreen -> PiP only; playback
+        // and the D3D11 child remain alive and are never paused or recreated.
         g_pipEntryLayoutTransition = true;
+        SetPipEntryWindowCloaked(g_mainWindow, true);
         if (info)
         {
             RECT currentClient{};
@@ -12130,7 +15698,6 @@ void PlayerTogglePictureInPicture()
                     currentClient.bottom - currentClient.top);
             }
         }
-        SetPipEntryWindowCloaked(g_mainWindow, true);
     }
 
     if (g_fullscreen) PlayerToggleFullscreen();
@@ -12138,9 +15705,8 @@ void PlayerTogglePictureInPicture()
     if (!g_pictureInPicture)
     {
         bool const waitForTransportRehost =
-            transitionFromFullscreen &&
-            (g_transportMinimal ||
-                (info && info->transportHostedInPopup));
+            g_transportMinimal ||
+            (info && info->transportHostedInPopup);
 
         MONITORINFO monitor{ sizeof(monitor) };
         if (!GetWindowPlacement(g_mainWindow, &g_pipPreviousPlacement) ||
@@ -12199,18 +15765,13 @@ void PlayerTogglePictureInPicture()
         DwmSetWindowAttribute(g_mainWindow, DWMWA_BORDER_COLOR,
             &noBorderColor, sizeof(noBorderColor));
 
-        if (transitionFromFullscreen)
+        if (!waitForTransportRehost)
         {
-            if (!waitForTransportRehost)
-            {
-                // Classic Bar is already fully built at final PiP geometry.
-                // Minimal remains cloaked until its queued XAML rehost finishes.
-                FinishPipEntryLayoutTransition(g_mainWindow, info);
-            }
-        }
-        else
-        {
-            SetForegroundWindow(g_mainWindow);
+            // Classic Bar keeps the owner cloaked for one dispatcher turn so
+            // WinUI can commit the compact PiP controls at their final size.
+            // Minimal is released by ScheduleTransportRehost only after its
+            // existing XAML rehost has attached the final island.
+            SchedulePipEntryLayoutReveal(g_mainWindow);
         }
     }
     else
@@ -12232,6 +15793,11 @@ void PlayerTogglePictureInPicture()
             }
         }
 
+        // Only light theme needs protection from the bright native/XAML frame
+        // that can slip through while the normal window is rebuilt. Dark theme
+        // intentionally continues through the exact established path.
+        BeginLightPipReturnVisualIsolation(g_mainWindow);
+
         g_pictureInPicture = false;
         SetWindowLongPtrW(g_mainWindow, GWL_STYLE, g_pipPreviousStyle);
         SetWindowLongPtrW(g_mainWindow, GWL_EXSTYLE, g_pipPreviousExStyle);
@@ -12242,22 +15808,101 @@ void PlayerTogglePictureInPicture()
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER |
             SWP_FRAMECHANGED | SWP_SHOWWINDOW);
         ApplyWindows11Visual(g_mainWindow);
-        constexpr DWORD defaultBorderColor = 0xFFFFFFFF;
+        constexpr DWORD noBorderColor = 0xFFFFFFFE;      // DWMWA_COLOR_NONE
+        constexpr DWORD defaultBorderColor = 0xFFFFFFFF; // DWMWA_COLOR_DEFAULT
+        DWORD borderColor = g_borderless
+            ? noBorderColor
+            : defaultBorderColor;
         DwmSetWindowAttribute(g_mainWindow, DWMWA_BORDER_COLOR,
-            &defaultBorderColor, sizeof(defaultBorderColor));
+            &borderColor, sizeof(borderColor));
 
         if (info && info->page)
         {
             winrt::get_self<winrt::HCPlayer::implementation::MainPage>(
-                info->page)->SetPictureInPictureMode(false);
+                info->page)->SetPictureInPictureMode(false, false);
         }
 
-        // Classic Bar does not need a XAML rehost, so it can be revealed on the
-        // final layout below.  Minimal keeps the guard until ScheduleTransportRehost
-        // has attached the page to the rounded popup at the restored geometry.
+        // The Classic Bar shares one XAML island between PiP and the normal
+        // window. SetPictureInPictureMode(false, false) rebuilds the normal
+        // visual tree while deliberately keeping its native host hidden. WinUI
+        // may still defer measure/arrange until the next dispatcher turn, so
+        // preserve the existing return guard long enough to settle that hidden
+        // layout. The host remains hidden afterward until genuine user pointer
+        // activity reveals the transport through the normal hot-zone path.
+        // Minimal keeps its existing rehost guard unchanged.
         if (!g_transportMinimal)
         {
-            g_pipReturnLayoutTransition = false;
+            auto dispatcher =
+                winrt::Microsoft::UI::Dispatching::DispatcherQueue::
+                GetForCurrentThread();
+            bool queued = false;
+            if (dispatcher)
+            {
+                HWND const window = g_mainWindow;
+                queued = dispatcher.TryEnqueue([window]()
+                    {
+                        if (!g_pipReturnLayoutTransition) return;
+
+                        if (!IsWindow(window) || g_pictureInPicture)
+                        {
+                            g_pipReturnLayoutTransition = false;
+                            return;
+                        }
+
+                        auto* delayedInfo = reinterpret_cast<WindowInfo*>(
+                            GetWindowLongPtrW(window, GWLP_USERDATA));
+                        if (!delayedInfo || !delayedInfo->page)
+                        {
+                            g_pipReturnLayoutTransition = false;
+                            return;
+                        }
+
+                        try
+                        {
+                            // The island is still hidden by the return guard.
+                            // Force WinUI to commit the normal (non-PiP) control
+                            // visibility and geometry before allowing DWM to see it.
+                            delayedInfo->page.UpdateLayout();
+                        }
+                        catch (...)
+                        {
+                            // Layout forcing is visual-only. Never let it block
+                            // the transition if WinUI rejects a one-off update.
+                        }
+
+                        g_pipReturnLayoutTransition = false;
+
+                        RECT client{};
+                        if (GetClientRect(window, &client))
+                        {
+                            ApplyClientLayout(
+                                window,
+                                delayedInfo,
+                                client.right - client.left,
+                                client.bottom - client.top);
+                        }
+
+                        FinishLightPipReturnVisualIsolation(window);
+                    });
+            }
+
+            // Fail-safe for environments where a DispatcherQueue is unavailable:
+            // settle layout synchronously, then release the guard normally.
+            if (!queued)
+            {
+                if (info && info->page)
+                {
+                    try
+                    {
+                        info->page.UpdateLayout();
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+                g_pipReturnLayoutTransition = false;
+                FinishLightPipReturnVisualIsolation(g_mainWindow);
+            }
         }
         SetForegroundWindow(g_mainWindow);
     }
@@ -12505,19 +16150,35 @@ int APIENTRY wWinMain(
             RegisterWindowMessageW(L"TaskbarButtonCreated");
         RegisterMainWindowClass(instance);
 
-        // A shell file launch used to expose the no-media transport for one
-        // painted frame because CreateMainWindow showed the HWND before the
-        // command-line path reached MainPage::OpenPath(). Cold shell media
-        // launches now begin with the top-level HWND hidden only
-        // until a black client shield can be installed. The .36 test then shows
-        // the app immediately and keeps only the video presentation masked.
+        // Only a cold start with media passed on the command line uses the
+        // event-driven reveal. The top-level HWND stays genuinely hidden until
+        // libmpv reports usable media state or the single 1500 ms fail-safe fires.
         bool const deferInitialMediaReveal =
             HasStartupMediaArgument(GetCommandLineW());
+        g_startupMediaEventDriven = deferInitialMediaReveal;
+        g_startupShowCommand = showCommand;
 
         if (!CreateMainWindow(
             instance, deferInitialMediaReveal ? SW_HIDE : showCommand))
         {
             return FALSE;
+        }
+
+        if (g_startupMediaEventDriven)
+        {
+            // One non-polling safety timeout covers the whole cold-start path,
+            // including command-line media handling before libmpv is started. Normal
+            // libmpv events cancel it as soon as usable media state is ready.
+            if (SetTimer(
+                g_mainWindow,
+                StartupMediaFailSafeTimer,
+                StartupMediaFailSafeTimeoutMs,
+                nullptr) == 0)
+            {
+                g_startupMediaEventDriven = false;
+                ShowWindow(g_mainWindow, showCommand);
+                UpdateWindow(g_mainWindow);
+            }
         }
 
         // Optional Windows 11 media-session integration. It only publishes
@@ -12540,13 +16201,6 @@ int APIENTRY wWinMain(
                 reinterpret_cast<HANDLE>(1));
         }
 
-        if (deferInitialMediaReveal)
-        {
-            // Install the cover before the first visible frame, then show the
-            // app immediately. HandleLaunchCommandLine starts mpv underneath it.
-            BeginDeferredStartupMediaReveal(showCommand);
-        }
-
         HandleLaunchCommandLine(GetCommandLineW(), false);
 
         MSG message{};
@@ -12558,7 +16212,8 @@ int APIENTRY wWinMain(
                 RegisterCursorActivity();
             }
             if (message.message == WM_MOUSEWHEEL && !IsSidePanelOpen() &&
-                !g_contextMenuOpen && IsPlayerMessageWindow(message.hwnd))
+                !g_contextMenuOpen && !g_modalDialogOpen &&
+                IsPlayerMessageWindow(message.hwnd))
             {
                 if (PlayerAdjustVolumeFromWheel(
                     GET_WHEEL_DELTA_WPARAM(message.wParam)))
@@ -12640,6 +16295,15 @@ ATOM RegisterMainWindowClass(HINSTANCE instance)
     transportHostClass.lpszClassName = TransportHostClassName;
     RegisterClassExW(&transportHostClass);
 
+    WNDCLASSEXW modalDialogHostClass{};
+    modalDialogHostClass.cbSize = sizeof(modalDialogHostClass);
+    modalDialogHostClass.lpfnWndProc = ModalDialogHostProc;
+    modalDialogHostClass.hInstance = instance;
+    modalDialogHostClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    modalDialogHostClass.hbrBackground = nullptr;
+    modalDialogHostClass.lpszClassName = ModalDialogHostClassName;
+    RegisterClassExW(&modalDialogHostClass);
+
     WNDCLASSEXW gripClass{};
     gripClass.cbSize = sizeof(gripClass);
     gripClass.lpfnWndProc = PipResizeGripProc;
@@ -12677,17 +16341,40 @@ ATOM RegisterMainWindowClass(HINSTANCE instance)
     mediaShieldClass.lpszClassName = MediaFullscreenTransitionShieldClassName;
     RegisterClassExW(&mediaShieldClass);
 
-    WNDCLASSEXW initialMediaShieldClass{};
-    initialMediaShieldClass.cbSize = sizeof(initialMediaShieldClass);
-    initialMediaShieldClass.lpfnWndProc = InitialMediaRevealShieldProc;
-    initialMediaShieldClass.hInstance = instance;
-    initialMediaShieldClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    initialMediaShieldClass.hbrBackground =
-        static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
-    initialMediaShieldClass.lpszClassName = InitialMediaRevealShieldClassName;
-    RegisterClassExW(&initialMediaShieldClass);
+
 
     return mainWindowClass;
+}
+
+void ApplyStartupBorderlessPreference()
+{
+    // This is a launch preference, not a replacement for the existing B toggle.
+    // Apply the exact normal-window borderless style while the HWND is still
+    // hidden so startup never flashes a bordered frame. Preserve the original
+    // style snapshot so B can restore the regular window during this session.
+    if (!g_mainWindow || g_borderless ||
+        !ConfiguredNativeToggle("ui-start-borderless", false))
+    {
+        return;
+    }
+
+    g_borderedStyle = GetWindowLongPtrW(g_mainWindow, GWL_STYLE);
+    g_borderedExStyle = GetWindowLongPtrW(g_mainWindow, GWL_EXSTYLE);
+    g_borderless = true;
+
+    LONG_PTR style = (g_borderedStyle &
+        ~(WS_CAPTION | WS_BORDER | WS_DLGFRAME | WS_SYSMENU |
+            WS_MINIMIZEBOX | WS_MAXIMIZEBOX)) |
+        WS_POPUP | WS_THICKFRAME | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+    LONG_PTR exStyle = g_borderedExStyle &
+        ~(WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE |
+            WS_EX_DLGMODALFRAME);
+
+    SetWindowLongPtrW(g_mainWindow, GWL_STYLE, style);
+    SetWindowLongPtrW(g_mainWindow, GWL_EXSTYLE, exStyle);
+    SetWindowPos(g_mainWindow, nullptr, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER |
+        SWP_NOACTIVATE | SWP_FRAMECHANGED);
 }
 
 BOOL CreateMainWindow(HINSTANCE instance, int showCommand)
@@ -12719,9 +16406,20 @@ BOOL CreateMainWindow(HINSTANCE instance, int showCommand)
         return FALSE;
     }
 
+    ApplyStartupBorderlessPreference();
     ApplyWindows11Visual(g_mainWindow);
+    if (g_borderless)
+    {
+        constexpr DWORD noBorderColor = 0xFFFFFFFE; // DWMWA_COLOR_NONE
+        DwmSetWindowAttribute(
+            g_mainWindow, DWMWA_BORDER_COLOR,
+            &noBorderColor, sizeof(noBorderColor));
+    }
     ApplyRememberedWindowSize();
-    CenterMainWindowOnPrimaryWorkArea();
+    if (!ApplyRememberedWindowPosition())
+    {
+        CenterMainWindowOnPrimaryWorkArea();
+    }
 
     if (auto* info = reinterpret_cast<WindowInfo*>(
         GetWindowLongPtrW(g_mainWindow, GWLP_USERDATA)))
@@ -12756,6 +16454,32 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
 
     switch (message)
     {
+    case MpvWakeupMessage:
+        HandleMpvWakeupOnUiThread();
+        return 0;
+
+    case FullscreenInputCommitMessage:
+    {
+        if (!g_enterFullscreenCommitPending)
+        {
+            return 0;
+        }
+
+        g_enterFullscreenCommitPending = false;
+        bool const replayToggle =
+            std::exchange(g_enterFullscreenQueuedParity, false);
+        if (replayToggle)
+        {
+            RequestEnterFullscreenToggle();
+        }
+        return 0;
+    }
+
+    case LightSnapTransportCommitMessage:
+        FinishLightSnapTransportBackingGuard(
+            window, static_cast<UINT>(wParam));
+        return 0;
+
     case WM_ACTIVATE:
         if (info && info->transportHostedInPopup &&
             info->transportMicaConfiguration)
@@ -12859,13 +16583,56 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         PlayerUpdateTaskbarProgress();
         break;
 
+    case WM_SYSCOMMAND:
+        if (g_modalDialogOpen)
+        {
+            UINT const command = static_cast<UINT>(wParam) & 0xFFF0u;
+            switch (command)
+            {
+            case SC_SIZE:
+            case SC_MAXIMIZE:
+            case SC_MINIMIZE:
+                // ContentDialog is modal UI. Keep the owner geometry fixed
+                // until it closes so Win32, the XAML island and the D3D11
+                // child never enter competing resize timelines. SC_MOVE is
+                // intentionally not blocked: the user may still drag HC Player.
+                return 0;
+
+            case SC_RESTORE:
+                // Windows+D can minimize the owner through the shell even while
+                // our normal minimize command is blocked. In that state, allow
+                // the shell/taskbar to restore the HC Player window. If the
+                // window is not actually minimized, keep restore blocked so the
+                // modal dialog still cannot change the owner's geometry.
+                if (!IsIconic(window))
+                    return 0;
+                break;
+
+            default:
+                break;
+            }
+        }
+        // Let DefWindowProc perform the native minimize after transient cleanup.
+        if ((static_cast<UINT>(wParam) & 0xFFF0u) == SC_MINIMIZE)
+            CloseComboBoxesForMinimize(info);
+        break;
+
+    case WM_NCLBUTTONDBLCLK:
+        if (g_modalDialogOpen && wParam == HTCAPTION)
+        {
+            // A title-bar double click normally toggles maximize/restore.
+            // Treat it like the blocked system commands above while modal.
+            return 0;
+        }
+        break;
+
     case WM_NCPAINT:
-        if (g_borderless)
+        if (g_pictureInPicture || g_borderless)
             return 0;
         break;
 
     case WM_NCACTIVATE:
-        if (g_borderless)
+        if (g_pictureInPicture || g_borderless)
             return TRUE;
         break;
 
@@ -12879,6 +16646,19 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         break;
 
     case WM_NCHITTEST:
+        if (g_modalDialogOpen)
+        {
+            // Preserve title-bar/window dragging, but remove all resize hit
+            // targets for the lifetime of the modal dialog. For the standard
+            // framed window, let Windows classify caption/buttons first and
+            // only neutralize sizing edges/corners.
+            if (g_pictureInPicture || g_borderless)
+                return HTCAPTION;
+
+            LRESULT const hit = DefWindowProcW(window, message, wParam, lParam);
+            return IsResizeHitTest(hit) ? HTBORDER : hit;
+        }
+
         if (g_pictureInPicture)
         {
             POINT cursor{
@@ -12887,7 +16667,7 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
             int edges = PipResizeEdgesAt(cursor);
             if (edges != PipResizeNone) return PipHitTest(edges);
         }
-        else if (g_borderless)
+        else if (g_borderless && !g_fullscreen)
         {
             POINT cursor{
                 static_cast<short>(LOWORD(lParam)),
@@ -12977,6 +16757,10 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         info->bufferingRing.RequestedTheme(g_lightTheme
             ? winrt::Microsoft::UI::Xaml::ElementTheme::Light
             : winrt::Microsoft::UI::Xaml::ElementTheme::Dark);
+        // Follow the selected playback-bar style: HC Player keeps its
+        // established accent path; Windows 11 uses the exact native Windows
+        // accent brush used by Settings, seek and volume.
+        ApplyBufferingAccent(info);
         bufferingRoot.Children().Append(info->bufferingRing);
         info->bufferingSource.Content(bufferingRoot);
         HWND bufferingWindow = winrt::Microsoft::UI::GetWindowFromWindowId(
@@ -13113,7 +16897,7 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         winrt::Microsoft::UI::Xaml::Controls::TextBlock emptyStateSubtitle;
         emptyStateSubtitle.Text(PlayerUiString(
             L"NativeEmptyStateSubtitle",
-            L"Arraste um arquivo ou cole uma URL para começar"));
+            L"Arraste um arquivo, uma pasta ou cole uma URL para começar"));
         emptyStateSubtitle.FontFamily(
             winrt::Microsoft::UI::Xaml::Media::FontFamily{
                 L"Segoe UI Variable Text" });
@@ -13218,6 +17002,67 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
             reinterpret_cast<DWORD_PTR>(settingsImplementation));
         ShowWindow(settingsWindow, SW_HIDE);
 
+        // Pre-create a full-client child host for modal XAML. A WS_CHILD host
+        // is physically attached to the HC Player client area, so it follows
+        // ordinary window moves immediately. While a dialog is visible, the
+        // top-level owner is intentionally kept at a fixed size; this preserves
+        // the full modal dimming layer without interactive resize artifacts.
+        info->modalDialogHostWindow = CreateWindowExW(
+            0,
+            ModalDialogHostClassName,
+            nullptr,
+            WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+            0, 0, 1, 1,
+            window,
+            nullptr,
+            g_instance,
+            info);
+        if (info->modalDialogHostWindow)
+        {
+            info->modalDialogSource = winrt::DesktopWindowXamlSource{};
+            info->modalDialogSource.Initialize(
+                winrt::Microsoft::UI::GetWindowIdFromWindow(
+                    info->modalDialogHostWindow));
+            info->modalDialogRoot =
+                winrt::Microsoft::UI::Xaml::Controls::Grid{};
+
+            // This is a separate XAML island, so it does not inherit MainPage's
+            // RequestedTheme. Pin it explicitly to HC Player's own app theme
+            // instead of letting WinUI fall back to the Windows system theme.
+            info->modalDialogRoot.RequestedTheme(
+                g_lightTheme
+                    ? winrt::Microsoft::UI::Xaml::ElementTheme::Light
+                    : winrt::Microsoft::UI::Xaml::ElementTheme::Dark);
+
+            // The modal island must be fully opaque. ContentDialog normally
+            // draws a theme-dependent smoke layer over a transparent XamlRoot;
+            // with an embedded D3D11 HWND below it, transparent/stale pixels can
+            // expose a light or dark horizontal strip while the window changes
+            // size. A black root plus a black smoke brush makes every pixel
+            // outside the dialog deterministic in both themes and preserves the
+            // already-accepted blackout behavior while the dialog is open.
+            auto modalBlackBrush =
+                winrt::Microsoft::UI::Xaml::Media::SolidColorBrush{
+                    winrt::Windows::UI::Color{ 255, 0, 0, 0 } };
+            info->modalDialogRoot.Background(modalBlackBrush);
+            info->modalDialogRoot.Resources().Insert(
+                winrt::box_value(L"SmokeFillColorDefaultBrush"),
+                modalBlackBrush);
+            info->modalDialogRoot.HorizontalAlignment(
+                winrt::Microsoft::UI::Xaml::HorizontalAlignment::Stretch);
+            info->modalDialogRoot.VerticalAlignment(
+                winrt::Microsoft::UI::Xaml::VerticalAlignment::Stretch);
+
+            info->modalDialogSource.Content(info->modalDialogRoot);
+            info->modalDialogSource.SiteBridge().MoveAndResize(
+                { 0, 0, 1, 1 });
+            HWND modalDialogWindow =
+                winrt::Microsoft::UI::GetWindowFromWindowId(
+                    info->modalDialogSource.SiteBridge().WindowId());
+            ShowWindow(modalDialogWindow, SW_HIDE);
+            ShowWindow(info->modalDialogHostWindow, SW_HIDE);
+        }
+
         // Media Information mirrors Settings but lives on the LEFT. Pre-create
         // its XAML island during startup so the first click has no compositor
         // construction hitch. MediaInfo.dll itself is still loaded on demand.
@@ -13249,11 +17094,23 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         return 0;
     }
 
+    case WM_WINDOWPOSCHANGING:
+        BeginLightSnapTransportBackingGuard(
+            window, reinterpret_cast<WINDOWPOS const*>(lParam));
+        break;
+
+    case WM_WINDOWPOSCHANGED:
+        QueueLightSnapTransportCommit(
+            window, reinterpret_cast<WINDOWPOS const*>(lParam));
+        break;
+
     case WM_SIZE:
         if (info)
         {
             if (wParam == SIZE_MINIMIZED)
             {
+                ++info->comboBoxCleanup->generation;
+                CloseComboBoxesForMinimize(info);
                 g_mainWindowWasMinimized = true;
                 g_minimalCursorOutsideOwner = false;
 
@@ -13273,15 +17130,17 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
             }
             else if (g_mainWindowWasMinimized)
             {
+                QueueComboBoxRestoreCleanup(window, info);
                 g_mainWindowWasMinimized = false;
                 g_minimalCursorOutsideOwner = false;
 
-                if (g_transportMinimal && !g_transportHostVisible)
+                if (!g_transportHostVisible)
                 {
-                    // Treat the cursor position at restore as a new baseline.
-                    // Window/layout motion can synthesize WM_MOUSEMOVE before
-                    // DWM has visibly presented the owner; only movement after
-                    // this point is allowed to reveal the Minimal popup.
+                    // Treat the cursor position at restore as a new baseline
+                    // for every hidden transport style. Window/layout motion
+                    // can synthesize WM_MOUSEMOVE before DWM has visibly
+                    // presented the owner; only real movement after this point
+                    // is allowed to reveal the transport again.
                     POINT cursor{};
                     if (GetCursorPos(&cursor))
                     {
@@ -13292,13 +17151,28 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
                     }
                 }
             }
-            int width = LOWORD(lParam);
-            int height = HIWORD(lParam);
-            // Keep the child surfaces attached to the pointer. The D3D11
-            // presenter is paced to the compositor during the sizing loop,
-            // so an additional Win32 timer only adds visible stepping/jitter.
-            ApplyClientLayout(window, info, width, height);
-            ResizeInitialMediaRevealShield();
+            if (wParam != SIZE_MINIMIZED)
+            {
+                int width = LOWORD(lParam);
+                int height = HIWORD(lParam);
+                // Keep the child surfaces attached to the pointer. The D3D11
+                // presenter is paced to the compositor during the sizing loop,
+                // so an additional Win32 timer only adds visible stepping/jitter.
+                // While minimized, preserve the last valid child geometry instead
+                // of collapsing the embedded mpv presenter to the minimized client.
+                ApplyClientLayout(window, info, width, height);
+
+                if (g_pictureInPicture && info->page)
+                {
+                    bool const pipTimeWindowLargeEnough =
+                        width >= DipToPx(window, 335);
+                    winrt::get_self<
+                        winrt::HCPlayer::implementation::MainPage>(
+                            info->page)->SetPictureInPictureTimeWindowLargeEnough(
+                                pipTimeWindowLargeEnough);
+                }
+            }
+
             // The context-menu island is deliberately only 1x1 at its anchor.
             // Expanding a transparent XAML island over the embedded D3D11 HWND
             // occludes the MPV swap chain and makes video appear black.
@@ -13329,8 +17203,7 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
                 ApplyClientLayout(window, info,
                     client.right - client.left,
                     client.bottom - client.top);
-                ResizeInitialMediaRevealShield();
-            }
+                }
         }
 
         ApplyWindows11Visual(window);
@@ -13340,6 +17213,24 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
     case WM_GETMINMAXINFO:
     {
         auto* limits = reinterpret_cast<MINMAXINFO*>(lParam);
+
+        if (g_modalDialogOpen && !IsIconic(window) &&
+            g_modalLockedOwnerSizeValid)
+        {
+            // Belt-and-suspenders guard for Aero Snap, keyboard window
+            // management and any path that reaches the sizing constraints
+            // without first going through SC_SIZE. Crucially, do NOT sample
+            // GetWindowRect() here: during Windows+D -> restore, Windows can
+            // briefly expose the iconic/title-bar-sized rectangle. Reusing
+            // that transient rectangle is what made HC Player come back as a
+            // tiny title bar. Use the size captured when the modal opened.
+            limits->ptMinTrackSize = {
+                g_modalLockedOwnerSize.cx, g_modalLockedOwnerSize.cy };
+            limits->ptMaxTrackSize = {
+                g_modalLockedOwnerSize.cx, g_modalLockedOwnerSize.cy };
+            return 0;
+        }
+
         UINT dpi = GetDpiForWindow(window);
         if (!dpi) dpi = USER_DEFAULT_SCREEN_DPI;
         if (g_pictureInPicture)
@@ -13367,9 +17258,20 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
                 PlayerUpdateTaskbarProgress();
                 return 0;
             case TaskbarPlayPauseButtonId:
-                PlayerTogglePause();
+            {
+                bool paused{};
+                bool eofReached{};
+                if (PlayerGetPlaybackState(paused, eofReached) && eofReached)
+                {
+                    PlayerReplay();
+                }
+                else
+                {
+                    PlayerTogglePause();
+                }
                 PlayerUpdateTaskbarProgress();
                 return 0;
+            }
             case TaskbarNextButtonId:
                 PlayerChangeChapter(1);
                 PlayerUpdateTaskbarProgress();
@@ -13444,6 +17346,7 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         return 0;
 
     case WM_ENTERSIZEMOVE:
+        g_interactiveSizeMove = true;
         if (info)
         {
             // MPC-HC updates its destination rectangle immediately and relies
@@ -13460,6 +17363,7 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         return 0;
 
     case WM_EXITSIZEMOVE:
+        g_interactiveSizeMove = false;
         if (info)
         {
             if (g_mpv.handle && g_mpv.setProperty)
@@ -13476,12 +17380,17 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
 
         // Interactive sizing is the strongest signal that this is the size the
         // user actually chose. Fullscreen, PiP and maximized states are filtered
-        // inside CaptureRememberedWindowSize.
+        // inside the capture helpers. Size and position are independent.
         CaptureRememberedWindowSize(true);
+        CaptureRememberedWindowPosition(true);
         return 0;
 
     case ShowSettingsMessage:
         // Only one side panel owns the overlay surface at a time.
+        if (info && g_youtubeCommentsOpen)
+        {
+            SendMessageW(window, CloseYouTubeCommentsMessage, 0, 0);
+        }
         if (info && g_mediaInfoOpen)
         {
             SendMessageW(window, CloseMediaInfoMessage, 1, 0);
@@ -13618,6 +17527,10 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
     }
 
     case ShowMediaInfoMessage:
+        if (info && g_youtubeCommentsOpen)
+        {
+            SendMessageW(window, CloseYouTubeCommentsMessage, 0, 0);
+        }
         // If Settings owns the overlay, switch directly without briefly
         // restoring the transport bar between the two panels.
         if (info && g_settingsOpen)
@@ -13748,6 +17661,16 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
                     info->mediaInfoSource.SiteBridge().WindowId());
 
             g_mediaInfoOpen = false;
+
+            if (showPlaylistAfterClose)
+            {
+                // Keep MediaInfo covering the left overlay until Playlist has
+                // been prepared, painted and placed above it. Performing this
+                // handoff synchronously prevents DWM from presenting the bare
+                // video/background between two queued window operations.
+                SendMessageW(window, ShowPlaylistMessage, 0, 0);
+            }
+
             ShowWindow(mediaInfoWindow, SW_HIDE);
 
             if (!showSettingsAfterClose && !showPlaylistAfterClose)
@@ -13781,9 +17704,11 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
                         SWP_NOMOVE | SWP_NOSIZE |
                         SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
-                    winrt::get_self<
+                    auto* page = winrt::get_self<
                         winrt::HCPlayer::implementation::MainPage>(
-                            info->page)->SetSettingsOverlayOpen(false);
+                            info->page);
+                    page->PrepareSidePanelTransportReturn();
+                    page->SetSettingsOverlayOpen(false);
                 }
             }
         }
@@ -13792,15 +17717,15 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         {
             PostMessageW(window, ShowSettingsMessage, 0, 0);
         }
-        else if (showPlaylistAfterClose)
-        {
-            PostMessageW(window, ShowPlaylistMessage, 0, 0);
-        }
 
         return 0;
     }
 
     case ShowPlaylistMessage:
+        if (info && g_youtubeCommentsOpen)
+        {
+            SendMessageW(window, CloseYouTubeCommentsMessage, 0, 0);
+        }
         // Playlist shares MediaInfo's LEFT overlay position. Switch directly
         // between panels without briefly restoring the transport in between.
         if (info && g_settingsOpen)
@@ -13910,6 +17835,15 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
 
             playlistImplementation->PrepareForClose();
             g_playlistOpen = false;
+
+            if (showMediaInfoAfterClose)
+            {
+                // Keep Playlist covering the left overlay until MediaInfo has
+                // been prepared, painted and placed above it. This makes the
+                // same-side panel swap a single UI-thread transaction.
+                SendMessageW(window, ShowMediaInfoMessage, 0, 0);
+            }
+
             ShowWindow(playlistWindow, SW_HIDE);
 
             if (!showSettingsAfterClose && !showMediaInfoAfterClose)
@@ -13937,9 +17871,11 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
                         0, 0, 0, 0,
                         SWP_NOMOVE | SWP_NOSIZE |
                         SWP_NOACTIVATE | SWP_SHOWWINDOW);
-                    winrt::get_self<
+                    auto* page = winrt::get_self<
                         winrt::HCPlayer::implementation::MainPage>(
-                            info->page)->SetSettingsOverlayOpen(false);
+                            info->page);
+                    page->PrepareSidePanelTransportReturn();
+                    page->SetSettingsOverlayOpen(false);
                 }
             }
         }
@@ -13948,12 +17884,141 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         {
             PostMessageW(window, ShowSettingsMessage, 0, 0);
         }
-        else if (showMediaInfoAfterClose)
-        {
-            PostMessageW(window, ShowMediaInfoMessage, 0, 0);
-        }
         return 0;
     }
+
+    case ShowYouTubeCommentsMessage:
+        if (info && g_settingsOpen)
+        {
+            SendMessageW(window, CloseSettingsMessage, 0, 0);
+        }
+        if (info && g_mediaInfoOpen)
+        {
+            SendMessageW(window, CloseMediaInfoMessage, 0, 0);
+        }
+        if (info && g_playlistOpen)
+        {
+            SendMessageW(window, ClosePlaylistMessage, 0, 0);
+        }
+        if (info && g_contextMenuOpen)
+        {
+            SendMessageW(window, CloseContextMenuMessage, 0, 0);
+        }
+
+        if (info && !g_youtubeCommentsOpen)
+        {
+            g_youtubeCommentsOpen = true;
+
+            RECT client{};
+            GetClientRect(window, &client);
+            int const width = client.right - client.left;
+            int const height = client.bottom - client.top;
+            int const panelWidth =
+                min(DipToPx(window, YouTubeCommentsPanelWidth), width);
+
+            if (!info->youtubeCommentsSource)
+            {
+                info->youtubeCommentsSource = winrt::DesktopWindowXamlSource{};
+                info->youtubeCommentsSource.Initialize(
+                    winrt::Microsoft::UI::GetWindowIdFromWindow(window));
+                info->youtubeCommentsPage =
+                    winrt::make<
+                        winrt::HCPlayer::implementation::YouTubeCommentsPage>();
+                info->youtubeCommentsSource.Content(info->youtubeCommentsPage);
+
+                HWND commentsWindow =
+                    winrt::Microsoft::UI::GetWindowFromWindowId(
+                        info->youtubeCommentsSource.SiteBridge().WindowId());
+                auto* commentsImplementation =
+                    winrt::get_self<
+                        winrt::HCPlayer::implementation::YouTubeCommentsPage>(
+                            info->youtubeCommentsPage);
+                SetWindowSubclass(
+                    commentsWindow,
+                    YouTubeCommentsPanelSubclassProc,
+                    1,
+                    reinterpret_cast<DWORD_PTR>(commentsImplementation));
+            }
+
+            HWND commentsWindow =
+                winrt::Microsoft::UI::GetWindowFromWindowId(
+                    info->youtubeCommentsSource.SiteBridge().WindowId());
+            auto* commentsImplementation =
+                winrt::get_self<
+                    winrt::HCPlayer::implementation::YouTubeCommentsPage>(
+                        info->youtubeCommentsPage);
+
+            commentsImplementation->PrepareForOpen();
+            info->youtubeCommentsSource.SiteBridge().MoveAndResize(
+                { max(0, width - panelWidth), 0, panelWidth, height });
+
+            if (info->page)
+            {
+                winrt::get_self<
+                    winrt::HCPlayer::implementation::MainPage>(
+                        info->page)->SetSettingsOverlayOpen(true);
+            }
+
+            ApplyClientLayout(window, info, width, height);
+            SetWindowPos(
+                commentsWindow,
+                HWND_TOP,
+                0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE |
+                SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            RedrawWindow(
+                commentsWindow,
+                nullptr,
+                nullptr,
+                RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+            commentsImplementation->BeginOpenAnimation();
+        }
+        return 0;
+
+    case CloseYouTubeCommentsMessage:
+        if (info && info->youtubeCommentsSource && g_youtubeCommentsOpen)
+        {
+            HWND commentsWindow =
+                winrt::Microsoft::UI::GetWindowFromWindowId(
+                    info->youtubeCommentsSource.SiteBridge().WindowId());
+            auto* commentsImplementation =
+                winrt::get_self<
+                    winrt::HCPlayer::implementation::YouTubeCommentsPage>(
+                        info->youtubeCommentsPage);
+
+            commentsImplementation->PrepareForClose();
+            g_youtubeCommentsOpen = false;
+            ShowWindow(commentsWindow, SW_HIDE);
+
+            RECT client{};
+            GetClientRect(window, &client);
+            ApplyClientLayout(
+                window, info,
+                client.right - client.left,
+                client.bottom - client.top);
+
+            SetWindowPos(
+                g_videoWindow, HWND_TOP,
+                0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE |
+                SWP_NOACTIVATE | SWP_SHOWWINDOW);
+
+            if (info->xamlSource)
+            {
+                HWND controlsWindow =
+                    winrt::Microsoft::UI::GetWindowFromWindowId(
+                        info->xamlSource.SiteBridge().WindowId());
+                SetWindowPos(
+                    controlsWindow, HWND_TOP,
+                    0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE |
+                    SWP_NOACTIVATE | SWP_SHOWWINDOW);
+                winrt::get_self<
+                    winrt::HCPlayer::implementation::MainPage>(
+                        info->page)->SetSettingsOverlayOpen(false);
+            }
+        }
+        return 0;
 
     case OpenFileMessage:
         if (info && info->page)
@@ -13999,6 +18064,12 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
                     left.filename().c_str(), right.filename().c_str()) < 0;
             });
         if (files.empty()) return 0;
+
+        if (files.size() > static_cast<size_t>(PlaylistMaximumItems))
+        {
+            files.resize(static_cast<size_t>(PlaylistMaximumItems));
+            g_playlistMaximumNoticePending.store(true);
+        }
 
         g_suppressAutoload = true;
         bool opened = PlayerOpenRecentFile(files.front().wstring());
@@ -14156,10 +18227,19 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
             }
             return 0;
         }
+        if (wParam == EmptyStateGlowTimer)
+        {
+            if (!info || !info->emptyStateVisible)
+            {
+                KillTimer(window, EmptyStateGlowTimer);
+                return 0;
+            }
+            UpdateEmptyStateGlow(info);
+            return 0;
+        }
         if (wParam == TransportPointerTimer)
         {
             UpdateCursorAutohide();
-            UpdateEmptyStateGlow(info);
             if (info && info->page && !IsSidePanelOpen())
             {
                 POINT screenCursor{};
@@ -14252,14 +18332,16 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
             }
             return 0;
         }
-        if (wParam == InitialMediaRevealTimer)
+        if (wParam == StartupMediaFailSafeTimer)
         {
-            PollDeferredStartupMediaReveal();
+            KillTimer(window, StartupMediaFailSafeTimer);
+            FinishEventDrivenStartupMediaReveal(true, false);
             return 0;
         }
         break;
 
     case WM_CLOSE:
+        if (info) info->comboBoxCleanup->closing = true;
         // Save a resolved web title while mpv metadata is still alive. This is
         // a tiny synchronous metadata write, completely outside decoding.
         CaptureCurrentRecentTitle();
@@ -14276,6 +18358,7 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         {
             CaptureRememberedWindowSize(true);
         }
+        CaptureRememberedWindowPosition(true);
 
         // Close transient islands through their normal paths before destroying
         // the Win32 owner. In particular, the settings island must finish its
@@ -14298,23 +18381,29 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
             {
                 SendMessageW(window, ClosePlaylistMessage, 0, 0);
             }
+            if (info->youtubeCommentsSource)
+            {
+                SendMessageW(window, CloseYouTubeCommentsMessage, 0, 0);
+            }
         }
         DestroyWindow(window);
         return 0;
 
     case WM_DESTROY:
+        if (info) info->comboBoxCleanup->closing = true;
         KillTimer(window, NativeSettingsSaveTimer);
         KillTimer(window, SettingsTransitionTimer);
         KillTimer(window, TransportPointerTimer);
+        KillTimer(window, EmptyStateGlowTimer);
         KillTimer(window, AutofitWindowTimer);
         KillTimer(window, DynamicWindowFitTimer);
         KillTimer(window, VideoSingleClickTimer);
         KillTimer(window, FullscreenVideoSettleTimer);
-        KillTimer(window, InitialMediaRevealTimer);
-        g_deferredStartupMediaReveal = false;
-        g_deferredStartupRevealStartedTick = 0;
-        DestroyInitialMediaRevealShield();
+        KillTimer(window, StartupMediaFailSafeTimer);
+        g_startupMediaEventDriven = false;
+        g_startupTechnicalPauseActive = false;
         DestroyPendingFullscreenVideoSettleShield();
+        g_lightSnapTransportBackingGuard = false;
         SetApplicationCursorHidden(false);
         if (g_taskbarList)
         {
@@ -14343,6 +18432,15 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
             {
                 info->settingsSource.Close();
             }
+            if (info->modalDialogSource)
+            {
+                info->modalDialogSource.Close();
+            }
+            if (info->modalDialogHostWindow)
+            {
+                DestroyWindow(info->modalDialogHostWindow);
+                info->modalDialogHostWindow = nullptr;
+            }
             if (info->mediaInfoSource)
             {
                 info->mediaInfoSource.Close();
@@ -14350,6 +18448,10 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
             if (info->playlistSource)
             {
                 info->playlistSource.Close();
+            }
+            if (info->youtubeCommentsSource)
+            {
+                info->youtubeCommentsSource.Close();
             }
             if (info->contextSource)
             {

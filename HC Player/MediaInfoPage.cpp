@@ -959,37 +959,124 @@ namespace winrt::HCPlayer::implementation
     winrt::fire_and_forget MediaInfoPage::RefreshAsync()
     {
         auto lifetime = get_strong();
-        auto uiContext = winrt::apartment_context{};
-
+        auto dispatcher = DispatcherQueue();
         uint64_t const generation =
             m_requestGeneration;
 
-        ShowLoading();
-
-        MediaInfoBridge::Analysis analysis;
-        std::wstring error;
-
-        co_await winrt::resume_background();
-
-        bool const success =
-            PlayerGetMediaInfoAnalysis(
-                analysis,
-                error);
-
-        co_await uiContext;
-
-        if (generation != m_requestGeneration)
+        try
         {
-            co_return;
+            ShowLoading();
+
+            std::wstring mediaPath;
+            std::wstring error;
+            bool sourceReady{};
+            try
+            {
+                // Resolve the active item before leaving the UI thread. The
+                // background analysis no longer reads a libmpv handle that may
+                // have just been rebuilt by an import operation.
+                sourceReady = PlayerGetMediaInfoSourcePath(
+                    mediaPath,
+                    error);
+            }
+            catch (...)
+            {
+                error = L"MediaInfo could not open this media source.";
+            }
+
+            if (!sourceReady)
+            {
+                ShowError(error);
+                co_return;
+            }
+
+            MediaInfoBridge::Analysis analysis;
+            bool success{};
+
+            co_await winrt::resume_background();
+
+            try
+            {
+                success = MediaInfoBridge::AnalyzeFileStructured(
+                    mediaPath,
+                    analysis,
+                    error);
+            }
+            catch (...)
+            {
+                error = L"MediaInfo could not open this media source.";
+            }
+
+            // DesktopWindowXamlSource panels can invalidate an apartment-context
+            // continuation while another overlay is being hidden. Queue the
+            // result through this page's DispatcherQueue instead: it resumes on
+            // the same UI thread without a timer, delay or polling loop.
+            dispatcher.TryEnqueue(
+                [this,
+                 lifetime,
+                 generation,
+                 success,
+                 analysis = std::move(analysis),
+                 error = std::move(error)]() mutable
+                {
+                    if (generation != m_requestGeneration)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        if (success)
+                        {
+                            ShowAnalysis(analysis);
+                        }
+                        else
+                        {
+                            ShowError(error);
+                        }
+                    }
+                    catch (...)
+                    {
+                        // A malformed metadata value or an unavailable XAML
+                        // resource must remain a panel-level failure.
+                        try
+                        {
+                            ShowError(
+                                L"MediaInfo could not open this media source.");
+                        }
+                        catch (...)
+                        {
+                        }
+                    }
+                });
         }
+        catch (...)
+        {
+            // fire_and_forget terminates the process when an exception escapes.
+            // Also retire the loading state if an unexpected continuation error
+            // occurs before the normal completion callback can be queued.
+            try
+            {
+                dispatcher.TryEnqueue([this, lifetime, generation]()
+                {
+                    if (generation != m_requestGeneration)
+                    {
+                        return;
+                    }
 
-        if (success)
-        {
-            ShowAnalysis(analysis);
-        }
-        else
-        {
-            ShowError(error);
+                    try
+                    {
+                        ShowError(
+                            L"MediaInfo could not open this media source.");
+                    }
+                    catch (...)
+                    {
+                    }
+                });
+            }
+            catch (...)
+            {
+            }
         }
     }
 

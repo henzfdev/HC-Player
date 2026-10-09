@@ -36,6 +36,7 @@ namespace winrt::HCPlayer::implementation
             bool allowDisabled);
         bool m_openSettingsAfterClose{};
         bool m_openMediaInfoAfterClose{};
+        bool m_openPlaylistAfterClose{};
         std::vector<std::wstring> m_renderedProfiles;
         std::wstring m_renderedActiveProfile;
     };

@@ -172,6 +172,10 @@
       <DependentUpon>PlaylistPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </ClInclude>
+    <ClInclude Include="YouTubeCommentsPage.h">
+      <DependentUpon>YouTubeCommentsPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </ClInclude>
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
@@ -214,6 +218,10 @@
     </ClCompile>
     <ClCompile Include="PlaylistPage.cpp">
       <DependentUpon>PlaylistPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </ClCompile>
+    <ClCompile Include="YouTubeCommentsPage.cpp">
+      <DependentUpon>YouTubeCommentsPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </ClCompile>
     <ClCompile Include="pch.cpp">
@@ -273,6 +281,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>default-input.conf</TargetPath>
     </Content>
+    <Content Include="scripts\stats.lua">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>scripts\stats.lua</TargetPath>
+    </Content>
     <Content Include="Assets\Branding\HCPlayer.Brand.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>Assets\Branding\HCPlayer.Brand.png</TargetPath>
@@ -316,6 +328,10 @@
       <DependentUpon>PlaylistPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Midl>
+    <Midl Include="YouTubeCommentsPage.idl">
+      <DependentUpon>YouTubeCommentsPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Midl>
     <Midl Include="SettingsPage.idl">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -333,6 +349,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="PlaylistPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="YouTubeCommentsPage.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Include="SettingsPage.xaml">
