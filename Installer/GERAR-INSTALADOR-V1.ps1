@@ -94,12 +94,12 @@ Invoke-HCScript $check
 Write-Host '[4/4] Compilando no Inno Setup 7...' -ForegroundColor Cyan
 Invoke-HCScript $build
 
-$setup = Join-Path $Installer 'Output\HC_Player_1.5.0_x64_Setup.exe'
-$hashFile = Join-Path $Installer 'Output\HC_Player_1.5.0_x64_Setup.exe.sha256.txt'
+$setup = Join-Path $Installer 'Output\HC_Player_1.5.1_x64_Setup.exe'
+$hashFile = Join-Path $Installer 'Output\HC_Player_1.5.1_x64_Setup.exe.sha256.txt'
 if (-not (Test-Path -LiteralPath $setup)) { Fail 'O Inno terminou, mas o Setup final nao foi encontrado.' }
 Write-Host ''
 Write-Host '============================================================' -ForegroundColor Green
-Write-Host ' HC PLAYER 1.5.0 - SETUP FINAL SAFE GERADO' -ForegroundColor Green
+Write-Host ' HC PLAYER 1.5.1 - SETUP FINAL SAFE GERADO' -ForegroundColor Green
 Write-Host '============================================================' -ForegroundColor Green
 Write-Host "Setup: $setup"
 Write-Host "Hash:  $hashFile"

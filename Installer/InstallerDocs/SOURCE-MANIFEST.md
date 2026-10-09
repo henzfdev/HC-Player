@@ -1,6 +1,6 @@
-﻿# HC Player 1.5.0 — Source and binary manifest
+﻿# HC Player 1.5.1 — Source and binary manifest
 
-Status: HC Player 1.5.0 release manifest. Retain this file with the public
+Status: HC Player 1.5.1 release manifest. Retain this file with the public
 binary and corresponding-source archive.
 
 ## HC Player

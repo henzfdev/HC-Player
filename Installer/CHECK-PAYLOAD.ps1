@@ -40,13 +40,13 @@ function Check-MicrosoftSignature([string]$Path, [string]$Label) {
 $payload = Join-Path $PSScriptRoot 'Payload'
 $prereq = Join-Path $PSScriptRoot 'Prerequisites'
 $setupIcon = Join-Path $PSScriptRoot 'InstallerAssets\HCPlayer_Setup.ico'
-$iss = Join-Path $PSScriptRoot 'HC_Player_1.5.0_x64.iss'
+$iss = Join-Path $PSScriptRoot 'HC_Player_1.5.1_x64.iss'
 
-Write-Host 'HC PLAYER 1.5.0 - VERIFICAÇÃO FINAL DO PAYLOAD DO INNO' -ForegroundColor Cyan
+Write-Host 'HC PLAYER 1.5.1 - VERIFICAÇÃO FINAL DO PAYLOAD DO INNO' -ForegroundColor Cyan
 Write-Host '====================================================='
 
 if (-not (Test-Path -LiteralPath $payload -PathType Container)) { Fail 'Pasta Payload ausente' }
-if (-not (Test-Path -LiteralPath $iss -PathType Leaf)) { Fail 'HC_Player_1.5.0_x64.iss ausente' }
+if (-not (Test-Path -LiteralPath $iss -PathType Leaf)) { Fail 'HC_Player_1.5.1_x64.iss ausente' }
 
 $required = @(
     'HC Player.exe', 'HC Player.ico', 'small.ico', 'HC Player.pri', 'HCPlayer.winmd',
@@ -81,8 +81,8 @@ if (Test-Path -LiteralPath $exe -PathType Leaf) {
     $machine = Get-PeMachine $exe
     if ($machine -eq 0x8664) { Pass 'HC Player.exe é x64' } else { Fail ('HC Player.exe Machine=0x{0:X4}, esperado x64 0x8664' -f $machine) }
     $fv = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
-    if ($fv.FileVersion -eq '1.5.0.0' -and $fv.ProductVersion -eq '1.5.0.0' -and $fv.ProductName -eq 'HC Player') {
-        Pass 'Identidade/versionamento do HC Player.exe = 1.5.0.0 / HC Player'
+    if ($fv.FileVersion -eq '1.5.1.0' -and $fv.ProductVersion -eq '1.5.1.0' -and $fv.ProductName -eq 'HC Player') {
+        Pass 'Identidade/versionamento do HC Player.exe = 1.5.1.0 / HC Player'
     } else {
         Fail "Metadados do EXE inesperados: File=$($fv.FileVersion) Product=$($fv.ProductVersion) Name=$($fv.ProductName)"
     }
@@ -93,7 +93,7 @@ Check-Hash (Join-Path $payload 'scripts\stats.lua') '7cead8a7b39a9fbd0ccb54b367d
 Check-Hash (Join-Path $payload 'MediaInfo.dll') 'a2612fa8bf639349aee9747d8a555d361f5db95b049b3af9b0c3851a21a4308d' 'MediaInfo.dll'
 Check-Hash (Join-Path $payload 'HC Player.ico') 'ec75352a2abc90fe265079e0f7bc567ddb154eb4aa28f59a73707f8bb25a613f' 'HC Player.ico'
 Check-Hash $setupIcon 'f540bb0f98165dc1a90684bd4d1cbed29adaacff708b5364435b5307dcace773' 'HCPlayer_Setup.ico'
-Check-Hash $iss 'f36067a3f2922857f95dfb53a3780fee55aa8e6d6cf28f2c431f436310c3bac3' 'HC_Player_1.5.0_x64.iss SAFE'
+Check-Hash $iss '0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251' 'HC_Player_1.5.1_x64.iss SAFE'
 
 $vc = Join-Path $prereq 'vc_redist.x64.exe'
 $appRuntime = Join-Path $prereq 'WindowsAppRuntimeInstall-x64.exe'
@@ -107,7 +107,7 @@ if (Test-Path -LiteralPath $iss -PathType Leaf) {
         'PrivilegesRequired=admin',
         'ChangesAssociations=no',
         'SetupIconFile=InstallerAssets\HCPlayer_Setup.ico',
-        'UninstallDisplayName=HC Player 1.5.0',
+        'UninstallDisplayName=HC Player 1.5.1',
         '--hc-initial-language {code:InitialLanguageTag}',
         'runasoriginaluser',
         'CleanupHCPlayerLoadedUserProfiles'
@@ -127,5 +127,5 @@ if ($failed) {
 }
 
 Write-Host 'PAYLOAD APROVADO PARA COMPILAR NO INNO SETUP.' -ForegroundColor Green
-Write-Host 'Compile HC_Player_1.5.0_x64.iss no Inno Setup 7 x64.'
+Write-Host 'Compile HC_Player_1.5.1_x64.iss no Inno Setup 7 x64.'
 exit 0

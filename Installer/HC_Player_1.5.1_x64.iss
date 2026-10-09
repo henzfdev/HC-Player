@@ -1,6 +1,6 @@
 #define MyAppName "HC Player"
-#define MyAppVersion "1.5.0"
-#define MyAppVersionQuad "1.5.0.0"
+#define MyAppVersion "1.5.1"
+#define MyAppVersionQuad "1.5.1.0"
 #define MyAppPublisher "HC Player"
 #define MyAppURL "https://github.com/henzfdev/HC-Player"
 #define MyAppExeName "HC Player.exe"
@@ -27,10 +27,10 @@ AllowNoIcons=yes
 LicenseFile=Payload\LICENSE
 SetupIconFile=InstallerAssets\HCPlayer_Setup.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
-UninstallDisplayName=HC Player 1.5.0
+UninstallDisplayName=HC Player 1.5.1
 
 OutputDir=Output
-OutputBaseFilename=HC_Player_1.5.0_x64_Setup
+OutputBaseFilename=HC_Player_1.5.1_x64_Setup
 
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -58,7 +58,7 @@ VersionInfoProductVersion={#MyAppVersionQuad}
 VersionInfoProductName={#MyAppName}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription=HC Player Setup
-VersionInfoOriginalFileName=HC_Player_1.5.0_x64_Setup.exe
+VersionInfoOriginalFileName=HC_Player_1.5.1_x64_Setup.exe
 VersionInfoCopyright=Copyright (c) 2026 Heinz
 
 [Languages]

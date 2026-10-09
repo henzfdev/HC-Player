@@ -91,7 +91,7 @@ if ($machine -ne 0x8664) {
 }
 
 $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
-if ($version.FileVersion -ne '1.5.0.0' -or $version.ProductVersion -ne '1.5.0.0') {
+if ($version.FileVersion -ne '1.5.1.0' -or $version.ProductVersion -ne '1.5.1.0') {
     Fail "Versão do HC Player.exe inesperada. FileVersion=$($version.FileVersion) ProductVersion=$($version.ProductVersion)"
 }
 if ($version.ProductName -ne 'HC Player') {
