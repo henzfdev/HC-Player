@@ -183,6 +183,19 @@ See `LICENSE`, `THIRD-PARTY-NOTICES.md` and `SOURCE-MANIFEST.md` for details.
 
 Source and compliance materials for each public release are available alongside the installer in the corresponding GitHub Release.
 
+
+## Code signing policy
+
+HC Player is **preparing** a verifiable code-signing workflow for open-source releases. The project has **not yet been approved** by SignPath Foundation, and existing installers should not be assumed to carry a SignPath signature.
+
+- [Code signing policy](CODE_SIGNING_POLICY.md)
+- [Privacy policy / Política de privacidade](PRIVACY.md)
+- [SignPath preparation status](SIGNPATH-PREPARATION.md)
+- [Official downloads](https://github.com/henzfdev/HC-Player/releases)
+
+If approved and activated, the project intends to acknowledge SignPath.io and SignPath Foundation on official download pages. Until then, no released binary is claimed to be signed by this program.
+
+
 ---
 
 **HC Player — native Windows design, serious mpv playback.**
