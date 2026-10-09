@@ -1,0 +1,57 @@
+name: HC Player 1.5.1 draft libmpv private access check (unsigned)
+
+on:
+  push:
+    branches:
+      - signpath-prep
+    paths:
+      - '.github/workflows/signpath-check-draft-libmpv.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  read-draft:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Authenticate to original unpublished draft and verify frozen zip and dll
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_url='https://api.github.com/repos/henzfdev/HC-Player/releases/407551892'
+          asset_name='HC_Player_1.5.1_LIBMPV_ORIGINAL_PARA_CI.zip'
+          expected_zip='dab6f6a85b6fd0964d4a01dc9b2d439369403f6056245afabd6bb0499083c327'
+          expected_dll='965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c'
+          headers=(-H "Authorization: Bearer ${GH_TOKEN}" -H 'X-GitHub-Api-Version: 2022-11-28')
+          curl --fail --silent --show-error --location "${headers[@]}" -H 'Accept: application/vnd.github+json' "$release_url" -o "$RUNNER_TEMP/release.json"
+          jq -e --arg asset "$asset_name" '.draft == true and .prerelease == true and .target_commitish == "signpath-prep" and ([.assets[].name] | index($asset) != null)' "$RUNNER_TEMP/release.json" >/dev/null
+          asset_id="$(jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .id' "$RUNNER_TEMP/release.json")"
+          [ -n "$asset_id" ] || { echo 'The original library zip is absent from the unpublished release.' >&2; exit 1; }
+          zipfile="$RUNNER_TEMP/$asset_name"
+          curl --fail --silent --show-error --location "${headers[@]}" -H 'Accept: application/octet-stream' "https://api.github.com/repos/henzfdev/HC-Player/releases/assets/$asset_id" -o "$zipfile"
+          echo "$expected_zip  $zipfile" | sha256sum --check
+          python3 - "$zipfile" "$expected_dll" <<'PY'
+          import hashlib, pathlib, sys, zipfile
+          archive, expected = sys.argv[1:]
+          with zipfile.ZipFile(archive) as z:
+              matches = [n for n in z.namelist() if pathlib.PurePosixPath(n.replace('\\', '/')).name.casefold() == 'libmpv-2.dll' and not n.endswith('/')]
+              if len(matches) != 1:
+                  raise SystemExit(f'Expected exactly one original libmpv-2.dll, found {len(matches)}')
+              digest = hashlib.sha256()
+              total = 0
+              with z.open(matches[0]) as inp:
+                  while block := inp.read(1024*1024):
+                      total += len(block)
+                      digest.update(block)
+              if digest.hexdigest() != expected:
+                  raise SystemExit('Original libmpv-2.dll SHA256 mismatch: refused')
+              print(f'PASS: frozen libmpv-2.dll verified ({total} bytes).')
+          PY
+          {
+            echo '### Original libmpv from UNPUBLISHED draft — verified'
+            echo 'Read authenticated draft asset; checked zip and exact original DLL SHA-256.'
+            echo 'No publish, signing, executable extraction, or application build occurred.'
+          } >> "$GITHUB_STEP_SUMMARY"
