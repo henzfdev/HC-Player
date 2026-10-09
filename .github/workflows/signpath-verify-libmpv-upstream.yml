@@ -1,0 +1,45 @@
+name: HC Player exact libmpv upstream verification (UNSIGNED)
+
+on:
+  push:
+    branches:
+      - signpath-prep
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 25
+    steps:
+      - name: Fetch pinned upstream 09-Aug-2026 archive and verify original DLL
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          $url = 'https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20260809-git-dd5d17d328.7z/download'
+          $archive = Join-Path $env:RUNNER_TEMP 'mpv-dev-dd5d17d328.7z'
+          Invoke-WebRequest -Uri $url -OutFile $archive -MaximumRedirection 10 -UserAgent 'Mozilla/5.0'
+          $expectedArchive = 'c6aebf40bb722efe79090bfeb61e68625f0837770347e5a8b610aef78900cf12'
+          $actualArchive = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualArchive -ne $expectedArchive) {
+            throw "Archive SHA-256 mismatch. Got: $actualArchive, expected: $expectedArchive"
+          }
+          Write-Host "Original upstream archive SHA-256 verified: $actualArchive"
+          $seven = Get-Command 7z.exe -ErrorAction Stop
+          $dir = Join-Path $env:RUNNER_TEMP 'verified-original-libmpv'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          & $seven.Source e -y "-o$dir" $archive 'libmpv-2.dll'
+          if ($LASTEXITCODE -ne 0) { throw "Archive extraction failed ($LASTEXITCODE)" }
+          $dll = Join-Path $dir 'libmpv-2.dll'
+          if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) {
+            throw 'Original libmpv-2.dll not found in archive.'
+          }
+          $expectedDll = '965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c'
+          $actualDll = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualDll -ne $expectedDll) {
+            throw "Upstream DLL is NOT the version frozen for HC Player 1.5.0! Expected $expectedDll got $actualDll. No substitution allowed."
+          }
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value 'PASS: The pinned external upstream 09-Aug-2026 archive contains a byte-for-byte identical HC Player 1.5.0 libmpv-2.dll.'
+          Write-Host "Verified byte-for-byte equivalent original libmpv: $actualDll"
