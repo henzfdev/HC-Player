@@ -8,14 +8,16 @@ on:
       - '.github/workflows/signpath-check-draft-libmpv.yml'
 
 permissions:
-  contents: read
+  # Temporary isolated capability test for the already-created unpublished draft.
+  # This job has no write commands. Remove the permission after the result.
+  contents: write
 
 jobs:
   read-draft:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
-      - name: Authenticate to original unpublished draft and verify frozen zip and dll
+      - name: Test draft access using job-scoped GITHUB_TOKEN; verify both hashes
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
