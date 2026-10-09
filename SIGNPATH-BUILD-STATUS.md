@@ -1,40 +1,31 @@
-# SignPath activation — current technical status
+# HC Player 1.5.1 SEM TORRENT — SignPath and Microsoft Store readiness
 
-**This branch is for safe experiments only. No main-branch changes, signing or publishing have been performed.**
+**As of 2026-10-09.** Only `signpath-prep` contains the Store signing preparation. **Do not modify or merge into `main` without express maintainer authorization.**
 
-## Implemented in `signpath-prep`
+## Verified milestones (not signed)
 
-- Signing policy and bilingual privacy policy.
-- Static Windows hosted preflight (passed once).
-- A toolchain / NuGet restore workflow (runs on `signpath-prep` pushes).
-- Manual, fail-closed unsigned application build workflow: `.github/workflows/signpath-build-unsigned.yml`.
+- **Build and SAFE Inno Setup success:** GitHub Actions run [37895878252](https://github.com/henzfdev/HC-Player/actions/runs/37895878252), commit `992ebad50feeb3167494c743e62257de18720101`. All steps completed successfully.
+- Visual Studio 2026 (MSVC v145), Windows-hosted build, NuGet restore, C++/WinUI `Release|x64`, and EXE `1.5.1.0` version metadata passed.
+- The exact original `libmpv-2.dll` (`965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c`) was obtained via an **unpublished draft-release ZIP**, SHA-256 verified; this must remain draft pending licensing review.
+- The original `scripts/stats.lua` SHA-256 (`7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247`) was verified and restored byte-exact from the Git blob, without changing playback behavior.
+- Official Inno Setup 7.1.0 installer Authenticode signature checked, followed by the original `GERAR-INSTALADOR-V1.ps1`, `STAGE-PAYLOAD.ps1`, `CHECK-PAYLOAD.ps1` and `BUILD-INSTALLER.ps1` SAFE pipeline.
+- Output during the successful run: `HC_Player_1.5.1_x64_Setup.exe`; its SHA-256, version `1.5.1.0`, prerequisite Microsoft signatures, payload and original Inno `.iss` checks passed. The permanent Inno AppId was kept for upgrades.
+- **The successful workflow intentionally did not upload/store the installer as a GitHub artifact and did not create a release.** The compiled EXE/Setup from this ephemeral runner is *not retrievable as an Actions artifact*. This is not a downloadable release or a smoke test on customer Windows.
+- The `main` branch is unchanged from `101023800da772fe91899622f34ec0598a569fcd`.
 
-## Remaining mandatory steps
+## Mandatory work before an official signed 1.5.1 release
 
-1. Commit the original **13 files** from the provided HC Player 1.5.1 SEM TORRENT `Installer/` directory to this preparation branch; the only pre-existing tracked file in `Installer/` is `CI-PREPARATION.md`. Do not change `main`.
-2. Provide an immutable URL to **the exact** `libmpv-2.dll` (SHA-256 `965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c`), e.g. publish as a versioned GitHub release asset, together with the source/compliance materials.
-3. Verify the original Inno Setup 7 compiler binary on GitHub runners for the optional installer stage. No unsigned or older substitute should silently be used.
-4. Run the unsigned manual build after 1–3 and test it on Windows. A passing static check does not mean the executable compiles.
-5. Finish SignPath Foundation application and let the foundation evaluate the project. Then add SignPath's actual Organization ID, project slug, signing-policy slug, artifact config, secret API token, GitHub App and **per-release human approval**, as required by [SignPath's GitHub instructions](https://docs.signpath.io/trusted-build-systems/github). No signing request should be programmed before that.
-6. Review third-party DLL signatures and license compliance independently of whether SignPath accepts the project. It is not permissible to sign third-party binaries as if authored by HC Player.
-7. After signing, validate silent/offline installer, uninstall/upgrade, and Microsoft Store certification requirements. Do **not** publish a test artifact as a stable release.
+1. **Submit the SignPath Foundation open-source signing application:** https://signpath.org/apply.html . The project has *not* been approved. The maintainer must provide/confirm project information and formally submit the application. The public source repository is https://github.com/henzfdev/HC-Player ; the 1.5.1 candidate is at https://github.com/henzfdev/HC-Player/tree/signpath-prep . The code-signing policy and bilingual privacy policy are linked from that branch's README.
+2. **Resolve licensing/distribution prerequisites.** The `libmpv-2.dll` is third-party GPL/LGPL-related code. Confirm exact corresponding source/build recipe and redistributable licenses before making a public artifact. The Foundation's free signing terms allow unsigned upstream OSS binaries in a signed package but do not allow signing unowned third-party PE files as HC Player's own work; Microsoft Store Win32 installer rules may require PE signatures too. Investigate this conflict explicitly.
+3. **After approval**, configure the official SignPath Github App/trusted build system, Organization ID, project slug, artifact configuration, signing policy, securely stored API token and a human approver per release. Never invent these values; do not submit a signing request before approval.
+4. **Design a controlled artifact flow.** The SignPath GitHub connector requires the UNSIGNED installer to be uploaded as a GitHub Actions artifact by the same build workflow before submission (actions/upload-artifact v4+). This has deliberately NOT been enabled yet, to avoid premature artifact distribution. Signed installers, validation artifacts and SHA-256 values must be preserved and audited after signing.
+5. **Sign and certify only after those prerequisites:** check whether SignPath artifact configuration covers the HC Player EXE and Inno installer without improperly signing third-party DLLs. Test clean installation, 1.5.0-to-1.5.1 upgrade, uninstall, relevant integrations and Windows Store MSI/EXE certification. Do not distribute unsigned QA output as a stable release.
 
-## Important upstream and installer invariants
+## Preserved invariants
 
-- Inno `.iss` unchanged SHA256 `0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251`.
-- SignPath's free OSS program signs binaries of the maintainers' own project, with upstream rules.
-- `yt-dlp` and Deno are optional externally imported tools and are **not bundled**.
-- Windows App SDK/WinUI, libmpv and MediaInfo remain under their third-party licenses.
-- No workflow in this branch changes `main` or creates public releases.
+- HC Player 1.5.1 **SEM TORRENT** only, no torrent source or engine included in the Store candidate.
+- `yt-dlp` and Deno are user-imported optional external tools and are not bundled in the installer.
+- Do not remove or weaken SHA-256 verification, do not change media engine or UI animations, and keep PT-BR/EN-US in sync.
+- No signing token in Git, no automatic public release, no changes to `main`.
 
-## Running the isolated build without touching main
-
-A `workflow_dispatch` button is not available to workflows that exist only on non-default branches (GitHub restriction). To avoid any change to `main`, the unsigned build workflow also responds to pushes on `signpath-prep`, but **only** after this repository Actions variable is set:
-
-- `HC_LIBMPV_URL` = a versioned release-asset URL in `https://github.com/henzfdev/HC-Player/releases/download/<version>/...` returning the exact original `libmpv-2.dll`.
-- Its SHA256 is hard-coded and checked in the build workflow. A wrong or repackaged DLL always fails the job.
-- Optional `HC_SIGNPATH_BUILD_INSTALLER=true` requests packaging. It fails closed unless original Installer source files, matching hashes, and Inno Setup 7 are present.
-
-No public artifact is uploaded as a release. CI artifacts, if built, are labeled UNSIGNED and expire after three days. SignPath signature activation remains a separate, later operation requiring the user's account and foundation approval.
-
-**Release correction:** The actual Store/SignPath candidate is 1.5.1 SEM TORRENT, incorporating the later YouTube comments text fix. Application and installer version declarations are synchronized; Inno AppId is unchanged. No signing is claimed.
+Authoritative references: [SignPath Foundation terms](https://signpath.org/terms.html), [SignPath GitHub origin-verified signing](https://docs.signpath.io/trusted-build-systems/github), [Microsoft Windows installer signing](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options).
