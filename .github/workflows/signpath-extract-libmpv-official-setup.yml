@@ -1,0 +1,52 @@
+name: HC Player 1.5.1 verify exact libmpv from published installer
+
+on:
+  push:
+    branches: [signpath-prep]
+    paths:
+      - .github/workflows/signpath-extract-libmpv-official-setup.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-official-setup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Extract original libmpv from published HC Player installer (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq innoextract p7zip-full >/dev/null
+          setup="$RUNNER_TEMP/HC_Player_1.5.0_x64_Setup.exe"
+          url="https://github.com/henzfdev/HC-Player/releases/download/v1.5.0/HC_Player_1.5.0_x64_Setup.exe"
+          want_setup="6cab7e35fdf373770266601017060893176569ae152f6a365c3c5ffa06d47108"
+          want_dll="965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c"
+          curl --fail --location --retry 2 --connect-timeout 15 --max-time 180 --silent --show-error "$url" -o "$setup"
+          echo "$want_setup  $setup" | sha256sum --check --status || { echo 'Published installer SHA-256 mismatch — stopped'; exit 1; }
+          echo 'Published 1.5.0 installer checksum verified.'
+          out="$RUNNER_TEMP/hc_setup_extracted"
+          mkdir -p "$out"
+          if innoextract --extract --output-dir "$out" "$setup"; then
+            echo 'Extracted using innoextract.'
+          else
+            echo 'innoextract does not support this installer; trying read-only 7z.'
+            rm -rf "$out"
+            mkdir -p "$out"
+            7z x -y "-o$out" "$setup"
+          fi
+          mapfile -d '' files < <(find "$out" -type f -iname 'libmpv-2.dll' -print0)
+          if [ "${#files[@]}" -ne 1 ]; then
+            echo "Expected one libmpv-2.dll; found ${#files[@]}" >&2
+            exit 1
+          fi
+          echo "$want_dll  ${files[0]}" | sha256sum --check --status || { echo 'Embedded DLL is not the exact frozen libmpv; stopped'; exit 1; }
+          {
+            echo '### HC Player original libmpv verified'
+            echo 'The published 1.5.0 Inno installer and its embedded libmpv DLL both match exact SHA-256 values.'
+            echo 'This was a read-only verification: no application was compiled, signed or published.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo 'PASS: byte-identical libmpv recovered from existing published installer.'
