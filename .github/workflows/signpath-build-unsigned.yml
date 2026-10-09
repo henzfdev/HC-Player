@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       libmpv_url:
-        description: 'Immutable HTTPS URL to the original libmpv-2.dll, published under this repository Releases. Exact SHA-256 is always enforced.'
+        description: 'Versioned GitHub Release asset URL to exact libmpv-2.dll OR the frozen original CI ZIP. Both zip and extracted DLL are SHA-256-checked.'
         required: true
         type: string
       build_installer:
@@ -51,12 +51,254 @@ jobs:
             Write-Host "[OK] Verified SHA256 $Path"
           }
           $url = $env:HC_LIBMPV_URL
-          if ($url -notmatch '^https://github\.com/henzfdev/HC-Player/releases/download/[^/]+/[^/]+$') {
-            throw 'libmpv URL must point to an immutable, versioned GitHub Release asset in henzfdev/HC-Player. Never use latest or mutable URLs.'
+          if ($url -notmatch '^https://github\.com/henzfdev/HC-Player/releases/download/[^/]+/[^/]+          Assert-FileHash 'HC Player/third_party/mediainfo/x64/MediaInfo.dll' 'a2612fa8bf639349aee9747d8a555d361f5db95b049b3af9b0c3851a21a4308d'
+          Assert-FileHash 'HC Player/scripts/stats.lua' '7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247'
+          Assert-FileHash 'HC Player/HC Player.ico' 'ec75352a2abc90fe265079e0f7bc567ddb154eb4aa28f59a73707f8bb25a613f'
+          if ($env:HC_BUILD_INSTALLER -eq 'true') {
+            Assert-FileHash 'Installer/HC_Player_1.5.1_x64.iss' '0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251'
+            Assert-FileHash 'Installer/InstallerAssets/HCPlayer_Setup.ico' 'f540bb0f98165dc1a90684bd4d1cbed29adaacff708b5364435b5307dcace773'
+            foreach ($script in @('GERAR-INSTALADOR-V1.ps1', 'CHECK-PAYLOAD.ps1', 'STAGE-PAYLOAD.ps1','DOWNLOAD-PREREQUISITES.ps1','BUILD-INSTALLER.ps1')) {
+              if (-not (Test-Path -LiteralPath "Installer/$script" -PathType Leaf)) {
+                throw "Required original Inno source missing: Installer/$script"
+              }
+            }
+          }
+
+      - name: Restore pinned NuGet packages.config dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nuget install 'HC Player/packages.config' -OutputDirectory packages -NonInteractive -Verbosity normal
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed with exit code $LASTEXITCODE" }
+
+      - name: Build Release x64 from current branch (not signed)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          msbuild 'HC Player/HC Player.vcxproj' /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m:2 /verbosity:minimal
+          if ($LASTEXITCODE -ne 0) { throw "Release x64 compilation failed: $LASTEXITCODE" }
+
+      - name: Check unsigned application output
+        id: app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $found = @(Get-ChildItem -Path 'HC Player', 'x64' -File -Recurse -Filter 'HC Player.exe' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '[\\/]Release[\\/]' -and $_.FullName -notmatch '[\\/]Installer[\\/]' })
+          if ($found.Count -ne 1) { throw "Expected one Release HC Player.exe, found $($found.Count)." }
+          $exe = $found[0].FullName
+          $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if ($version -ne '1.5.1.0') { throw "Unexpected application version: $version" }
+          $out = $found[0].Directory.FullName
+          Write-Host "Release output: $out"
+          "release_output=$out" >> $env:GITHUB_OUTPUT
+
+      - name: Generate unsigned Inno Setup installer (optional, original SAFE scripts only)
+        if: inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $iscc = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 7\ISCC.exe"
+          ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $iscc) { throw 'Inno Setup 7 is not preinstalled on this runner. Obtain a verified Inno Setup 7 installation before enabling packaging. No fallback to an older Inno or weakening the SAFE checker.' }
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'Installer/GERAR-INSTALADOR-V1.ps1'
+          if ($LASTEXITCODE -ne 0) { throw "Original installer scripts failed: $LASTEXITCODE" }
+
+      - name: Upload UNSIGNED app build for private QA
+        uses: actions/upload-artifact@v7
+        with:
+          name: HC-Player-1.5-unsigned-QA
+          path: ${{ steps.app.outputs.release_output }}
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload UNSIGNED installer for private QA (optional)
+        if: inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: HC-Player-1.5-unsigned-installer-QA
+          path: |
+            Installer/Output/HC_Player_1.5.1_x64_Setup.exe
+            Installer/Output/HC_Player_1.5.1_x64_Setup.exe.sha256.txt
+          retention-days: 3
+          if-no-files-found: error
+) {
+            throw 'libmpv URL must point to a versioned GitHub Release asset in henzfdev/HC-Player. Do not use latest/mutable URLs.'
           }
           $dll = 'HC Player/third_party/libmpv/x64/libmpv-2.dll'
           New-Item -ItemType Directory -Path (Split-Path -Parent $dll) -Force | Out-Null
-          Invoke-WebRequest -Uri $url -OutFile $dll -MaximumRedirection 5
+          if ($url -match '/HC_Player_1\.5\.1_LIBMPV_ORIGINAL_PARA_CI\.zip          Assert-FileHash 'HC Player/third_party/mediainfo/x64/MediaInfo.dll' 'a2612fa8bf639349aee9747d8a555d361f5db95b049b3af9b0c3851a21a4308d'
+          Assert-FileHash 'HC Player/scripts/stats.lua' '7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247'
+          Assert-FileHash 'HC Player/HC Player.ico' 'ec75352a2abc90fe265079e0f7bc567ddb154eb4aa28f59a73707f8bb25a613f'
+          if ($env:HC_BUILD_INSTALLER -eq 'true') {
+            Assert-FileHash 'Installer/HC_Player_1.5.1_x64.iss' '0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251'
+            Assert-FileHash 'Installer/InstallerAssets/HCPlayer_Setup.ico' 'f540bb0f98165dc1a90684bd4d1cbed29adaacff708b5364435b5307dcace773'
+            foreach ($script in @('GERAR-INSTALADOR-V1.ps1', 'CHECK-PAYLOAD.ps1', 'STAGE-PAYLOAD.ps1','DOWNLOAD-PREREQUISITES.ps1','BUILD-INSTALLER.ps1')) {
+              if (-not (Test-Path -LiteralPath "Installer/$script" -PathType Leaf)) {
+                throw "Required original Inno source missing: Installer/$script"
+              }
+            }
+          }
+
+      - name: Restore pinned NuGet packages.config dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nuget install 'HC Player/packages.config' -OutputDirectory packages -NonInteractive -Verbosity normal
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed with exit code $LASTEXITCODE" }
+
+      - name: Build Release x64 from current branch (not signed)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          msbuild 'HC Player/HC Player.vcxproj' /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m:2 /verbosity:minimal
+          if ($LASTEXITCODE -ne 0) { throw "Release x64 compilation failed: $LASTEXITCODE" }
+
+      - name: Check unsigned application output
+        id: app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $found = @(Get-ChildItem -Path 'HC Player', 'x64' -File -Recurse -Filter 'HC Player.exe' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '[\\/]Release[\\/]' -and $_.FullName -notmatch '[\\/]Installer[\\/]' })
+          if ($found.Count -ne 1) { throw "Expected one Release HC Player.exe, found $($found.Count)." }
+          $exe = $found[0].FullName
+          $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if ($version -ne '1.5.1.0') { throw "Unexpected application version: $version" }
+          $out = $found[0].Directory.FullName
+          Write-Host "Release output: $out"
+          "release_output=$out" >> $env:GITHUB_OUTPUT
+
+      - name: Generate unsigned Inno Setup installer (optional, original SAFE scripts only)
+        if: inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $iscc = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 7\ISCC.exe"
+          ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $iscc) { throw 'Inno Setup 7 is not preinstalled on this runner. Obtain a verified Inno Setup 7 installation before enabling packaging. No fallback to an older Inno or weakening the SAFE checker.' }
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'Installer/GERAR-INSTALADOR-V1.ps1'
+          if ($LASTEXITCODE -ne 0) { throw "Original installer scripts failed: $LASTEXITCODE" }
+
+      - name: Upload UNSIGNED app build for private QA
+        uses: actions/upload-artifact@v7
+        with:
+          name: HC-Player-1.5-unsigned-QA
+          path: ${{ steps.app.outputs.release_output }}
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload UNSIGNED installer for private QA (optional)
+        if: inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: HC-Player-1.5-unsigned-installer-QA
+          path: |
+            Installer/Output/HC_Player_1.5.1_x64_Setup.exe
+            Installer/Output/HC_Player_1.5.1_x64_Setup.exe.sha256.txt
+          retention-days: 3
+          if-no-files-found: error
+) {
+            $archive = Join-Path $env:RUNNER_TEMP 'HC_Player_1.5.1_LIBMPV_ORIGINAL_PARA_CI.zip'
+            Invoke-WebRequest -Uri $url -OutFile $archive -MaximumRedirection 5
+            Assert-FileHash $archive 'dab6f6a85b6fd0964d4a01dc9b2d439369403f6056245afabd6bb0499083c327'
+            Add-Type -AssemblyName System.IO.Compression
+            $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $archive).Path)
+            try {
+              $entries = @($zip.Entries | Where-Object {
+                $_.Name -ieq 'libmpv-2.dll' -and $_.Length -gt 0
+              })
+              if ($entries.Count -ne 1) { throw "Expected exactly one libmpv-2.dll in verified ZIP; found $($entries.Count)" }
+              $entry = $entries[0]
+              if ($entry.Length -ne 119725568) { throw "Unexpected uncompressed original libmpv size: $($entry.Length)" }
+              $src = $entry.Open()
+              try {
+                $dst = [IO.File]::Create((Join-Path (Get-Location).Path $dll))
+                try { $src.CopyTo($dst) } finally { $dst.Dispose() }
+              } finally { $src.Dispose() }
+            } finally { $zip.Dispose() }
+          } elseif ($url -match '/libmpv-2\.dll          Assert-FileHash 'HC Player/third_party/mediainfo/x64/MediaInfo.dll' 'a2612fa8bf639349aee9747d8a555d361f5db95b049b3af9b0c3851a21a4308d'
+          Assert-FileHash 'HC Player/scripts/stats.lua' '7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247'
+          Assert-FileHash 'HC Player/HC Player.ico' 'ec75352a2abc90fe265079e0f7bc567ddb154eb4aa28f59a73707f8bb25a613f'
+          if ($env:HC_BUILD_INSTALLER -eq 'true') {
+            Assert-FileHash 'Installer/HC_Player_1.5.1_x64.iss' '0f2d3151b98ce074da1ef0057b0019c74ad583d699b734ca9bf71ea9733c7251'
+            Assert-FileHash 'Installer/InstallerAssets/HCPlayer_Setup.ico' 'f540bb0f98165dc1a90684bd4d1cbed29adaacff708b5364435b5307dcace773'
+            foreach ($script in @('GERAR-INSTALADOR-V1.ps1', 'CHECK-PAYLOAD.ps1', 'STAGE-PAYLOAD.ps1','DOWNLOAD-PREREQUISITES.ps1','BUILD-INSTALLER.ps1')) {
+              if (-not (Test-Path -LiteralPath "Installer/$script" -PathType Leaf)) {
+                throw "Required original Inno source missing: Installer/$script"
+              }
+            }
+          }
+
+      - name: Restore pinned NuGet packages.config dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nuget install 'HC Player/packages.config' -OutputDirectory packages -NonInteractive -Verbosity normal
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed with exit code $LASTEXITCODE" }
+
+      - name: Build Release x64 from current branch (not signed)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          msbuild 'HC Player/HC Player.vcxproj' /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m:2 /verbosity:minimal
+          if ($LASTEXITCODE -ne 0) { throw "Release x64 compilation failed: $LASTEXITCODE" }
+
+      - name: Check unsigned application output
+        id: app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $found = @(Get-ChildItem -Path 'HC Player', 'x64' -File -Recurse -Filter 'HC Player.exe' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '[\\/]Release[\\/]' -and $_.FullName -notmatch '[\\/]Installer[\\/]' })
+          if ($found.Count -ne 1) { throw "Expected one Release HC Player.exe, found $($found.Count)." }
+          $exe = $found[0].FullName
+          $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if ($version -ne '1.5.1.0') { throw "Unexpected application version: $version" }
+          $out = $found[0].Directory.FullName
+          Write-Host "Release output: $out"
+          "release_output=$out" >> $env:GITHUB_OUTPUT
+
+      - name: Generate unsigned Inno Setup installer (optional, original SAFE scripts only)
+        if: inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $iscc = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 7\ISCC.exe"
+          ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $iscc) { throw 'Inno Setup 7 is not preinstalled on this runner. Obtain a verified Inno Setup 7 installation before enabling packaging. No fallback to an older Inno or weakening the SAFE checker.' }
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'Installer/GERAR-INSTALADOR-V1.ps1'
+          if ($LASTEXITCODE -ne 0) { throw "Original installer scripts failed: $LASTEXITCODE" }
+
+      - name: Upload UNSIGNED app build for private QA
+        uses: actions/upload-artifact@v7
+        with:
+          name: HC-Player-1.5-unsigned-QA
+          path: ${{ steps.app.outputs.release_output }}
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload UNSIGNED installer for private QA (optional)
+        if: inputs.build_installer || vars.HC_SIGNPATH_BUILD_INSTALLER == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: HC-Player-1.5-unsigned-installer-QA
+          path: |
+            Installer/Output/HC_Player_1.5.1_x64_Setup.exe
+            Installer/Output/HC_Player_1.5.1_x64_Setup.exe.sha256.txt
+          retention-days: 3
+          if-no-files-found: error
+) {
+            Invoke-WebRequest -Uri $url -OutFile $dll -MaximumRedirection 5
+          } else {
+            throw 'Only the specific frozen CI ZIP or libmpv-2.dll are accepted.'
+          }
           Assert-FileHash $dll '965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c'
           Assert-FileHash 'HC Player/third_party/mediainfo/x64/MediaInfo.dll' 'a2612fa8bf639349aee9747d8a555d361f5db95b049b3af9b0c3851a21a4308d'
           Assert-FileHash 'HC Player/scripts/stats.lua' '7cead8a7b39a9fbd0ccb54b367dce48f65339695dbfb085b873c86ed9b93b247'
