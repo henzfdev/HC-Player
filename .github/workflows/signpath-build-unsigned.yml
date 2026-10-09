@@ -6,6 +6,7 @@ on:
       - signpath-prep
     paths:
       - '.github/workflows/signpath-build-unsigned.yml'
+      - '.gitattributes'
 
 permissions:
   contents: read
