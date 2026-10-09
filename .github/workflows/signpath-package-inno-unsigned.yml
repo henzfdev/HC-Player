@@ -156,8 +156,11 @@ jobs:
             throw "Official Inno Setup 7 installer Authenticode signature invalid or unexpected publisher. Status=$($sign.Status) Subject=$($sign.SignerCertificate.Subject)"
           }
           Write-Host 'PASS: Inno Setup 7.1.0 verified publisher signature (Pyrsys B.V.).'
-          & $setup /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
-          if ($LASTEXITCODE -ne 0) { throw "Inno Setup 7.1.0 installation failed: $LASTEXITCODE" }
+          $installed = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-') -PassThru -Wait
+          if ($null -eq $installed -or $null -eq $installed.ExitCode) {
+            throw 'Inno Setup 7 installer finished without an observable exit code.'
+          }
+          if ($installed.ExitCode -ne 0) { throw "Inno Setup 7.1.0 installation failed: $($installed.ExitCode)" }
           $isccCandidates = @(
             "${env:ProgramFiles}\Inno Setup 7\ISCC.exe",
             "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe"
