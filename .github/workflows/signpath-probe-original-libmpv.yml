@@ -1,10 +1,7 @@
 name: HC Player 1.5.1 exact libmpv upstream probe (unsigned)
 
 on:
-  push:
-    branches: [signpath-prep]
-    paths:
-      - .github/workflows/signpath-probe-original-libmpv.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,10 +18,12 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -qq -y p7zip-full > /dev/null
           base='mpv-dev-x86_64-20260809-git-dd5d17d328.7z'
-          want_archive='c6aebf40bb722efe79090bfeb61e68625f0837770347e5a8b610aef78900cf12'
+          # Archive checksum was not independently established; only the frozen DLL digest is authoritative.
           want_dll='965efde4c8199f942bf9ed9d3e6fbcb7dd9dc961524d5780a9ca67da53f14d0c'
           mkdir -p "$RUNNER_TEMP/libmpv-origin"
           cd "$RUNNER_TEMP/libmpv-origin"
+          # Four official SourceForge hosts returned HTTP 403 on GitHub runners, 2026-10-09.
+          # Keep this probe manually triggered and do not retry on every push.
           urls=(
             "https://cfhcable.dl.sourceforge.net/project/mpv-player-windows/libmpv/$base"
             "https://netix.dl.sourceforge.net/project/mpv-player-windows/libmpv/$base"
@@ -36,13 +35,10 @@ jobs:
             printf 'Trying official SourceForge mirror: %s\n' "$url"
             rm -f "$base"
             if curl --fail --location --silent --show-error --retry 1 --connect-timeout 12 --max-time 115 --user-agent 'Mozilla/5.0' "$url" --output "$base"; then
-              actual=$(sha256sum "$base" | awk '{print $1}')
-              if [ "$actual" = "$want_archive" ]; then
-                echo "Official SourceForge archive SHA-256 matched."
-                found=1
-                break
-              fi
-              echo "Rejected downloaded file: archive SHA-256 mismatch ($actual)."
+              echo "Archive downloaded from official mirror. SHA-256 for provenance only:"
+              sha256sum "$base"
+              found=1
+              break
             fi
           done
           if [ "$found" -ne 1 ]; then
@@ -57,9 +53,9 @@ jobs:
             echo "Upstream libmpv-2.dll does not match the frozen HC Player 1.5.1 DLL ($actual_dll)" >&2
             exit 1
           fi
-          echo 'PASS: Original archive AND libmpv-2.dll match both expected SHA-256 digests.'
+          echo 'PASS: Exact frozen libmpv-2.dll SHA-256 verified; archive provenance requires separate review.'
           {
             echo '### HC Player 1.5.1 — Exact libmpv origin'
-            echo 'Archive SHA-256 and libmpv-2.dll SHA-256 both verified.'
+            echo 'Exact DLL SHA-256 verified. Archive checksum not independently established.'
             echo 'No application was compiled, signed, or published.'
           } >> "$GITHUB_STEP_SUMMARY"
