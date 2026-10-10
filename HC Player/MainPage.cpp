@@ -7668,10 +7668,14 @@ namespace winrt::HCPlayer::implementation
             // audio or still-image items, without adding a new timer.
             RefreshVideoOnlyActionEligibility();
 
-            // Keep album art on audio-only files fitted to the current video
-            // surface. The MPV options are file-local and disappear with the
-            // audio item, so photos and real videos keep their existing scale.
-            PlayerApplyAudioCoverScalingPolicy();
+            // Audio album-art fix validated in COM TORRENT Test D:
+            // Do not reapply album-art visual MPV properties on every UI tick.
+            // In tests these redundant writes correlated with a short audible
+            // glitch on FLAC files with embedded cover art (including track
+            // changes). Album art continues to render correctly without them.
+            // Preserve PlayerApplyAudioCoverScalingPolicy() implementation in
+            // HCPlayer.cpp for rollback. No audio/video playback pipeline,
+            // WASAPI, timing, delay or buffer settings change here.
 
             // Online metadata arrives after yt-dlp resolves the URL. Polling
             // once per second is enough to replace the temporary URL label
