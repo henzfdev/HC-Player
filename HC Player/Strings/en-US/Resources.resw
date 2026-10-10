@@ -3906,4 +3906,22 @@
   <data name="MainPageDynSponsorBlockFiller" xml:space="preserve">
     <value>Filler</value>
   </data>
+  <data name="CropMenuTitle" xml:space="preserve">
+    <value>Crop</value>
+  </data>
+  <data name="CropTitle.Text" xml:space="preserve">
+    <value>Crop</value>
+  </data>
+  <data name="CropOriginal" xml:space="preserve">
+    <value>Original</value>
+  </data>
+  <data name="CropOsdPrefix" xml:space="preserve">
+    <value>Crop: </value>
+  </data>
+  <data name="ShortcutCropHelp.Text" xml:space="preserve">
+    <value>For video crop, right-click the video and choose Pan &amp; Scan > Crop. Select Original to restore the full picture</value>
+  </data>
+  <data name="ShortcutCropCycle.Text" xml:space="preserve">
+    <value>Next crop preset / previous crop preset</value>
+  </data>
 </root>

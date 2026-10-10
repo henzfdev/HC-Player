@@ -7677,6 +7677,10 @@ namespace winrt::HCPlayer::implementation
             // HCPlayer.cpp for rollback. No audio/video playback pipeline,
             // WASAPI, timing, delay or buffer settings change here.
 
+            // Preserve an active crop when playlist video dimensions change.
+            // No new timer or audio-path changes.
+            PlayerUpdateCropPreset();
+
             // Online metadata arrives after yt-dlp resolves the URL. Polling
             // once per second is enough to replace the temporary URL label
             // without adding work to MPV's rendering path.

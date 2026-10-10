@@ -30,6 +30,9 @@
     <ClInclude Include="pch.h">
       <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>
+    <ClInclude Include="CropPresets.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
     <ClInclude Include="PlayerBridge.h">
       <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>

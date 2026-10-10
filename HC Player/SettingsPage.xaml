@@ -931,6 +931,17 @@
 
                                                             <StackPanel Spacing="7">
                                                                 <TextBlock x:Uid="ShortcutSectionPanScan" Text="ZOOM E PAN &amp; SCAN" Style="{StaticResource ShortcutSectionTitle}"/>
+                                                                <TextBlock x:Uid="ShortcutCropHelp" Text="Para recortar um vídeo, abra o menu de contexto > Pan &amp; Scan > Recorte. Selecione Original para restaurar a imagem completa" TextWrapping="Wrap" FontSize="11" Opacity="0.64"/>
+                                                                <Grid ColumnSpacing="18">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock x:Uid="ShortcutCropCycle" Text="Próximo recorte / recorte anterior" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"/>
+                                                                    <Border Grid.Column="1" Style="{StaticResource ShortcutKeyBadge}">
+                                                                        <TextBlock Text="C / Shift + C" FontFamily="Consolas" FontSize="11" TextAlignment="Center"/>
+                                                                    </Border>
+                                                                </Grid>
                                                                 <Grid ColumnSpacing="18">
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="*"/>

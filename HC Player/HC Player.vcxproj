@@ -195,6 +195,7 @@
       <SubType>Code</SubType>
     </ClInclude>
     <ClInclude Include="HCPlayer.h" />
+    <ClInclude Include="CropPresets.h" />
     <ClInclude Include="PlayerBridge.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />

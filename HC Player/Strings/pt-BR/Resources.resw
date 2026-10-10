@@ -3906,4 +3906,22 @@
   <data name="MainPageDynSponsorBlockFiller" xml:space="preserve">
     <value>Enchimento</value>
   </data>
+  <data name="CropMenuTitle" xml:space="preserve">
+    <value>Recorte</value>
+  </data>
+  <data name="CropTitle.Text" xml:space="preserve">
+    <value>Recorte</value>
+  </data>
+  <data name="CropOriginal" xml:space="preserve">
+    <value>Original</value>
+  </data>
+  <data name="CropOsdPrefix" xml:space="preserve">
+    <value>Recorte: </value>
+  </data>
+  <data name="ShortcutCropHelp.Text" xml:space="preserve">
+    <value>Para recortar um vídeo, abra o menu de contexto > Pan &amp; Scan > Recorte. Selecione Original para restaurar a imagem completa</value>
+  </data>
+  <data name="ShortcutCropCycle.Text" xml:space="preserve">
+    <value>Próximo recorte / recorte anterior</value>
+  </data>
 </root>
