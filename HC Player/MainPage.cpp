@@ -671,9 +671,46 @@ namespace winrt::HCPlayer::implementation
         SetTransportVisible(false, false);
     }
 
+    void MainPage::PrepareSilentPictureInPictureEntry()
+    {
+        // Hide the native island immediately, before changing the window size.
+        // No readiness wait or new animation is involved in PiP entry.
+        m_transportRevealArmed = false;
+        m_transportHideTimer.Stop();
+        m_transportCollapseTimer.Stop();
+        m_transportHideNotBefore = {};
+        SetTransportVisible(false, false);
+    }
+
+    void MainPage::PollPictureInPictureTransportPointer()
+    {
+        if (!m_pictureInPicture || !m_pipTransportAwaitingPointer) return;
+
+        POINT cursor{};
+        if (!GetCursorPos(&cursor)) return;
+        bool const moved = m_hasPipTransportCursor &&
+            (cursor.x != m_pipTransportCursorX ||
+                cursor.y != m_pipTransportCursorY);
+        // Update even outside the controls: moving/resize-layout under a cursor
+        // that has since stopped must not count as fresh pointer activity.
+        m_pipTransportCursorX = cursor.x;
+        m_pipTransportCursorY = cursor.y;
+        m_hasPipTransportCursor = true;
+        if (!moved || m_settingsOverlayOpen || m_transportStartupGuard ||
+            m_consoleOpen || !PlayerIsCursorInTransportHotZone()) return;
+
+        m_pipTransportAwaitingPointer = false;
+        m_transportRevealArmed = true;
+        SetTransportVisible(true);
+        m_transportHideTimer.Stop();
+    }
+
     void MainPage::SetPictureInPictureMode(bool enabled, bool revealTransport)
     {
         m_pictureInPicture = enabled;
+        m_pipTransportAwaitingPointer = false;
+        m_hasPipTransportCursor = false;
+        if (enabled) PrepareSilentPictureInPictureEntry();
         if (enabled && m_thumbnailController)
         {
             m_thumbnailController->Cancel();
@@ -904,20 +941,17 @@ namespace winrt::HCPlayer::implementation
         ApplyTransportStyleVisuals();
         if (enabled) PlayerReleaseTransportFocus();
 
-        if (enabled || revealTransport)
+        if (!enabled && revealTransport)
         {
-            // PiP itself keeps the established compact controls visible, and
-            // non-window-return callers preserve the previous behavior.
+            // Preserve callers that explicitly reveal the normal transport.
             SetTransportVisible(true, false);
             ScheduleTransportHide(std::chrono::milliseconds(1800));
         }
         else
         {
-            // PiP -> normal window should return to clean video, not force the
-            // transport onscreen. Keep the rebuilt normal transport hidden and
-            // disarmed until genuine pointer movement reaches the normal hot
-            // zone. This also prevents the old compact PiP bar from being
-            // presented during the native window restore.
+            // Both PiP entry and the existing silent window return start with
+            // clean video. PiP releases its extra pointer gate only on real
+            // movement inside the controls; normal-window reveal stays unchanged.
             m_transportRevealArmed = false;
             m_transportHideTimer.Stop();
             m_transportCollapseTimer.Stop();
@@ -1681,6 +1715,25 @@ namespace winrt::HCPlayer::implementation
 
     void MainPage::SetTransportVisible(bool visible, bool animate)
     {
+        // All reveal paths, including settings/console returns and pointer-enter
+        // notifications, obey the PiP gate. Only the physical-cursor poll opens it.
+        if (visible && m_pictureInPicture && m_pipTransportAwaitingPointer)
+        {
+            return;
+        }
+        if (!visible && m_pictureInPicture && (m_transportVisible || !animate))
+        {
+            m_pipTransportAwaitingPointer = true;
+            m_transportRevealArmed = false;
+            POINT cursor{};
+            m_hasPipTransportCursor = GetCursorPos(&cursor) != FALSE;
+            if (m_hasPipTransportCursor)
+            {
+                m_pipTransportCursorX = cursor.x;
+                m_pipTransportCursorY = cursor.y;
+            }
+        }
+
         if (visible && m_consoleOpen)
         {
             return;
@@ -1840,6 +1893,11 @@ namespace winrt::HCPlayer::implementation
 
     void MainPage::TransportVideoPointerMoved(bool overControls)
     {
+        // Use the same physical-position check for immediate mouse messages and
+        // for the existing native timer fallback when mpv consumes those messages.
+        PollPictureInPictureTransportPointer();
+        if (m_pictureInPicture && m_pipTransportAwaitingPointer) return;
+
         if (m_settingsOverlayOpen || m_transportStartupGuard ||
             !AcceptSidePanelReturnPointerActivity()) return;
 

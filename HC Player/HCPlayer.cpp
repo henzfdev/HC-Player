@@ -12884,6 +12884,9 @@ void PlayerReleaseTransportFocus()
 bool PlayerIsCursorInTransportHotZone()
 {
     if (!g_mainWindow || IsSidePanelOpen()) return false;
+    // A pointer moving during native entry cannot expose the shared transport
+    // until the existing PiP layout transaction has finished.
+    if (g_pictureInPicture && g_pipEntryLayoutTransition) return false;
     POINT screenCursor{};
     if (!GetCursorPos(&screenCursor)) return false;
 
@@ -15766,6 +15769,13 @@ void PlayerTogglePictureInPicture()
 
     if (enteringPictureInPicture)
     {
+        // Button and keyboard entry share this path. Collapse the transport
+        // before any PiP window/layout change, using the established hide path.
+        if (info && info->page)
+        {
+            winrt::get_self<winrt::HCPlayer::implementation::MainPage>(
+                info->page)->PrepareSilentPictureInPictureEntry();
+        }
         // Build every PiP entry off-screen and expose it only after the final
         // compact transport geometry has settled. This generalizes the visual
         // isolation that previously covered fullscreen -> PiP only; playback
@@ -18326,6 +18336,12 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
         if (wParam == TransportPointerTimer)
         {
             UpdateCursorAutohide();
+            if (info && info->page)
+            {
+                // Reuse the existing timer; no additional scheduling or delay.
+                winrt::get_self<winrt::HCPlayer::implementation::MainPage>(
+                    info->page)->PollPictureInPictureTransportPointer();
+            }
             if (info && info->page && !IsSidePanelOpen())
             {
                 POINT screenCursor{};

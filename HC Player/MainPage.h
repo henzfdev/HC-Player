@@ -23,6 +23,8 @@ namespace winrt::HCPlayer::implementation
         void SetSettingsOverlayOpen(bool open);
         void PrepareSidePanelTransportReturn();
         void PrepareSilentFullscreenEntry();
+        void PrepareSilentPictureInPictureEntry();
+        void PollPictureInPictureTransportPointer();
         void SetPictureInPictureMode(bool enabled, bool revealTransport = true);
         void SetPictureInPictureTimeWindowLargeEnough(bool largeEnough);
         void TransportHostPointerEntered();
@@ -300,6 +302,12 @@ namespace winrt::HCPlayer::implementation
         bool m_consoleOpen{ false };
         std::chrono::steady_clock::time_point m_transportHideNotBefore{};
         bool m_pictureInPicture{ false };
+        // Hidden PiP controls require physical cursor displacement inside their
+        // hot zone. Native layout/pointer-enter events cannot release this gate.
+        bool m_pipTransportAwaitingPointer{ false };
+        bool m_hasPipTransportCursor{ false };
+        int32_t m_pipTransportCursorX{};
+        int32_t m_pipTransportCursorY{};
         bool m_pipTimeWindowLargeEnough{ true };
         // Invalidates queued PiP media-kind reveal callbacks when the playlist
         // changes again before the previous visual handoff has completed.
