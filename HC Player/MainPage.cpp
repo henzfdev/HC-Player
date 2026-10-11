@@ -4705,6 +4705,46 @@ namespace winrt::HCPlayer::implementation
 
         if (userDriven)
         {
+            // V4 - Windows 11 Full/Compact/PiP only. Clicks above/below
+            // TimelineInputSurface can be handled by WinUI's native Slider.
+            // Its ValueChanged moves the native Thumb immediately, but the
+            // independently drawn chapter fill otherwise waits for the next
+            // progress tick. Paint ONLY the existing fill widths from the
+            // Slider's new value: no seek, coordinate, cache, SponsorBlock,
+            // layout, timer or other transport state is changed here.
+            if (changedSlider &&
+                winrt::get_abi(changedSlider) ==
+                    winrt::get_abi(PositionSlider()) &&
+                (m_mediaControlsExpanded || m_pictureInPicture) &&
+                !m_filledTimelineStyle &&
+                !UsesMinimalTransportStyle() &&
+                !m_isReplay &&
+                std::isfinite(args.NewValue()) &&
+                std::isfinite(m_chapterMarkerDuration) &&
+                m_chapterMarkerDuration > 0.0)
+            {
+                auto const slider = PositionSlider();
+                double const minimum = slider.Minimum();
+                double const range = slider.Maximum() - minimum;
+                if (std::isfinite(range) && range > 0.0)
+                {
+                    double const ratio = (std::max)(0.0, (std::min)(
+                        1.0, (args.NewValue() - minimum) / range));
+                    double const visualElapsed =
+                        ratio * m_chapterMarkerDuration;
+                    for (auto const& segment : m_chapterSegments)
+                    {
+                        double fillRatio{};
+                        if (visualElapsed >= segment.end) fillRatio = 1.0;
+                        else if (visualElapsed > segment.start)
+                            fillRatio = (visualElapsed - segment.start) /
+                                (segment.end - segment.start);
+                        segment.fill.Width(segment.width * (std::max)(
+                            0.0, (std::min)(1.0, fillRatio)));
+                    }
+                }
+            }
+
             // Mouse seeking on the normal timeline is still owned exclusively
             // by TimelineInputSurface. This remains the pre-existing fallback
             // for keyboard/accessibility Slider changes.
@@ -6776,7 +6816,30 @@ namespace winrt::HCPlayer::implementation
         // mpv's final time-pos can stop a fraction before duration. Once EOF
         // has been confirmed, render the visual clock exactly at duration so
         // neither the filled track nor the capsule leaves a tiny tail at 100%.
-        double const visualElapsed = m_isReplay ? duration : elapsed;
+        double visualElapsed = m_isReplay ? duration : elapsed;
+
+        // Windows 11 Full/Compact/PiP: the native Slider draws the circle,
+        // while chapter segments draw the green fill independently. Make their
+        // presentation use the exact same currently displayed Slider value,
+        // including during and after seek settlement. This prevents a transient
+        // split when mpv's time-pos is behind the pointer-selected position.
+        // This is READ-ONLY visual synchronization: it never writes Slider.Value,
+        // alters playback time, modifies seek precision or adds a timer/hold.
+        // HC Player style and Minimal retain their original drawing path.
+        if (!m_isReplay && !m_filledTimelineStyle &&
+            !UsesMinimalTransportStyle())
+        {
+            auto const slider = PositionSlider();
+            double const minimum = slider.Minimum();
+            double const range = slider.Maximum() - minimum;
+            double const value = slider.Value();
+            if (std::isfinite(range) && range > 0.0 && std::isfinite(value))
+            {
+                double const ratio = (std::max)(0.0, (std::min)(
+                    1.0, (value - minimum) / range));
+                visualElapsed = ratio * duration;
+            }
+        }
 
         for (auto const& segment : m_chapterSegments)
         {
@@ -7548,6 +7611,28 @@ namespace winrt::HCPlayer::implementation
                 m_timelineUserInteraction ||
                 m_timelineProgressHoldTicks > 0;
 
+            // Windows 11 Full/Compact/PiP: the native circular thumb stays at
+            // the precise pointer-selected timestamp during the existing
+            // two-tick seek settlement window. Keep the separately drawn
+            // chapter/progress fill at that same visual timestamp. Previously
+            // the fill was repainted from mpv's earlier time-pos for a frame,
+            // briefly appearing offset from the native thumb on 30-fps video.
+            // This is presentation-only; elapsed, mpv seek commands, target
+            // conversion, buffering, the hold duration and all other timeline
+            // styles/modes are unchanged.
+            bool const windows11FullCompactVisualHold =
+                !m_filledTimelineStyle &&
+                !UsesMinimalTransportStyle() &&
+                (m_timelineUserInteraction
+                    ? m_timelineInteractionHasTarget
+                    : m_timelineProgressHoldTicks > 0) &&
+                std::isfinite(m_timelineInteractionSeconds);
+            double const normalTimelineVisualElapsed =
+                windows11FullCompactVisualHold
+                    ? (std::max)(0.0, (std::min)(duration,
+                        m_timelineInteractionSeconds))
+                    : elapsed;
+
             if (!userOwnsSlider)
             {
                 m_isUpdatingPosition = true;
@@ -7594,13 +7679,13 @@ namespace winrt::HCPlayer::implementation
 
             if (m_chapterRefreshCountdown == 0)
             {
-                RefreshChapterData(duration, elapsed);
+                RefreshChapterData(duration, normalTimelineVisualElapsed);
                 m_chapterRefreshCountdown = 4;
             }
             else
             {
                 --m_chapterRefreshCountdown;
-                RenderChapterMarkers(duration, elapsed);
+                RenderChapterMarkers(duration, normalTimelineVisualElapsed);
             }
             UpdateChapterTitle(elapsed);
         }
