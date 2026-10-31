@@ -1993,7 +1993,7 @@
     <value>Профили</value>
   </data>
   <data name="ContextMenuB086.Text" xml:space="preserve">
-    <value>Pan &amp; Scan</value>
+    <value>Кадрирование</value>
   </data>
   <data name="ContextMenuB087.Text" xml:space="preserve">
     <value>Увеличить размер</value>
@@ -2611,10 +2611,10 @@
     <value>↕ Сдвиг Y: ${video-pan-y}</value>
   </data>
   <data name="InputOsd_70614FDB" xml:space="preserve">
-    <value> Pan &amp; Scan: ${panscan}</value>
+    <value> Кадрирование: ${panscan}</value>
   </data>
   <data name="InputOsd_1E7B043A" xml:space="preserve">
-    <value>🔄 Сброс Pan &amp; Scan</value>
+    <value>🔄 Сброс Кадрирования</value>
   </data>
   <data name="InputOsd_95DADEFC" xml:space="preserve">
     <value>⏱ Скорость: ${speed}x</value>
@@ -2828,7 +2828,7 @@
     <value>ВИДЕО И ИЗОБРАЖЕНИЕ</value>
   </data>
   <data name="ShortcutSectionPanScan.Text" xml:space="preserve">
-    <value>МАСШТАБ, PAN &amp; SCAN</value>
+    <value>МАСШТАБ, КАДРИРОВАНИЕ</value>
   </data>
   <data name="ShortcutSectionAudio.Text" xml:space="preserve">
     <value>АУДИО И ГРОМКОСТЬ</value>
@@ -2975,7 +2975,7 @@
     <value>Сдвинуть изображение вверх / вниз</value>
   </data>
   <data name="ShortcutAction046.Text" xml:space="preserve">
-    <value>Уменьшить / увеличить Pan &amp; Scan</value>
+    <value>Уменьшить / увеличить Кадрирование</value>
   </data>
   <data name="ShortcutAction047.Text" xml:space="preserve">
     <value>Сбросить масштаб и позицию</value>
@@ -3922,7 +3922,7 @@
     <value>Обрезка: </value>
   </data>
   <data name="ShortcutCropHelp.Text" xml:space="preserve">
-    <value>Для обрезки видео щёлкните правой кнопкой по видео и выберите Pan &amp; Scan > Обрезка. Выберите «Оригинал», чтобы восстановить полное изображение</value>
+    <value>Для обрезки видео щёлкните правой кнопкой по видео и выберите Кадрирование > Обрезка. Выберите «Оригинал», чтобы восстановить полное изображение</value>
   </data>
   <data name="ShortcutCropCycle.Text" xml:space="preserve">
     <value>Следующий пресет обрезки / предыдущий пресет обрезки</value>
