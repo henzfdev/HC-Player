@@ -19,13 +19,10 @@
     <value>Использует язык Windows или выбранный вручную</value>
   </data>
   <data name="LanguageEnUS.Content" xml:space="preserve">
-    <value>English (United States)</value>
+    <value>Английский (США)</value>
   </data>
   <data name="LanguagePtBR.Content" xml:space="preserve">
-    <value>Português (Brasil)</value>
-  </data>
-  <data name="LanguageRuRU.Content" xml:space="preserve">
-    <value>Русский (Россия)</value>
+    <value>Португальский (Бразилия)</value>
   </data>
   <data name="LanguageSystem.Content" xml:space="preserve">
     <value>Автоматически (система)</value>
@@ -52,7 +49,7 @@
     <value>Непрерывное воспроизведение</value>
   </data>
   <data name="SettingsB007.Text" xml:space="preserve">
-    <value>Автоматически воспроизводит следующий локальный файл по окончании воспроизведения</value>
+    <value>Автоматически воспроизводит следующий локальный файл после завершения</value>
   </data>
   <data name="SettingsB008.Text" xml:space="preserve">
     <value>Клик по видео для паузы/воспроизведения</value>
@@ -64,19 +61,19 @@
     <value>Продолжение воспроизведения</value>
   </data>
   <data name="SettingsB011.Text" xml:space="preserve">
-    <value>Возобновляет до 3 последних медиафайлов с места остановки</value>
+    <value>Возобновляет до 10 последних медиафайлов с места остановки</value>
   </data>
   <data name="SettingsB012.Text" xml:space="preserve">
     <value>Точная перемотка</value>
   </data>
   <data name="SettingsB013.Text" xml:space="preserve">
-    <value>Повышает точность перемотки по видео</value>
+    <value>Улучшает точность при перемотке видео</value>
   </data>
   <data name="SettingsB014.Text" xml:space="preserve">
     <value>Оставлять последний кадр</value>
   </data>
   <data name="SettingsB015.Text" xml:space="preserve">
-    <value>Оставляет видео открытым по окончании воспроизведения</value>
+    <value>Оставляет видео открытым после завершения воспроизведения</value>
   </data>
   <data name="SettingsB016.Text" xml:space="preserve">
     <value>Аппаратное ускорение</value>
@@ -100,7 +97,7 @@
     <value>Начальная громкость</value>
   </data>
   <data name="SettingsB023.Text" xml:space="preserve">
-    <value>100 сохраняет исходную громкость без усиления</value>
+    <value>100 сохраняет оригинальную громкость без усиления</value>
   </data>
   <data name="SettingsB024.Text" xml:space="preserve">
     <value>Внешние аудиодорожки</value>
@@ -142,7 +139,7 @@
     <value>Объёмный звук до 7.1</value>
   </data>
   <data name="SettingsAudioSpdifTitle.Text" xml:space="preserve">
-    <value>Dolby &amp; DTS Passthrough</value>
+    <value>Сквозной вывод Dolby и DTS</value>
   </data>
   <data name="SettingsAudioSpdifDescription.Text" xml:space="preserve">
     <value>Отправляет аудио напрямую на подключённое устройство</value>
@@ -151,7 +148,7 @@
     <value>Требуется совместимый ресивер или саундбар</value>
   </data>
   <data name="SettingsAudioSpdifOff.Content" xml:space="preserve">
-    <value>Выкл.</value>
+    <value>Выкл</value>
   </data>
   <data name="SettingsAudioSpdifClassic.Content" xml:space="preserve">
     <value>Dolby Digital / DTS</value>
@@ -172,7 +169,7 @@
     <value>Устранение бандинга</value>
   </data>
   <data name="SettingsB035.Text" xml:space="preserve">
-    <value>Сглаживает цветовые переходы (бандинг) в сжатых источниках</value>
+    <value>Сглаживает цветовые полосы в сжатых источниках</value>
   </data>
   <data name="SettingsB036.Text" xml:space="preserve">
     <value>МАСШТАБИРОВАНИЕ, ЦВЕТ И HDR</value>
@@ -223,7 +220,7 @@
     <value>Импортировать файлы GLSL в конвейер gpu-next/libplacebo</value>
   </data>
   <data name="SettingsB052.Text" xml:space="preserve">
-    <value>Импорт не изменяет изображение: каждый шейдер изначально отключён и применяется только после включения.</value>
+    <value>Импорт не изменяет изображение: каждый шейдер по умолчанию отключён и применяется только после включения</value>
   </data>
   <data name="SettingsB053.Text" xml:space="preserve">
     <value>Импорт</value>
@@ -295,7 +292,7 @@
     <value>Интегрирует субтитры в обработку кадров</value>
   </data>
   <data name="SettingsB076.Text" xml:space="preserve">
-    <value>Преролл субтитров MKV</value>
+    <value>Предзагрузка субтитров MKV</value>
   </data>
   <data name="SettingsB077.Text" xml:space="preserve">
     <value>Помогает субтитрам MKV корректно отображаться после перемотки</value>
@@ -307,7 +304,7 @@
     <value>Исправление синхронизации</value>
   </data>
   <data name="SettingsB080.Text" xml:space="preserve">
-    <value>Устраняет небольшие промежутки или наложения между строками субтитров</value>
+    <value>Удаляет небольшие промежутки или наложения между строками субтитров</value>
   </data>
   <data name="SettingsB081.Text" xml:space="preserve">
     <value>Загружать внешние субтитры</value>
@@ -322,19 +319,19 @@
     <value>Цвет текста</value>
   </data>
   <data name="SettingsB085.Text" xml:space="preserve">
-    <value>Цвет текстовых субтитров без собственного оформления</value>
+    <value>Цвет текстовых субтитров без собственного стиля</value>
   </data>
   <data name="SettingsB086.Text" xml:space="preserve">
     <value>Цвет обводки</value>
   </data>
   <data name="SettingsB087.Text" xml:space="preserve">
-    <value>Задаёт цвет контура вокруг букв</value>
+    <value>Задаёт цвет границы вокруг букв</value>
   </data>
   <data name="SettingsB088.Text" xml:space="preserve">
     <value>Размер обводки</value>
   </data>
   <data name="SettingsB089.Text" xml:space="preserve">
-    <value>Толщина контура; ноль отключает обводку</value>
+    <value>Толщина границы; ноль отключает обводку</value>
   </data>
   <data name="SettingsB090.Text" xml:space="preserve">
     <value>Смещение тени</value>
@@ -346,13 +343,13 @@
     <value>Межбуквенный интервал</value>
   </data>
   <data name="SettingsB093.Text" xml:space="preserve">
-    <value>Увеличивает или уменьшает горизонтальный интервал между символами</value>
+    <value>Увеличивает или уменьшает горизонтальное расстояние между символами</value>
   </data>
   <data name="SettingsB094.Text" xml:space="preserve">
     <value>Размытие обводки</value>
   </data>
   <data name="SettingsB095.Text" xml:space="preserve">
-    <value>Применяет размытие по Гауссу к контуру текста</value>
+    <value>Применяет размытие по Гауссу к обводке текста</value>
   </data>
   <data name="SettingsB096.Text" xml:space="preserve">
     <value>Сглаживание графических субтитров</value>
@@ -409,7 +406,7 @@
     <value>Стиль карточек</value>
   </data>
   <data name="SettingsB114.Text" xml:space="preserve">
-    <value>Определяет визуальное оформление настроек и информации о медиа</value>
+    <value>Определяет визуальный стиль настроек, информации о медиа и карточек недавних медиафайлов</value>
   </data>
   <data name="SettingsB115.Text" xml:space="preserve">
     <value>Стиль полосы прогресса</value>
@@ -433,16 +430,16 @@
     <value>Предпросмотр видеоэскизов</value>
   </data>
   <data name="SettingsB122.Text" xml:space="preserve">
-    <value>Показывает изображение из видео при наведении на полосу прогресса</value>
+    <value>Показывает кадр из видео при наведении на полосу прогресса</value>
   </data>
   <data name="SettingsB123.Text" xml:space="preserve">
     <value>СКРИНШОТЫ</value>
   </data>
   <data name="SettingsB124.Text" xml:space="preserve">
-    <value>Формат скриншотов</value>
+    <value>Формат скриншота</value>
   </data>
   <data name="SettingsB125.Text" xml:space="preserve">
-    <value>PNG по умолчанию использует высокую глубину цвета</value>
+    <value>PNG использует высокую глубину цвета по умолчанию</value>
   </data>
   <data name="SettingsB126.Text" xml:space="preserve">
     <value>Высокая глубина цвета</value>
@@ -514,7 +511,7 @@
     <value>Импорт</value>
   </data>
   <data name="SettingsB149.Text" xml:space="preserve">
-    <value>Версия 1.5.1</value>
+    <value>Версия 1.7.0</value>
   </data>
   <data name="SettingsB150.Text" xml:space="preserve">
     <value>Надёжный и современный медиаплеер для Windows</value>
@@ -529,7 +526,7 @@
     <value>Техническая информация</value>
   </data>
   <data name="SettingsB154.Text" xml:space="preserve">
-    <value>Фактические версии движка, загруженного HC Player</value>
+    <value>Актуальные версии движка, загруженного HC Player</value>
   </data>
   <data name="SettingsB155.Text" xml:space="preserve">
     <value>Недоступно</value>
@@ -580,10 +577,10 @@
     <value>Основные компоненты</value>
   </data>
   <data name="SettingsB169.Text" xml:space="preserve">
-    <value>• HC Player — GPL-3.0-или-более-поздняя-версия
-• mpv / FFmpeg / libplacebo — мультимедийный стек GPL/LGPL
+    <value>• HC Player — GPL-3.0-or-later
+• mpv / FFmpeg / libplacebo — GPL/LGPL multimedia stack
 • MediaInfo — BSD-2-Clause
-• Windows App SDK / WinUI — условия Microsoft</value>
+• Windows App SDK / WinUI — Microsoft terms</value>
   </data>
   <data name="SettingsB170.Text" xml:space="preserve">
     <value>Дополнительные интеграции</value>
@@ -637,7 +634,7 @@
     <value>Deno недействителен или повреждён</value>
   </data>
   <data name="SettingsDyn_09FC7289" xml:space="preserve">
-    <value>${playback-time:--:--}${?duration: / ${duration}}${!duration: / unknown duration}</value>
+    <value>${playback-time:--:--}${?duration: / ${duration}}${!duration: / длительность неизвестна}</value>
   </data>
   <data name="SettingsDyn_0ADC6C0F" xml:space="preserve">
     <value>Не удалось отключить Anime4K</value>
@@ -670,10 +667,10 @@
     <value>Конфигурация восстановлена</value>
   </data>
   <data name="SettingsDyn_1472EFE7" xml:space="preserve">
-    <value>Обрабатывает увеличение в линейном свете; расширенная опция</value>
+    <value>Обрабатывает масштабирование в линейном свете; продвинутая настройка</value>
   </data>
   <data name="SettingsDyn_14920CFD" xml:space="preserve">
-    <value>Размытие по Гауссу, примененное к контуру текста</value>
+    <value>Размытие по Гауссу, применяемое к обводке текста</value>
   </data>
   <data name="SettingsDyn_18A98943" xml:space="preserve">
     <value>Шейдер импортирован</value>
@@ -718,7 +715,7 @@
     <value>Автоматически выбирает или принудительно задаёт ограниченный/полный диапазон</value>
   </data>
   <data name="SettingsDyn_2E97D117" xml:space="preserve">
-    <value>yt-dlp импортирован и готов к использованию</value>
+    <value>yt-dlp импортирован и готов</value>
   </data>
   <data name="SettingsDyn_2EC8ADAA" xml:space="preserve">
     <value>Цвет обводки</value>
@@ -730,7 +727,7 @@
     <value>Отсутствует </value>
   </data>
   <data name="SettingsDyn_30379B4F" xml:space="preserve">
-    <value>Deno импортирован и готов к использованию</value>
+    <value>Deno импортирован и готов</value>
   </data>
   <data name="SettingsDyn_30781DEA" xml:space="preserve">
     <value>Архитектура: </value>
@@ -793,7 +790,7 @@
     <value>Размытие обводки</value>
   </data>
   <data name="SettingsDyn_46B799F5" xml:space="preserve">
-    <value>Мелкий шум, помогающий маскировать остаточный бандинг</value>
+    <value>Мелкий шум, помогающий скрыть остаточный бандинг</value>
   </data>
   <data name="SettingsDyn_485EC997" xml:space="preserve">
     <value>Настройки сохранены</value>
@@ -823,7 +820,7 @@
     <value>Использовать поля для субтитров</value>
   </data>
   <data name="SettingsDyn_5167F0AB" xml:space="preserve">
-    <value>Увеличение в линейном свете</value>
+    <value>Масштабирование в линейном свете</value>
   </data>
   <data name="SettingsDyn_51F14B6A" xml:space="preserve">
     <value>Уровни видеовыхода</value>
@@ -841,7 +838,7 @@
     <value>Шейдер добавлен в видеоконвейер.</value>
   </data>
   <data name="SettingsDyn_5795F121" xml:space="preserve">
-    <value>Показывает прогресс медиа на значке панели задач</value>
+    <value>Показывает прогресс воспроизведения на значке панели задач</value>
   </data>
   <data name="SettingsDyn_5A1CD8E6" xml:space="preserve">
     <value>Размер шрифта</value>
@@ -892,7 +889,7 @@
     <value>Чувствительность, используемая для определения цветовых полос</value>
   </data>
   <data name="SettingsDyn_737D829A" xml:space="preserve">
-    <value>Сигмоидальное увеличение</value>
+    <value>Сигмовидное масштабирование</value>
   </data>
   <data name="SettingsDyn_7479BD4E" xml:space="preserve">
     <value>Anime4K недоступен</value>
@@ -913,7 +910,7 @@
     <value>Шейдер удалён</value>
   </data>
   <data name="SettingsDyn_79DD8CDD" xml:space="preserve">
-    <value> шейдер(ов) скопировано в HC Player. Все остаются отключёнными, пока вы их не включите.</value>
+    <value> шейдер(ов) скопирован(о) в HC Player. Все остаются отключёнными, пока вы их не включите.</value>
   </data>
   <data name="SettingsDyn_7BFEB10B" xml:space="preserve">
     <value>Не удалось импортировать Deno</value>
@@ -943,7 +940,7 @@
     <value>ПОВЕДЕНИЕ</value>
   </data>
   <data name="SettingsDyn_8D9AF778" xml:space="preserve">
-    <value>Уменьшает звон от фильтров увеличения; заменяет линейный режим</value>
+    <value>Уменьшает звон от фильтров масштабирования; заменяет линейный режим</value>
   </data>
   <data name="SettingsDyn_8DAC46A8" xml:space="preserve">
     <value>Все шейдеры, управляемые HC Player, удалены из списка, конвейера и личной папки.</value>
@@ -955,7 +952,7 @@
     <value> • Отключено</value>
   </data>
   <data name="SettingsDyn_94AC9615" xml:space="preserve">
-    <value>Недопустимое значение</value>
+    <value>Неверное значение</value>
   </data>
   <data name="SettingsDyn_968C59C9" xml:space="preserve">
     <value>Выбрать папку шрифтов</value>
@@ -976,7 +973,7 @@
     <value>Не удалось изменить шейдер</value>
   </data>
   <data name="SettingsDyn_A03BC0BC" xml:space="preserve">
-    <value>Восстановление не удалось</value>
+    <value>Сбой восстановления</value>
   </data>
   <data name="SettingsDyn_A1BF588B" xml:space="preserve">
     <value>Версия </value>
@@ -988,7 +985,7 @@
     <value>Среда выполнения JavaScript готова</value>
   </data>
   <data name="SettingsDyn_A758B85B" xml:space="preserve">
-    <value>Относительное ограничение окна</value>
+    <value>Относительный предел окна</value>
   </data>
   <data name="SettingsDyn_A76B3870" xml:space="preserve">
     <value>Deno обнаружен в Windows PATH</value>
@@ -1021,13 +1018,13 @@
     <value>Шейдеры Anime4K удалены из конвейера. Другие пользовательские шейдеры остались без изменений.</value>
   </data>
   <data name="SettingsDyn_B0368FC0" xml:space="preserve">
-    <value> шейдер(ов) Anime4K обнаружено • Fast: </value>
+    <value> обнаружен(о) шейдер(ов) Anime4K • Fast: </value>
   </data>
   <data name="SettingsDyn_B091A909" xml:space="preserve">
-    <value>неполный</value>
+    <value>не завершено</value>
   </data>
   <data name="SettingsDyn_B2625C44" xml:space="preserve">
-    <value>Оставляет курсор видимым, пока плеер в оконном режиме</value>
+    <value>Оставляет курсор видимым в оконном режиме</value>
   </data>
   <data name="SettingsDyn_B3B8067B" xml:space="preserve">
     <value>Всегда разрешать перемотку</value>
@@ -1090,10 +1087,10 @@
     <value>Цвет текста</value>
   </data>
   <data name="SettingsDyn_D4BDD7A8" xml:space="preserve">
-    <value>Читает сессию только при разрешении ссылок. В Windows рекомендуется Firefox</value>
+    <value>Читает сессию только при обработке ссылок. В Windows рекомендуется Firefox</value>
   </data>
   <data name="SettingsDyn_D4F8B90C" xml:space="preserve">
-    <value>Позволяет размещать субтитры также в полях видео</value>
+    <value>Позволяет размещать субтитры также на полях видео</value>
   </data>
   <data name="SettingsDyn_D51A89BC" xml:space="preserve">
     <value>Графический API</value>
@@ -1102,10 +1099,10 @@
     <value>Этот </value>
   </data>
   <data name="SettingsDyn_D79258C6" xml:space="preserve">
-    <value>Предпочтение формата, используемое yt-dlp</value>
+    <value>Предпочтительный формат для yt-dlp</value>
   </data>
   <data name="SettingsDyn_DA742AD0" xml:space="preserve">
-    <value>Управляется активным пресетом Anime4K. Отключите пресет для ручного редактирования.</value>
+    <value>Управляется активным пресетом Anime4K. Отключите пресет для ручной настройки.</value>
   </data>
   <data name="SettingsDyn_DAFBC0DC" xml:space="preserve">
     <value> импортировано, </value>
@@ -1117,7 +1114,7 @@
     <value>Исполняемый файл yt-dlp</value>
   </data>
   <data name="SettingsDyn_E186B590" xml:space="preserve">
-    <value>Миллисекунды бездействия; также принимает no или always</value>
+    <value>Миллисекунды неактивности; также принимает no или always</value>
   </data>
   <data name="SettingsDyn_E1C5A0C2" xml:space="preserve">
     <value>Исполняемый файл Deno</value>
@@ -1126,7 +1123,7 @@
     <value>Необязательно: выберите deno.exe 2.3 или новее для полной поддержки</value>
   </data>
   <data name="SettingsDyn_E6FE82A7" xml:space="preserve">
-    <value>Используйте синтаксис mpv: key=value,flag= (без --; разделяйте запятыми)</value>
+    <value>Используйте синтаксис mpv: key=value,flag= (без --; через запятую)</value>
   </data>
   <data name="SettingsDyn_E96B65DF" xml:space="preserve">
     <value>Неизвестно</value>
@@ -1135,19 +1132,19 @@
     <value>Конфигурация плеера</value>
   </data>
   <data name="SettingsDyn_EC81F31D" xml:space="preserve">
-    <value>Ограничивает автоматическое изменение размера полезной областью экрана</value>
+    <value>Ограничивает автоматическое изменение размера доступной областью экрана</value>
   </data>
   <data name="SettingsDyn_EF09C416" xml:space="preserve">
-    <value>Пытается выполнять перемотку вперёд и назад, даже если медиа не сообщает о поддержке</value>
+    <value>Пытается перематывать вперёд и назад, даже если медиафайл не сообщает о поддержке</value>
   </data>
   <data name="SettingsDyn_F1078E57" xml:space="preserve">
-    <value>Количество проходов фильтра; более высокие значения используют больше GPU</value>
+    <value>Количество проходов фильтра; большие значения сильнее нагружают GPU</value>
   </data>
   <data name="SettingsDyn_F1E03BEC" xml:space="preserve">
     <value>Параметры проверены и применены к плееру.</value>
   </data>
   <data name="SettingsDyn_F26D7D00" xml:space="preserve">
-    <value>Шрифт, установленный в Windows, используемый для сообщений воспроизведения</value>
+    <value>Установленный в Windows шрифт для сообщений воспроизведения</value>
   </data>
   <data name="SettingsDyn_F279018A" xml:space="preserve">
     <value>Автоматически переходит в полноэкранный режим при запуске нового медиа</value>
@@ -1192,7 +1189,7 @@
     <value>ИНТЕРФЕЙС</value>
   </data>
   <data name="SettingsIntro.Text" xml:space="preserve">
-    <value>Измените параметры и нажмите «Сохранить» для применения</value>
+    <value>Измените настройки и нажмите «Сохранить» для применения</value>
   </data>
   <data name="SettingsSave.Text" xml:space="preserve">
     <value>Сохранить</value>
@@ -1237,10 +1234,10 @@
     <value>Допустимые параметры не найдены.</value>
   </data>
   <data name="SettingsDyn_6DB8D025" xml:space="preserve">
-    <value>Параметры проверены, но конфигурацию не удалось сохранить.</value>
+    <value>Параметры проверены, но сохранить конфигурацию не удалось.</value>
   </data>
   <data name="SettingsDyn_C40B4E38" xml:space="preserve">
-    <value>Параметры импортированы, но значения панели не удалось сохранить.</value>
+    <value>Параметры импортированы, но значения панели сохранить не удалось.</value>
   </data>
   <data name="SettingsDyn_9A17981F" xml:space="preserve">
     <value> параметров интегрировано в панель; </value>
@@ -1264,7 +1261,7 @@
     <value>Недопустимый профиль или режим Anime4K.</value>
   </data>
   <data name="SettingsDyn_D60D8BFC" xml:space="preserve">
-    <value>Этот режим нельзя включить, так как </value>
+    <value>Этот режим невозможно включить, так как </value>
   </data>
   <data name="SettingsDyn_0E1100A7" xml:space="preserve">
     <value> шейдер(ов) отсутствует. Первый отсутствующий файл: </value>
@@ -1288,10 +1285,10 @@
     <value>Не удалось скопировать шейдер в личную папку HC Player.</value>
   </data>
   <data name="SettingsDyn_9D7190D6" xml:space="preserve">
-    <value>Шейдер обновлён, но конфигурацию не удалось сохранить.</value>
+    <value>Шейдер обновлён, но сохранить конфигурацию не удалось.</value>
   </data>
   <data name="SettingsDyn_DE82901D" xml:space="preserve">
-    <value>Шейдер скопирован, но конфигурацию не удалось сохранить.</value>
+    <value>Шейдер скопирован, но сохранить конфигурацию не удалось.</value>
   </data>
   <data name="SettingsDyn_D1CCA4DB" xml:space="preserve">
     <value>Шейдер больше недоступен в списке.</value>
@@ -1309,7 +1306,7 @@
     <value>Не удалось сохранить удаление шейдера.</value>
   </data>
   <data name="SettingsDyn_9BF97507" xml:space="preserve">
-    <value>Шейдер удалён из списка, но файл не удалось удалить.</value>
+    <value>Шейдер удалён из списка, но удалить файл не удалось.</value>
   </data>
   <data name="SettingsDyn_8A2D4437" xml:space="preserve">
     <value>Движок воспроизведения не смог удалить все управляемые шейдеры.</value>
@@ -1318,10 +1315,10 @@
     <value>Не удалось сохранить очищенный список шейдеров.</value>
   </data>
   <data name="SettingsDyn_EC063E97" xml:space="preserve">
-    <value>Список и конвейер очищены, но </value>
+    <value>Список и конвейер были очищены, но </value>
   </data>
   <data name="SettingsDyn_EECA63A0" xml:space="preserve">
-    <value> личных файл(ов) не удалось удалить с диска.</value>
+    <value> личный(х) файл(ов) не удалось удалить с диска.</value>
   </data>
   <data name="SettingsDyn_0E7E8F51" xml:space="preserve">
     <value>Выберите допустимый исполняемый файл yt-dlp для Windows.</value>
@@ -1345,7 +1342,7 @@
     <value>Выберите допустимый исполняемый файл Deno для Windows.</value>
   </data>
   <data name="SettingsDyn_4AFCAC84" xml:space="preserve">
-    <value>Выбранный файл не является рабочей средой выполнения Deno. Используйте официальный deno.exe и убедитесь, что команда 'deno --version' работает.</value>
+    <value>Выбранный файл не является рабочей средой Deno. Используйте официальный deno.exe и убедитесь, что команда 'deno --version' работает.</value>
   </data>
   <data name="SettingsDyn_DDC88F94" xml:space="preserve">
     <value>Не удалось создать личную папку среды выполнения JavaScript.</value>
@@ -1363,10 +1360,10 @@
     <value>Deno удалён, но движок воспроизведения не удалось перезапустить.</value>
   </data>
   <data name="SettingsToggleOn" xml:space="preserve">
-    <value>Вкл.</value>
+    <value>Вкл</value>
   </data>
   <data name="SettingsToggleOff" xml:space="preserve">
-    <value>Выкл.</value>
+    <value>Выкл</value>
   </data>
   <data name="SettingsDitherDepthAuto" xml:space="preserve">
     <value>Автоматически</value>
@@ -1378,10 +1375,10 @@
     <value>Техническая информация, предоставленная MediaInfo</value>
   </data>
   <data name="MediaInfoCopyAllButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>Копировать всю информацию</value>
+    <value>Скопировать всю информацию</value>
   </data>
   <data name="MediaInfoCopyAllText.Text" xml:space="preserve">
-    <value>Копировать всё</value>
+    <value>Скопировать все</value>
   </data>
   <data name="MediaInfoCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Закрыть</value>
@@ -1390,7 +1387,7 @@
     <value>Анализ медиа…</value>
   </data>
   <data name="MediaInfoSectionGeneral" xml:space="preserve">
-    <value>Общее</value>
+    <value>Общие</value>
   </data>
   <data name="MediaInfoSectionVideo" xml:space="preserve">
     <value>Видео</value>
@@ -1414,7 +1411,7 @@
     <value>Информация о медиа недоступна для этого источника.</value>
   </data>
   <data name="MediaInfoErrorNoMediaOpen" xml:space="preserve">
-    <value>В настоящее время медиа не открыто.</value>
+    <value>Нет открытых медиафайлов.</value>
   </data>
   <data name="MediaInfoErrorNoFileForAnalysis" xml:space="preserve">
     <value>Нет медиафайла, доступного для анализа.</value>
@@ -1429,7 +1426,7 @@
     <value>Медиафайл не был предоставлен.</value>
   </data>
   <data name="MediaInfoErrorDllUnavailable" xml:space="preserve">
-    <value>MediaInfo.dll не удалось загрузить или она несовместима.</value>
+    <value>Не удалось загрузить MediaInfo.dll или файл несовместим.</value>
   </data>
   <data name="MediaInfoErrorAnalysisContext" xml:space="preserve">
     <value>MediaInfo не смогла создать контекст анализа.</value>
@@ -1468,7 +1465,7 @@
     <value>ID кодека</value>
   </data>
   <data name="MediaInfoField_EC955E62" xml:space="preserve">
-    <value>ID кодека/подсказка</value>
+    <value>ID кодека/Подсказка</value>
   </data>
   <data name="MediaInfoField_0C476EAE" xml:space="preserve">
     <value>Размер файла</value>
@@ -1498,7 +1495,7 @@
     <value>Высота</value>
   </data>
   <data name="MediaInfoField_F4D887F6" xml:space="preserve">
-    <value>Соотношение сторон дисплея</value>
+    <value>Соотношение сторон экрана</value>
   </data>
   <data name="MediaInfoField_90518254" xml:space="preserve">
     <value>Соотношение сторон пикселя</value>
@@ -1567,7 +1564,7 @@
     <value>Каналы</value>
   </data>
   <data name="MediaInfoField_A8B90D74" xml:space="preserve">
-    <value>Раскладка каналов</value>
+    <value>Расположение каналов</value>
   </data>
   <data name="MediaInfoField_6B8C79DC" xml:space="preserve">
     <value>Частота дискретизации</value>
@@ -1687,7 +1684,7 @@
     <value>Вложения</value>
   </data>
   <data name="MediaInfoField_34A749A2" xml:space="preserve">
-    <value>ID кодека/информация</value>
+    <value>ID кодека/Информация</value>
   </data>
   <data name="MediaInfoField_C382C04E" xml:space="preserve">
     <value>Блок конфигурации кодека</value>
@@ -1702,13 +1699,13 @@
     <value>Нормализация диалога</value>
   </data>
   <data name="MediaInfoField_4715EE5F" xml:space="preserve">
-    <value>Усиление воспроизведения</value>
+    <value>Выравнивание громкости</value>
   </data>
   <data name="MediaInfoField_C8C5A9A8" xml:space="preserve">
-    <value>Пик усиления воспроизведения</value>
+    <value>Пик выравнивания громкости</value>
   </data>
   <data name="MediaInfoField_6716AF29" xml:space="preserve">
-    <value>MD5 незакодированного содержимого</value>
+    <value>MD5 незакодированного контента</value>
   </data>
   <data name="MediaInfoField_EFF1FE1D" xml:space="preserve">
     <value>Тип</value>
@@ -1720,7 +1717,7 @@
     <value>Библиотека записи</value>
   </data>
   <data name="MediaInfoField_39EEA888" xml:space="preserve">
-    <value>Тип услуги</value>
+    <value>Тип сервиса</value>
   </data>
   <data name="MediaInfoField_920A8127" xml:space="preserve">
     <value>Индекс сложности</value>
@@ -1729,10 +1726,10 @@
     <value>Количество динамических объектов</value>
   </data>
   <data name="MediaInfoField_09931CCE" xml:space="preserve">
-    <value>Количество каналов основы</value>
+    <value>Количество базовых каналов</value>
   </data>
   <data name="MediaInfoField_955A3FD5" xml:space="preserve">
-    <value>Конфигурация каналов основы</value>
+    <value>Конфигурация базовых каналов</value>
   </data>
   <data name="MediaInfoField_7B996143" xml:space="preserve">
     <value>dmixmod</value>
@@ -1744,7 +1741,7 @@
     <value>Файл...</value>
   </data>
   <data name="ContextMenuB003.Text" xml:space="preserve">
-    <value>Папка...</value>
+    <value>Папку...</value>
   </data>
   <data name="ContextMenuB004.Text" xml:space="preserve">
     <value>Скопированный URL или путь</value>
@@ -1993,7 +1990,7 @@
     <value>Профили</value>
   </data>
   <data name="ContextMenuB086.Text" xml:space="preserve">
-    <value>Кадрирование</value>
+    <value>Панорамирование</value>
   </data>
   <data name="ContextMenuB087.Text" xml:space="preserve">
     <value>Увеличить размер</value>
@@ -2092,7 +2089,7 @@
     <value>Поверх всех окон</value>
   </data>
   <data name="ContextMenuB119.Text" xml:space="preserve">
-    <value>Захватить содержимое</value>
+    <value>Снимок кадра</value>
   </data>
   <data name="ContextMenuB120.Text" xml:space="preserve">
     <value>Инструменты</value>
@@ -2188,7 +2185,7 @@
     <value>Открыть папку</value>
   </data>
   <data name="MainPageNowPlayingText.Text" xml:space="preserve">
-    <value>Медиа не открыто</value>
+    <value>Медиафайл не открыт</value>
   </data>
   <data name="MainPageCaptureButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Сделать скриншот</value>
@@ -2284,7 +2281,7 @@
     <value>Компонент воспроизведения не найден</value>
   </data>
   <data name="MainPageDynNoMediaOpen" xml:space="preserve">
-    <value>Медиа не открыто</value>
+    <value>Медиафайл не открыт</value>
   </data>
   <data name="MainPageDynPreparingPlayer" xml:space="preserve">
     <value>Подготовка плеера...</value>
@@ -2491,7 +2488,7 @@
     <value>Открыть образ DVD ISO</value>
   </data>
   <data name="OsdTimeUnknownDuration" xml:space="preserve">
-    <value>${playback-time:--:--}${?duration: / ${duration}}${!duration: / unknown duration}</value>
+    <value>${playback-time:--:--}${?duration: / ${duration}}${!duration: / длительность неизвестна}</value>
   </data>
   <data name="InputOsd_DA559476" xml:space="preserve">
     <value>${?video-unscaled==yes:🎞 Видео без масштабирования: Да}${?video-unscaled==no:🎞 Видео без масштабирования: Нет}</value>
@@ -2611,10 +2608,10 @@
     <value>↕ Сдвиг Y: ${video-pan-y}</value>
   </data>
   <data name="InputOsd_70614FDB" xml:space="preserve">
-    <value> Кадрирование: ${panscan}</value>
+    <value> Панорамирование: ${panscan}</value>
   </data>
   <data name="InputOsd_1E7B043A" xml:space="preserve">
-    <value>🔄 Сброс Кадрирования</value>
+    <value>🔄 Сброс панорамирования</value>
   </data>
   <data name="InputOsd_95DADEFC" xml:space="preserve">
     <value>⏱ Скорость: ${speed}x</value>
@@ -2707,13 +2704,13 @@
     <value>Не удалось сохранить настройки на диск.</value>
   </data>
   <data name="SettingsDyn_18F81F2C" xml:space="preserve">
-    <value>Параметры сохранены, но движок воспроизведения не удалось перезапустить.</value>
+    <value>Настройки сохранены, но движок воспроизведения не удалось перезапустить.</value>
   </data>
   <data name="SettingsDyn_7F54C36A" xml:space="preserve">
     <value>Движок воспроизведения недоступен для проверки файла.</value>
   </data>
   <data name="SettingsDyn_7F7EB683" xml:space="preserve">
-    <value>Движок воспроизведения не смог запустить проверку.</value>
+    <value>Движок воспроизведения не смог начать проверку.</value>
   </data>
   <data name="SettingsDyn_766EA6D3" xml:space="preserve">
     <value>. Применено с сохранением текущего воспроизведения.</value>
@@ -2728,7 +2725,7 @@
     <value>Прямой эфир</value>
   </data>
   <data name="MainPageLiveSourceBadgeText.Text" xml:space="preserve">
-    <value>LIVE</value>
+    <value>ПРЯМОЙ ЭФИР</value>
   </data>
   <data name="SettingsDyn_6FC53BE5" xml:space="preserve">
     <value>Оставьте пустым для автоматического выбора yt-dlp; заполняйте только для использования пользовательского формата</value>
@@ -2773,7 +2770,7 @@
     <value>Показывает только основные команды в контекстном меню</value>
   </data>
   <data name="SettingsAudioExclusiveTitle.Text" xml:space="preserve">
-    <value>Монопольный аудиорежим</value>
+    <value>Эксклюзивный аудиорежим</value>
   </data>
   <data name="SettingsAudioExclusiveDescription.Text" xml:space="preserve">
     <value>Резервирует выбранное устройство для HC Player во время использования аудиовыхода</value>
@@ -2785,10 +2782,10 @@
     <value>Устраняет артефакты гребёнки с чересстрочного видео; клавиша D переключает его во время воспроизведения</value>
   </data>
   <data name="SettingsDeinterlaceOff.Content" xml:space="preserve">
-    <value>Выкл.</value>
+    <value>Выкл</value>
   </data>
   <data name="SettingsDeinterlaceOn.Content" xml:space="preserve">
-    <value>Вкл.</value>
+    <value>Вкл</value>
   </data>
   <data name="SettingsDeinterlaceAuto.Content" xml:space="preserve">
     <value>Автоматически</value>
@@ -2828,7 +2825,7 @@
     <value>ВИДЕО И ИЗОБРАЖЕНИЕ</value>
   </data>
   <data name="ShortcutSectionPanScan.Text" xml:space="preserve">
-    <value>МАСШТАБ, КАДРИРОВАНИЕ</value>
+    <value>МАСШТАБ И ПАНОРАМИРОВАНИЕ</value>
   </data>
   <data name="ShortcutSectionAudio.Text" xml:space="preserve">
     <value>АУДИО И ГРОМКОСТЬ</value>
@@ -2852,7 +2849,7 @@
     <value>Открыть медиа из буфера обмена</value>
   </data>
   <data name="ShortcutAction004.Text" xml:space="preserve">
-    <value>Остановить воспроизведение и очистить текущее медиа</value>
+    <value>Остановить воспроизведение и очистить текущий медиафайл</value>
   </data>
   <data name="ShortcutAction005.Text" xml:space="preserve">
     <value>Открыть настройки</value>
@@ -2951,7 +2948,7 @@
     <value>Переключить соотношение сторон в обратном порядке</value>
   </data>
   <data name="ShortcutAction037.Text" xml:space="preserve">
-    <value>Повернуть видео шагами по 90°</value>
+    <value>Повернуть видео с шагом 90°</value>
   </data>
   <data name="ShortcutAction038.Text" xml:space="preserve">
     <value>Переключить деинтерлейсинг</value>
@@ -2975,7 +2972,7 @@
     <value>Сдвинуть изображение вверх / вниз</value>
   </data>
   <data name="ShortcutAction046.Text" xml:space="preserve">
-    <value>Уменьшить / увеличить Кадрирование</value>
+    <value>Уменьшить / увеличить панорамирование</value>
   </data>
   <data name="ShortcutAction047.Text" xml:space="preserve">
     <value>Сбросить масштаб и позицию</value>
@@ -2993,7 +2990,7 @@
     <value>Увеличить / уменьшить громкость на 2%</value>
   </data>
   <data name="ShortcutAction052.Text" xml:space="preserve">
-    <value>Переключить без звука</value>
+    <value>Переключить звук</value>
   </data>
   <data name="ShortcutAction053.Text" xml:space="preserve">
     <value>Следующая дорожка субтитров</value>
@@ -3068,7 +3065,7 @@
     <value>Пользовательский набор</value>
   </data>
   <data name="SettingsMediaBadgeCustomSetDescription.Text" xml:space="preserve">
-    <value>Импортируйте прозрачные файлы PNG или SVG; HC Player сохраняет соотношение сторон и автоматически подгоняет каждое изображение</value>
+    <value>Импортируйте прозрачные PNG или SVG файлы; HC Player сохраняет соотношение сторон и автоматически подгоняет каждое изображение</value>
   </data>
   <data name="SettingsMediaBadgeCustomSetHint.Text" xml:space="preserve">
     <value>Для лучшего результата обрежьте изображение плотно по содержимому. DVD и Blu-ray появляются только после импорта логотипов пользователем</value>
@@ -3101,7 +3098,7 @@
     <value>файлов значков импортировано</value>
   </data>
   <data name="MediaBadgeImportFailed" xml:space="preserve">
-    <value>Совместимые значки не были импортированы</value>
+    <value>Совместимые значки не импортированы</value>
   </data>
   <data name="MediaBadgeResetFailed" xml:space="preserve">
     <value>Не удалось восстановить значки по умолчанию</value>
@@ -3110,10 +3107,10 @@
     <value>Пользовательский набор не импортирован</value>
   </data>
   <data name="SettingsMediaBadgeFileNames.Text" xml:space="preserve">
-    <value>DolbyAudio.Dark / DolbyAudio.Light&#x0A;DolbyVision.Dark / DolbyVision.Light&#x0A;DolbyAtmos.Dark / DolbyAtmos.Light&#x0A;DTS.Dark / DTS.Light&#x0A;DTSX.Dark / DTSX.Light&#x0A;YouTube.Dark / YouTube.Light&#x0A;HDR10Plus.Dark / HDR10Plus.Light&#x0A;HDR.Dark / HDR.Light&#x0A;DVD.Dark / DVD.Light&#x0A;BluRay.Dark / BluRay.Light&#x0A;&#x0A;DVD.png and BluRay.png are also accepted for both themes. Separators are optional.</value>
+    <value>DolbyAudio.Dark / DolbyAudio.Light&#x0A;DolbyVision.Dark / DolbyVision.Light&#x0A;DolbyAtmos.Dark / DolbyAtmos.Light&#x0A;DTS.Dark / DTS.Light&#x0A;DTSX.Dark / DTSX.Light&#x0A;YouTube.Dark / YouTube.Light&#x0A;HDR10Plus.Dark / HDR10Plus.Light&#x0A;HDR.Dark / HDR.Light&#x0A;DVD.Dark / DVD.Light&#x0A;BluRay.Dark / BluRay.Light&#x0A;&#x0A;DVD.png и BluRay.png также принимаются для обеих тем. Разделители необязательны.</value>
   </data>
   <data name="SettingsMediaBadgeIndividualTitle.Text" xml:space="preserve">
-    <value>Отдельный значок</value>
+    <value>Индивидуальный значок</value>
   </data>
   <data name="SettingsMediaBadgeIndividualDescription.Text" xml:space="preserve">
     <value>имя файла определяет значок и тему</value>
@@ -3284,7 +3281,7 @@
     <value>Вставьте HTTP/HTTPS URL для YouTube, HLS (.m3u8) или веб-медиа.</value>
   </data>
   <data name="PlaylistAddUrlInvalid" xml:space="preserve">
-    <value>Введите допустимый URL, начинающийся с http:// или https://.</value>
+    <value>Введите действительный URL, начинающийся с http:// или https://.</value>
   </data>
   <data name="PlaylistAddFolderMenuItem.Text" xml:space="preserve">
     <value>Добавить папку в очередь</value>
@@ -3329,7 +3326,7 @@
     <value>Удалить из очереди</value>
   </data>
   <data name="PlaylistRemoveSelectedLabel" xml:space="preserve">
-    <value>Удалить выбранные</value>
+    <value>Удалить выбранное</value>
   </data>
   <data name="PlaylistItemLabel" xml:space="preserve">
     <value>Элемент плейлиста</value>
@@ -3494,25 +3491,28 @@
     <value>Стиль элементов управления</value>
   </data>
   <data name="SettingsTransportStyleDescription.Text" xml:space="preserve">
-    <value>Переключает между режимом Bar и компактным режимом Minimal</value>
+    <value>Выбор между Панелью, Минималистичным или Плавающим стилем элементов управления</value>
   </data>
   <data name="SettingsTransportStyleClassic.Content" xml:space="preserve">
-    <value>Bar</value>
+    <value>Панель</value>
+  </data>
+  <data name="SettingsTransportStyleFloating.Content" xml:space="preserve">
+    <value>Плавающий</value>
   </data>
   <data name="SettingsTransportStyleMinimal.Content" xml:space="preserve">
-    <value>Minimal</value>
+    <value>Минималистичный</value>
   </data>
   <data name="SettingsBarLayoutTitle.Text" xml:space="preserve">
     <value>Макет панели</value>
   </data>
   <data name="SettingsBarLayoutDescription.Text" xml:space="preserve">
-    <value>Compact использует две строки; Full сохраняет текущую трёхстрочную панель</value>
+    <value>Компактный использует две строки; Полный сохраняет текущую трёхстрочную панель</value>
   </data>
   <data name="SettingsBarLayoutCompact.Content" xml:space="preserve">
-    <value>Compact</value>
+    <value>Компактный</value>
   </data>
   <data name="SettingsBarLayoutFull.Content" xml:space="preserve">
-    <value>Full</value>
+    <value>Полный</value>
   </data>
   <data name="MainPageMinimalPlayButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Воспроизведение/Пауза</value>
@@ -3629,7 +3629,7 @@
     <value>Язык</value>
   </data>
   <data name="MainPageDynOpenSubsLanguageHint" xml:space="preserve">
-    <value>Можно использовать несколько языков через запятую, например: pt-br, en, es. Вы можете создать ключ API в своей учётной записи OpenSubtitles.com.</value>
+    <value>Можно использовать несколько языков через запятую, например: ru-rus, en, ru. Вы можете создать ключ API в своей учётной записи OpenSubtitles.com.</value>
   </data>
   <data name="MainPageDynOpenSubsConfigIncompleteTitle" xml:space="preserve">
     <value>Незавершённая конфигурация</value>
@@ -3656,7 +3656,7 @@
     <value>Не удалось открыть файл для вычисления его идентификатора.</value>
   </data>
   <data name="MainPageDynOpenSubsSearchErrorTitle" xml:space="preserve">
-    <value>Не удалось выполнить поиск субтитров</value>
+    <value>Не удалось найти субтитры</value>
   </data>
   <data name="MainPageDynOpenSubsSearching" xml:space="preserve">
     <value>Поиск субтитров онлайн…</value>
@@ -3671,7 +3671,7 @@
     <value>Для этого файла не найдено субтитров на выбранном языке.</value>
   </data>
   <data name="MainPageDynOpenSubsChooseResult" xml:space="preserve">
-    <value>Выберите субтитры. Точные совпадения по файлу показываются первыми.</value>
+    <value>Выберите субтитры. Точные совпадения файлов показаны первыми.</value>
   </data>
   <data name="MainPageDynOpenSubsUntitled" xml:space="preserve">
     <value>Субтитры</value>
@@ -3716,7 +3716,7 @@
     <value>Не удалось скачать</value>
   </data>
   <data name="MainPageDynOpenSubsDownloadErrorMessage" xml:space="preserve">
-    <value>OpenSubtitles не авторизовал скачивание этих субтитров.</value>
+    <value>OpenSubtitles не разрешил скачивание этих субтитров.</value>
   </data>
   <data name="MainPageDynOpenSubsNoDownloadLink" xml:space="preserve">
     <value>Ответ OpenSubtitles не содержал ссылки для скачивания.</value>
@@ -3766,16 +3766,16 @@
     <value>Комментарии YouTube</value>
   </data>
   <data name="SettingsYouTubeCommentsDescription.Text" xml:space="preserve">
-    <value>Показывает комментарии YouTube и прямой эфир в нативной панели</value>
+    <value>Показывает комментарии YouTube и живой чат в нативной панели</value>
   </data>
   <data name="SettingsYouTubeApiKeyLabel.Text" xml:space="preserve">
-    <value>Ключ YouTube Data API</value>
+    <value>Ключ API YouTube Data</value>
   </data>
   <data name="SettingsYouTubeApiKeyHint.Text" xml:space="preserve">
-    <value>Ключ используется только для получения публичных комментариев и прямого эфира и хранится локально в настройках HC Player</value>
+    <value>Ключ используется только для получения публичных комментариев и живого чата и хранится локально в настройках HC Player</value>
   </data>
   <data name="MainPageYouTubeCommentsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>Комментарии YouTube / прямой эфир</value>
+    <value>Комментарии YouTube / живой чат</value>
   </data>
   <data name="MainPageYouTubeCommentsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Комментарии YouTube</value>
@@ -3787,7 +3787,7 @@
     <value>Публичные комментарии к текущему видео</value>
   </data>
   <data name="YouTubeCommentsSortRelevant.Content" xml:space="preserve">
-    <value>Лучшие комментарии</value>
+    <value>Сначала популярные</value>
   </data>
   <data name="YouTubeCommentsSortRecent.Content" xml:space="preserve">
     <value>Сначала новые</value>
@@ -3817,7 +3817,7 @@
     <value>Ответы</value>
   </data>
   <data name="YouTubeCommentsMissingApiKey" xml:space="preserve">
-    <value>Настройте ключ YouTube Data API в разделе Настройки &gt; Медиа &gt; YouTube</value>
+    <value>Настройте ключ API YouTube Data в разделе Настройки &gt; Интерфейс &gt; YouTube</value>
   </data>
   <data name="YouTubeCommentsNoVideo" xml:space="preserve">
     <value>Откройте видео YouTube для просмотра комментариев</value>
@@ -3826,7 +3826,7 @@
     <value>Публичные комментарии к этому видео не найдены</value>
   </data>
   <data name="YouTubeCommentsNetworkError" xml:space="preserve">
-    <value>Не удалось получить доступ к комментариям YouTube прямо сейчас</value>
+    <value>Не удалось получить доступ к комментариям YouTube в данный момент</value>
   </data>
 
   <data name="YouTubeCommentsLikesPrefix" xml:space="preserve">
@@ -3842,25 +3842,25 @@
 
   <data name="YouTubeCommentsEdited" xml:space="preserve"><value>(изменено)</value></data>
 
-  <data name="YouTubeCommentsViewRepliesPrefix" xml:space="preserve"><value>Просмотреть</value></data>
+  <data name="YouTubeCommentsViewRepliesPrefix" xml:space="preserve"><value>Посмотреть</value></data>
   <data name="YouTubeCommentsReplySingular" xml:space="preserve"><value>ответ</value></data>
   <data name="YouTubeCommentsReplyPlural" xml:space="preserve"><value>ответов</value></data>
-  <data name="YouTubeCommentsLoadMoreReplies" xml:space="preserve"><value>Загрузить больше ответов</value></data>
+  <data name="YouTubeCommentsLoadMoreReplies" xml:space="preserve"><value>Загрузить ещё ответы</value></data>
   <data name="YouTubeCommentsHideReplies" xml:space="preserve"><value>Скрыть ответы</value></data>
   <data name="YouTubeCommentsLoadingReplies" xml:space="preserve"><value>Загрузка ответов…</value></data>
-  <data name="YouTubeCommentsRetryReplies" xml:space="preserve"><value>Попробовать загрузить ответы снова</value></data>
+  <data name="YouTubeCommentsRetryReplies" xml:space="preserve"><value>Повторить загрузку ответов</value></data>
   <data name="YouTubeCommentsRepliesUnavailable" xml:space="preserve"><value>Ответы сейчас недоступны</value></data>
-  <data name="YouTubeCommentsRepliesNetworkError" xml:space="preserve"><value>Не удалось загрузить ответы прямо сейчас</value></data>
+  <data name="YouTubeCommentsRepliesNetworkError" xml:space="preserve"><value>Не удалось загрузить ответы в данный момент</value></data>
 
   <data name="YouTubeCommentsHeaderTitleText" xml:space="preserve"><value>Комментарии YouTube</value></data>
   <data name="YouTubeCommentsHeaderSubtitleText" xml:space="preserve"><value>Публичные комментарии к текущему видео</value></data>
   <data name="YouTubeCommentsLoadingTextValue" xml:space="preserve"><value>Загрузка комментариев…</value></data>
-  <data name="YouTubeLiveChatHeaderTitle" xml:space="preserve"><value>Прямой эфир</value></data>
-  <data name="YouTubeLiveChatHeaderSubtitle" xml:space="preserve"><value>Сообщения из прямого эфира</value></data>
-  <data name="YouTubeLiveChatLoading" xml:space="preserve"><value>Подключение к прямому эфиру…</value></data>
-  <data name="YouTubeLiveChatWaiting" xml:space="preserve"><value>Ожидание новых сообщений…</value></data>
-  <data name="YouTubeLiveChatEnded" xml:space="preserve"><value>Прямой эфир завершён</value></data>
-  <data name="YouTubeLiveChatNetworkError" xml:space="preserve"><value>Не удалось получить доступ к прямому эфиру прямо сейчас</value></data>
+  <data name="YouTubeLiveChatHeaderTitle" xml:space="preserve"><value>Живой чат</value></data>
+  <data name="YouTubeLiveChatHeaderSubtitle" xml:space="preserve"><value>Сообщения из прямой трансляции</value></data>
+  <data name="YouTubeLiveChatLoading" xml:space="preserve"><value>Подключение к живому чату…</value></data>
+  <data name="YouTubeLiveChatWaiting" xml:space="preserve"><value>Ожидание новых сообщений чата…</value></data>
+  <data name="YouTubeLiveChatEnded" xml:space="preserve"><value>Прямая трансляция завершена</value></data>
+  <data name="YouTubeLiveChatNetworkError" xml:space="preserve"><value>Не удалось получить доступ к живому чату в данный момент</value></data>
   <data name="YouTubeLiveChatOwner" xml:space="preserve"><value>Канал</value></data>
   <data name="YouTubeLiveChatModerator" xml:space="preserve"><value>Модератор</value></data>
   <data name="YouTubeLiveChatMember" xml:space="preserve"><value>Участник</value></data>
@@ -3870,8 +3870,8 @@
 
   <data name="SettingsDyn_33889CCB" xml:space="preserve"><value>Проверка...</value></data>
   <data name="SettingsDyn_9C43D581" xml:space="preserve"><value>Проверить обновления</value></data>
-  <data name="SettingsDyn_2B8B8FB5" xml:space="preserve"><value>Не удалось проверить обновления</value></data>
-  <data name="SettingsDyn_5BCDC5DA" xml:space="preserve"><value>Не удалось связаться с GitHub прямо сейчас. Повторите попытку позже.</value></data>
+  <data name="SettingsDyn_2B8B8FB5" xml:space="preserve"><value>Не удалось проверить наличие обновлений</value></data>
+  <data name="SettingsDyn_5BCDC5DA" xml:space="preserve"><value>Не удалось связаться с GitHub. Попробуйте позже.</value></data>
   <data name="SettingsDyn_46965F4E" xml:space="preserve"><value>Не удалось интерпретировать ответ, полученный от GitHub.</value></data>
   <data name="SettingsDyn_9854B044" xml:space="preserve"><value>Доступно обновление</value></data>
   <data name="SettingsDyn_CEFD1183" xml:space="preserve"><value> доступна. Страница релиза открыта на GitHub.</value></data>
@@ -3898,7 +3898,7 @@
     <value>Взаимодействие</value>
   </data>
   <data name="MainPageDynSponsorBlockSelfPromo" xml:space="preserve">
-    <value>Самопиар</value>
+    <value>Самореклама</value>
   </data>
   <data name="MainPageDynSponsorBlockMusicOfftopic" xml:space="preserve">
     <value>Музыка не по теме</value>
@@ -3922,9 +3922,117 @@
     <value>Обрезка: </value>
   </data>
   <data name="ShortcutCropHelp.Text" xml:space="preserve">
-    <value>Для обрезки видео щёлкните правой кнопкой по видео и выберите Кадрирование > Обрезка. Выберите «Оригинал», чтобы восстановить полное изображение</value>
+    <value>Для обрезки видео нажмите правой кнопкой мыши на видео и выберите Панорамирование &gt; Обрезка. Выберите Оригинал, чтобы восстановить полное изображение</value>
   </data>
   <data name="ShortcutCropCycle.Text" xml:space="preserve">
     <value>Следующий пресет обрезки / предыдущий пресет обрезки</value>
+  </data>
+  <data name="MainPageDynMinimalBack10" xml:space="preserve">
+    <value>Назад на 10 секунд</value>
+  </data>
+  <data name="MainPageDynMinimalForward10" xml:space="preserve">
+    <value>Вперёд на 10 секунд</value>
+  </data>
+  <data name="SettingsSkipIntroTitle.Text" xml:space="preserve">
+    <value>Пропускать заставку и концовку</value>
+  </data>
+  <data name="SettingsSkipIntroDescription.Text" xml:space="preserve">
+    <value>Показывает кнопки на 7 секунд, если главы содержат заставку или концовку</value>
+  </data>
+  <data name="IntroSkipButton" xml:space="preserve">
+    <value>Пропустить заставку</value>
+  </data>
+  <data name="EndingSkipButton" xml:space="preserve">
+    <value>Пропустить концовку</value>
+  </data>
+  <data name="IntroSkipNextEpisode" xml:space="preserve">
+    <value>Следующий эпизод</value>
+  </data>
+  <data name="SettingsContextMenuStyleTitle.Text" xml:space="preserve"><value>Стиль контекстного меню</value></data>
+  <data name="SettingsContextMenuStyleDescription.Text" xml:space="preserve"><value>Определяет вид меню, открываемого правой кнопкой мыши</value></data>
+  <data name="SettingsContextMenuStyleHC.Content" xml:space="preserve"><value>HC Player</value></data>
+  <data name="SettingsContextMenuStyleWindows.Content" xml:space="preserve"><value>Классический Windows</value></data>
+  <data name="PlaylistSearchBox.PlaceholderText" xml:space="preserve"><value>Поиск в очереди</value></data>
+  <data name="PlaylistSearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Поиск в очереди</value></data>
+  <data name="PlaylistSearchEmptyLabel" xml:space="preserve"><value>В очереди ничего не найдено</value></data>
+  <data name="PlaylistSearchReorderHint" xml:space="preserve"><value>Очистите поиск для изменения порядка</value></data>
+  <data name="SettingsUpdateNewerVersionTitle" xml:space="preserve"><value>Более новая версия</value></data>
+  <data name="SettingsAboutInterfaceInfo" xml:space="preserve"><value>Интерфейс: WinUI 3 / Windows App SDK 2.4.0</value></data>
+  <data name="SettingsXboxControllerTitle.Text" xml:space="preserve">
+    <value>Контроллер Xbox</value>
+  </data>
+  <data name="SettingsXboxControllerDescription.Text" xml:space="preserve">
+    <value>Управление воспроизведением с помощью контроллера, совместимого с Xbox</value>
+  </data>
+  <data name="SettingsGamepadChoiceTitle.Text" xml:space="preserve"><value>Выберите параметр</value></data>
+  <data name="SettingsGamepadChoiceConfirm.Content" xml:space="preserve"><value>Подтвердить</value></data>
+  <data name="SettingsGamepadChoiceCancel.Content" xml:space="preserve"><value>Отмена</value></data>
+  <data name="MainPageDynOpenSubsCannotConsumeService" xml:space="preserve"><value>Вы не можете использовать эту службу.</value></data>
+  <data name="Anime4KOsdMode" xml:space="preserve"><value>Режим </value></data>
+  <data name="Anime4KOsdDisabled" xml:space="preserve"><value>Anime4K отключён</value></data>
+  <data name="Anime4KOsdProfile" xml:space="preserve"><value>Профиль </value></data>
+  <data name="Anime4KOsdProfileUnavailable" xml:space="preserve"><value> недоступен.</value></data>
+  <data name="Anime4KOsdFailed" xml:space="preserve"><value>Не удалось изменить настройки Anime4K.</value></data>
+  <data name="Anime4KOsdUnavailable" xml:space="preserve"><value>Anime4K недоступен: импортируйте необходимые шейдеры.</value></data>
+  <data name="Anime4KShortcutsHint.Text" xml:space="preserve"><value>Ctrl+F8: вкл/выкл • Ctrl+F9/F10: предыдущий/следующий режим • Ctrl+Shift+F8: Fast/HQ</value></data>
+  <data name="ShadersLauncherTitle.Text" xml:space="preserve"><value>Шейдеры и Anime4K</value></data>
+  <data name="ShadersLauncherDescription.Text" xml:space="preserve"><value>Импорт и управление шейдерами в отдельной панели</value></data>
+  <data name="ShadersLauncherOpen.Content" xml:space="preserve"><value>Открыть панель</value></data>
+  <data name="ShadersPanelBack.Content" xml:space="preserve"><value>← Назад к настройкам</value></data>
+  <data name="ShadersPanelTitle.Text" xml:space="preserve"><value>Шейдеры</value></data>
+  <data name="ShadersPanelClose.ToolTipService.ToolTip" xml:space="preserve"><value>Закрыть</value></data>
+  <data name="ShadersPanelLoadError" xml:space="preserve"><value>Не удалось открыть панель шейдеров.</value></data>
+  <data name="MainPageDynOpenSubsForbidden" xml:space="preserve"><value>OpenSubtitles не разрешил эту операцию. Проверьте права учётной записи, ключ API и лимиты скачивания.</value></data>
+  <data name="MainPageDynOpenSubsUnauthorized" xml:space="preserve"><value>OpenSubtitles не разрешил доступ. Проверьте учетную запись, пароль и ключ API, затем повторите попытку.</value></data>
+  <data name="SettingsHomeRecentSection.Text" xml:space="preserve">
+    <value>ГЛАВНЫЙ ЭКРАН</value>
+  </data>
+  <data name="SettingsHomeRecentTitle.Text" xml:space="preserve">
+    <value>Показывать недавние медиафайлы</value>
+  </data>
+  <data name="SettingsHomeRecentDescription.Text" xml:space="preserve">
+    <value>Показывает на главном экране 3 последних воспроизведённых файла или ссылки</value>
+  </data>
+  <data name="NativeHomeRecentHeading" xml:space="preserve">
+    <value>Недавние медиафайлы</value>
+  </data>
+  <data name="LanguageJaJP.Content" xml:space="preserve">
+    <value>Японский (Япония)</value>
+  </data>
+  <data name="SettingsContextRecentTitle.Text" xml:space="preserve">
+    <value>Показывать недавние медиафайлы в контекстном меню</value>
+  </data>
+  <data name="SettingsContextRecentDescription.Text" xml:space="preserve">
+    <value>Показывает недавно воспроизведённые файлы и ссылки в меню правой кнопки мыши</value>
+  </data>
+  <data name="SettingsClearRecentTitle.Text" xml:space="preserve">
+    <value>Очистить историю недавних медиафайлов</value>
+  </data>
+  <data name="SettingsClearRecentDescription.Text" xml:space="preserve">
+    <value>Удаляет записи о файлах и ссылках, сохраняя позиции продолжения воспроизведения</value>
+  </data>
+  <data name="SettingsClearRecentButton.Text" xml:space="preserve">
+    <value>Очистить</value>
+  </data>
+  <data name="SettingsClearRecentConfirmTitle" xml:space="preserve">
+    <value>Очистить историю недавних медиафайлов?</value>
+  </data>
+  <data name="SettingsClearRecentConfirmMessage" xml:space="preserve">
+    <value>Файлы и ссылки будут удалены из истории недавних медиафайлов, включая карточки на главном экране. Сохранённые позиции возобновления не будут удалены.</value>
+  </data>
+  <data name="SettingsClearRecentConfirmPrimary" xml:space="preserve">
+    <value>Очистить историю</value>
+  </data>
+  <data name="SettingsClearRecentConfirmCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="ShadersPanelMoreOptionsTooltip" xml:space="preserve">
+    <value>Дополнительные параметры шейдеров</value>
+  </data>
+  <data name="LanguageRuRU.Content" xml:space="preserve">
+    <value>Русский (Россия)</value>
+  </data>
+  <data name="ContextMenuDynMoreTracksRange" xml:space="preserve">
+    <value>Другие дорожки ({0}–{1})</value>
   </data>
 </root>
