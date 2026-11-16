@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="HC%20Player/Assets/Branding/HCPlayer.Brand.png" width="180" alt="HC Player">
+  <img src="docs/assets/hc-player-icon.png" width="180" alt="HC Player">
 </p>
 
 <h1 align="center">HC Player</h1>
